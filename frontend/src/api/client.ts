@@ -61,7 +61,9 @@ export class ApiClient {
     });
   }
 
-  validateGraph(spec: unknown): Promise<{ issues: GraphIssue[] }> {
+  validateGraph(
+    spec: unknown,
+  ): Promise<{ issues: GraphIssue[]; chord_edge_ids: string[]; loop_count: number }> {
     return this.request("/api/validate-graph", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -83,5 +85,29 @@ export class ApiClient {
 
   getExample(id: string): Promise<ExampleSpec> {
     return this.request(`/api/examples/${encodeURIComponent(id)}`);
+  }
+
+  async uploadUfo(
+    file: File,
+    options: { modelId?: string; restrictionName?: string; overwrite?: boolean } = {},
+  ): Promise<{ id: string; name: string; particles: number; vertices: number }> {
+    const form = new FormData();
+    form.append("file", file);
+    if (options.modelId) form.append("model_id", options.modelId);
+    if (options.restrictionName) form.append("restriction_name", options.restrictionName);
+    if (options.overwrite) form.append("overwrite", "true");
+
+    const resp = await fetch(`${this.base}/api/models/upload-ufo`, {
+      method: "POST",
+      body: form,
+    });
+    if (!resp.ok) {
+      const body = (await resp.json().catch(() => ({
+        detail: resp.statusText,
+        code: "HTTP_ERROR",
+      }))) as { detail: string; code: string; hint?: string };
+      throw new ApiError(body);
+    }
+    return resp.json();
   }
 }

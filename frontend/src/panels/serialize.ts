@@ -26,5 +26,6 @@ export function serializeGraphSpec(state: DiagramState) {
       kind: l.kind,
       label: l.label,
     })),
+    lmb_edge_ids: state.lmbEdgeIds,
   };
 }

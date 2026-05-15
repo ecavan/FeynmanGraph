@@ -1,0 +1,230 @@
+"""Upload routes: accept a UFO model directory (zipped or tarred), convert to
+the feyngraph Model schema, and persist under the user-models directory so
+the new model becomes available via /api/models/{id}.
+
+SECURITY: UFO files are Python modules. Loading a UFO model effectively runs
+the uploaded Python code. feyngraph is a local-only tool (binds to 127.0.0.1
+by default) so the trust model is "the user trusts what they uploaded". DO
+NOT expose this endpoint over a public network without sandboxing.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import tarfile
+import tempfile
+import zipfile
+from pathlib import Path
+from typing import Annotated, Any
+
+from fastapi import APIRouter, File, Form, UploadFile
+from pydantic import BaseModel
+
+from feyngraph.api.errors import FeyngraphHTTPException
+from feyngraph.domain.model_loader import user_models_dir
+
+router = APIRouter(prefix="/api/models", tags=["models"])
+
+_ALLOWED_ID = re.compile(r"^[A-Za-z0-9_\-]+$")
+
+
+class UploadResult(BaseModel):
+    id: str
+    name: str
+    particles: int
+    vertices: int
+    json_path: str
+
+
+def _safe_extract(archive: Path, dest: Path) -> None:
+    """Extract a zip or tar.gz to `dest`, guarding against path traversal."""
+    if zipfile.is_zipfile(archive):
+        with zipfile.ZipFile(archive) as zf:
+            for entry_name in zf.namelist():
+                if Path(entry_name).is_absolute() or ".." in Path(entry_name).parts:
+                    raise FeyngraphHTTPException(
+                        status_code=422,
+                        detail=f"Archive contains unsafe path: {entry_name!r}",
+                        code="UNSAFE_ARCHIVE_PATH",
+                    )
+            zf.extractall(dest)
+    elif tarfile.is_tarfile(archive):
+        with tarfile.open(archive) as tf:
+            for tar_member in tf.getmembers():
+                if Path(tar_member.name).is_absolute() or ".." in Path(tar_member.name).parts:
+                    raise FeyngraphHTTPException(
+                        status_code=422,
+                        detail=f"Archive contains unsafe path: {tar_member.name!r}",
+                        code="UNSAFE_ARCHIVE_PATH",
+                    )
+            tf.extractall(dest, filter="data")
+    else:
+        raise FeyngraphHTTPException(
+            status_code=422,
+            detail="Uploaded file is neither a zip nor a tar.gz archive",
+            code="INVALID_ARCHIVE",
+        )
+
+
+def _find_ufo_root(extracted: Path) -> Path:
+    """Locate the UFO model directory under `extracted`.
+
+    A UFO model is a Python package containing `particles.py` (at minimum).
+    We accept either a flat layout (files at the top of the archive) or one
+    level of nesting (typical "MyModel/particles.py" packaging).
+    """
+    if (extracted / "particles.py").is_file():
+        return extracted
+    candidates = [p for p in extracted.iterdir() if p.is_dir()]
+    for c in candidates:
+        if (c / "particles.py").is_file():
+            return c
+    raise FeyngraphHTTPException(
+        status_code=422,
+        detail="Could not find UFO model in upload (missing particles.py)",
+        code="UFO_LAYOUT_INVALID",
+        hint="The archive should contain particles.py at the root or one level deep.",
+    )
+
+
+def _convert_ufo_to_feyngraph_schema(ufo_json_path: Path, model_id: str) -> dict[str, Any]:
+    """Convert ufo-model-loader's JSON output into the feyngraph Model schema.
+
+    Mirrors `scripts/convert_gammaloop_sm.py`; kept inline here so uploads do
+    not depend on the script's exact location.
+    """
+    raw = json.loads(ufo_json_path.read_text())
+    name_to_pdg: dict[str, int] = {}
+    particles_in: list[dict[str, Any]] = raw.get("particles", [])
+    for p in particles_in:
+        pdg_local = int(p["pdg_code"])
+        name_to_pdg.setdefault(p["name"], pdg_local)
+        if p["antiname"] != p["name"]:
+            name_to_pdg.setdefault(p["antiname"], -pdg_local)
+
+    def _baryon(pdg: int) -> float:
+        if 1 <= abs(pdg) <= 6:
+            return (1.0 / 3.0) * (1 if pdg > 0 else -1)
+        return 0.0
+
+    particles_out = []
+    for p in particles_in:
+        pdg = int(p["pdg_code"])
+        particles_out.append({
+            "pdg_id": pdg,
+            "name": p["name"],
+            "anti_name": p["antiname"],
+            "mass": str(p["mass"]),
+            "charge": float(p["charge"]),
+            "lepton_number": int(p["lepton_number"]),
+            "baryon_number": _baryon(pdg),
+            "spin": max(0, int(p["spin"]) - 1),
+            "color_rep": int(p["color"]),
+        })
+
+    vertices_out = []
+    for v in raw.get("vertex_rules", []):
+        pdgs: list[int] = []
+        ok = True
+        for particle_name in v["particles"]:
+            pdg_lookup = name_to_pdg.get(particle_name)
+            if pdg_lookup is None:
+                ok = False
+                break
+            pdgs.append(pdg_lookup)
+        if not ok:
+            continue
+        vertices_out.append({"id": v["name"], "particles": pdgs})
+
+    return {
+        "id": model_id,
+        "name": raw.get("name", model_id),
+        "particles": particles_out,
+        "vertices": vertices_out,
+    }
+
+
+@router.post("/upload-ufo", response_model=UploadResult)
+async def upload_ufo(
+    file: Annotated[UploadFile, File(...)],
+    model_id: Annotated[str | None, Form()] = None,
+    restriction_name: Annotated[str | None, Form()] = None,
+    overwrite: Annotated[bool, Form()] = False,
+) -> UploadResult:
+    if file.filename is None:
+        raise FeyngraphHTTPException(
+            status_code=422, detail="Upload missing a filename", code="UPLOAD_MISSING_FILENAME",
+        )
+
+    # Derive model id from filename if not supplied
+    chosen_id = model_id or Path(file.filename).stem.replace(".tar", "").replace(".gz", "")
+    if not _ALLOWED_ID.match(chosen_id):
+        raise FeyngraphHTTPException(
+            status_code=422,
+            detail=f"Model id {chosen_id!r} must match [A-Za-z0-9_-]+",
+            code="INVALID_MODEL_ID",
+        )
+
+    target = user_models_dir() / f"{chosen_id}.json"
+    if target.exists() and not overwrite:
+        raise FeyngraphHTTPException(
+            status_code=409,
+            detail=f"Model {chosen_id!r} already exists",
+            code="MODEL_ALREADY_EXISTS",
+            hint="Pass overwrite=true in the form to replace it.",
+        )
+
+    with tempfile.TemporaryDirectory(prefix="feyngraph-ufo-") as tmp_str:
+        tmp = Path(tmp_str)
+        archive_path = tmp / "upload"
+        contents = await file.read()
+        archive_path.write_bytes(contents)
+
+        extracted = tmp / "extracted"
+        extracted.mkdir()
+        _safe_extract(archive_path, extracted)
+
+        ufo_root = _find_ufo_root(extracted)
+        ufo_json_path = tmp / "ufo.json"
+
+        try:
+            from ufo_model_loader.commands import export_model, load_model  # type: ignore[import-untyped]
+        except ImportError as exc:
+            raise FeyngraphHTTPException(
+                status_code=500,
+                detail="ufo-model-loader not installed in server environment",
+                code="UFO_LOADER_MISSING",
+            ) from exc
+
+        try:
+            model, input_param_card = load_model(
+                input_model_path=str(ufo_root),
+                restriction_name=restriction_name,
+                simplify_model=False,
+                wrap_indices_in_lorentz_structures=False,
+            )
+            export_model(
+                model=model,
+                input_param_card=input_param_card,
+                output_model_path=str(ufo_json_path),
+                allow_overwrite=True,
+            )
+        except Exception as exc:
+            raise FeyngraphHTTPException(
+                status_code=422,
+                detail=f"UFO model load failed: {exc!s}",
+                code="UFO_LOAD_FAILED",
+                hint="Check the UFO directory contains valid particles.py, vertices.py, couplings.py, etc.",
+            ) from exc
+
+        feyngraph_doc = _convert_ufo_to_feyngraph_schema(ufo_json_path, chosen_id)
+        target.write_text(json.dumps(feyngraph_doc, indent=2))
+
+    return UploadResult(
+        id=chosen_id,
+        name=feyngraph_doc["name"],
+        particles=len(feyngraph_doc["particles"]),
+        vertices=len(feyngraph_doc["vertices"]),
+        json_path=str(target),
+    )

@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from feyngraph.api.errors import FeyngraphHTTPException
+from feyngraph.domain.cycle_basis import InvalidLoopOverrideError
 from feyngraph.domain.dot_writer import (
     NoExternalLegsError,
     UnassignedEdgeError,
@@ -57,5 +58,15 @@ async def export_dot(spec: GraphSpec) -> ExportResponse:
             status_code=422,
             detail=str(exc),
             code="NO_EXTERNAL_LEGS",
+        ) from exc
+    except InvalidLoopOverrideError as exc:
+        raise FeyngraphHTTPException(
+            status_code=422,
+            detail=str(exc),
+            code="INVALID_LMB_OVERRIDE",
+            hint=(
+                "lmb_edge_ids must list chord edges of the graph "
+                "(removing them must leave a spanning forest)"
+            ),
         ) from exc
     return ExportResponse(dot=dot)

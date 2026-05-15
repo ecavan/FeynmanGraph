@@ -15,6 +15,20 @@ from feyngraph.domain.model_schema import Model, ModelMeta
 DEFAULT_BUNDLED_DIR = Path(__file__).resolve().parent.parent / "data" / "models"
 
 
+def user_models_dir() -> Path:
+    """Per-user models directory (defaults to ~/.feyngraph/models).
+
+    Overridable with the `FEYNGRAPH_USER_MODELS_DIR` env var. The directory is
+    created on first access. User-uploaded UFO models live here.
+    """
+    import os
+
+    raw = os.environ.get("FEYNGRAPH_USER_MODELS_DIR")
+    path = Path(raw).expanduser() if raw else Path.home() / ".feyngraph" / "models"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class ModelNotFoundError(LookupError):
     """Raised when a requested model id is not found in any search directory."""
 
@@ -22,6 +36,9 @@ class ModelNotFoundError(LookupError):
 class ModelLoader:
     def __init__(self, extra_search_dirs: list[Path] | None = None) -> None:
         self._search_dirs: list[Path] = list(extra_search_dirs or [])
+        user_dir = user_models_dir()
+        if user_dir.is_dir():
+            self._search_dirs.append(user_dir)
         if DEFAULT_BUNDLED_DIR.is_dir():
             self._search_dirs.append(DEFAULT_BUNDLED_DIR)
         self._cache: dict[str, Model] = {}

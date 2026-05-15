@@ -51,24 +51,18 @@ def check_boundary(spec: GraphSpec, model: Model) -> ConservationResult:
         particle = by_pdg.get(pdg)
         if particle is None:
             continue
-        # If the edge's source is an external leg, the edge flows OUT of that
-        # leg and INTO the diagram; if the target is an external leg, the edge
-        # flows OUT of the diagram and INTO the leg. We sum incoming particles
-        # and subtract outgoing.
-        for endpoint, edge_direction_sign in (
-            (edge.source_node_id, +1),
-            (edge.target_node_id, -1),
-        ):
+        # For each endpoint that is an external leg, contribute the particle's
+        # quantum numbers with sign +1 if incoming, -1 if outgoing. The deficit
+        # is then Sigma(in) - Sigma(out) per the spec convention.
+        for endpoint in (edge.source_node_id, edge.target_node_id):
             kind = legs_by_node.get(endpoint)
             if kind is None:
                 continue
-            kind_sign = +1 if kind == "incoming" else -1
-            effective = kind_sign * edge_direction_sign
-            charge += effective * particle.charge
-            lepton += effective * particle.lepton_number
-            baryon += effective * particle.baryon_number
-            color += effective * _triality(particle)
-            break
+            sign = +1 if kind == "incoming" else -1
+            charge += sign * particle.charge
+            lepton += sign * particle.lepton_number
+            baryon += sign * particle.baryon_number
+            color += sign * _triality(particle)
 
     return ConservationResult(
         charge_deficit=charge,

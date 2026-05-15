@@ -1,0 +1,26 @@
+{
+  "model_id": "sm",
+  "theory_id": "qed",
+  "process_name": "bhabha",
+  "nodes": [
+    { "id": "ext_e_minus_in", "position": [-150, 60] },
+    { "id": "ext_e_plus_in",  "position": [-150, -60] },
+    { "id": "ext_e_minus_out","position": [250, 60] },
+    { "id": "ext_e_plus_out", "position": [250, -60] },
+    { "id": "v1", "position": [0, 0], "ufo_vertex_id": "V_98" },
+    { "id": "v2", "position": [100, 0], "ufo_vertex_id": "V_98" }
+  ],
+  "edges": [
+    { "id": "e1", "source_node_id": "ext_e_minus_in",  "target_node_id": "v1", "particle_pdg_id": 11,  "direction": "source_to_target" },
+    { "id": "e2", "source_node_id": "ext_e_plus_in",   "target_node_id": "v1", "particle_pdg_id": -11, "direction": "source_to_target" },
+    { "id": "e3", "source_node_id": "v2", "target_node_id": "ext_e_minus_out","particle_pdg_id": 11,  "direction": "source_to_target" },
+    { "id": "e4", "source_node_id": "v2", "target_node_id": "ext_e_plus_out", "particle_pdg_id": -11, "direction": "source_to_target" },
+    { "id": "e5", "source_node_id": "v1", "target_node_id": "v2",             "particle_pdg_id": 22,  "direction": "source_to_target" }
+  ],
+  "external_legs": [
+    { "node_id": "ext_e_minus_in", "kind": "incoming", "label": "p1" },
+    { "node_id": "ext_e_plus_in",  "kind": "incoming", "label": "p2" },
+    { "node_id": "ext_e_minus_out","kind": "outgoing", "label": "p3" },
+    { "node_id": "ext_e_plus_out", "kind": "outgoing", "label": "p4" }
+  ]
+}

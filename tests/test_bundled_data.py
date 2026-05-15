@@ -32,8 +32,12 @@ def test_bundled_sm_loads_via_api():
 
 
 def test_starter_examples_present():
+    """The three original starters must always ship; the library can grow beyond them."""
     names = {p.name for p in EXAMPLES_DIR.glob("*.json")}
-    assert names == {"ee_mumu.json", "qq_tt.json", "gg_H.json"}
+    required = {"ee_mumu.json", "qq_tt.json", "gg_H.json"}
+    assert required.issubset(names), f"missing required starters: {required - names}"
+    # At least one extra demonstrates the library expanded past v0.1 minimum.
+    assert len(names) >= 3
 
 
 def test_each_example_exports_to_dot():
@@ -58,3 +62,16 @@ def test_ggH_has_loop_chord():
     dot = resp.json()["dot"]
     assert "lmb_index=0" in dot
     assert "lmb_index=1" not in dot  # exactly one independent loop
+
+
+def test_each_starter_passes_validation_with_zero_issues():
+    """Every bundled starter must validate cleanly. Regression for the conservation
+    sign bug where same-particle-on-both-sides processes (e.g. Compton) were
+    flagged as charge-violating because (in + out) was summed instead of (in - out)."""
+    client = TestClient(create_app())
+    for path in sorted(EXAMPLES_DIR.glob("*.json")):
+        spec = json.loads(path.read_text())
+        resp = client.post("/api/validate-graph", json=spec)
+        assert resp.status_code == 200, f"{path.name}: {resp.text}"
+        body = resp.json()
+        assert body["issues"] == [], f"{path.name} has issues: {body['issues']}"

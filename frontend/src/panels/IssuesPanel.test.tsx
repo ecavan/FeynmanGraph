@@ -49,4 +49,38 @@ describe("IssuesPanel", () => {
     });
     await waitFor(() => expect(screen.getByText(/no issues/i)).toBeInTheDocument());
   });
+
+  it("re-validates when lmbEdgeIds changes (override edits update Issues panel)", async () => {
+    // First validate-graph call: no override yet, returns empty.
+    // Second call (triggered by setLmbEdgeIds): override invalid, returns the issue.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ issues: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            issues: [
+              {
+                code: "INVALID_LMB_OVERRIDE",
+                detail: "unknown edge ids in lmb_edge_ids: ['bogus']",
+                element_ids: ["bogus"],
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+    globalThis.fetch = fetchMock;
+    render(<IssuesPanel />);
+    act(() => {
+      useDiagramStore.getState().setModelId("sm");
+    });
+    await waitFor(() => expect(screen.getByText(/no issues/i)).toBeInTheDocument());
+    act(() => {
+      useDiagramStore.getState().setLmbEdgeIds(["bogus"]);
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/INVALID_LMB_OVERRIDE/)).toBeInTheDocument(),
+    );
+  });
 });

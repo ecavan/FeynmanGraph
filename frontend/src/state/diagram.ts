@@ -26,10 +26,17 @@ export type DiagramState = {
   nodes: VertexNode[];
   edges: ParticleEdge[];
   externalLegs: ExternalLeg[];
+  /**
+   * Custom loop momentum routing. When null, the backend auto-picks chord
+   * edges via a spanning-tree algorithm. When a non-empty list, those edge
+   * IDs are used as chords (backend validates them at export time).
+   */
+  lmbEdgeIds: string[] | null;
 
   setModelId: (id: string) => void;
   setTheoryId: (id: string) => void;
   setProcessName: (name: string) => void;
+  setLmbEdgeIds: (ids: string[] | null) => void;
   addVertex: (v: VertexNode) => void;
   removeVertex: (id: string) => void;
   addEdge: (e: Omit<ParticleEdge, "particlePdgId"> & { particlePdgId?: number | null }) => void;
@@ -47,6 +54,7 @@ const INITIAL = {
   nodes: [] as VertexNode[],
   edges: [] as ParticleEdge[],
   externalLegs: [] as ExternalLeg[],
+  lmbEdgeIds: null as string[] | null,
 };
 
 export const useDiagramStore = create<DiagramState>((set) => ({
@@ -54,6 +62,7 @@ export const useDiagramStore = create<DiagramState>((set) => ({
   setModelId: (id) => set({ modelId: id }),
   setTheoryId: (id) => set({ theoryId: id }),
   setProcessName: (name) => set({ processName: name }),
+  setLmbEdgeIds: (ids) => set({ lmbEdgeIds: ids }),
   addVertex: (v) => set((s) => ({ nodes: [...s.nodes, v] })),
   removeVertex: (id) =>
     set((s) => ({

@@ -30,6 +30,8 @@ export function loadExampleIntoStore(spec: ExampleSpec): void {
   for (const leg of spec.external_legs) {
     s.addExternalLeg({ nodeId: leg.node_id, kind: leg.kind, label: leg.label });
   }
+  // Loaded examples always use auto-routing; clear any prior override.
+  s.setLmbEdgeIds(null);
 }
 
 export function ExampleLoader() {

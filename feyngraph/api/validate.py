@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from feyngraph.api.errors import FeyngraphHTTPException
 from feyngraph.domain.conservation import check_boundary
+from feyngraph.domain.cycle_basis import InvalidLoopOverrideError, compute_loop_momenta
 from feyngraph.domain.graph_spec import GraphSpec
 from feyngraph.domain.legality import (
     CompletionOption,
@@ -50,6 +51,10 @@ class GraphIssue(BaseModel):
 
 class ValidateGraphResponse(BaseModel):
     issues: list[GraphIssue]
+    # Auto-picked or user-overridden chord edges (one per independent cycle).
+    # Useful for the frontend's "Loop momentum routing" sidebar.
+    chord_edge_ids: list[str] = []
+    loop_count: int = 0
 
 
 def _resolve_model_and_theory(model_id: str, theory_id: str) -> tuple[Model, Theory]:
@@ -120,4 +125,20 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
                 detail=f"Color triality does not conserve: deficit = {cons.color_deficit % 3}",
             ))
 
-    return ValidateGraphResponse(issues=issues)
+    # Compute the chord edges that would be used at export time. If the user
+    # has overridden them via spec.lmb_edge_ids and the override is invalid,
+    # surface that as an issue alongside whatever else came up.
+    chord_ids: list[str] = []
+    loop_count = 0
+    try:
+        loop = compute_loop_momenta(spec)
+        chord_ids = list(loop.chord_edge_ids)
+        loop_count = loop.loop_count
+    except InvalidLoopOverrideError as exc:
+        issues.append(GraphIssue(
+            code="INVALID_LMB_OVERRIDE",
+            detail=str(exc),
+            element_ids=list(spec.lmb_edge_ids or []),
+        ))
+
+    return ValidateGraphResponse(issues=issues, chord_edge_ids=chord_ids, loop_count=loop_count)

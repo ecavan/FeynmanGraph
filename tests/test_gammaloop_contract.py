@@ -30,34 +30,34 @@ EXAMPLES_DIR = REPO_ROOT / "feyngraph" / "data" / "examples"
 
 
 def _gammaloop_path() -> str | None:
-    """Find the gammaloop binary AND verify it's actually runnable.
+    """Find the gammaloop binary if it's installed and executable.
 
-    Looks in (1) PATH, (2) ~/Documents/GitHub/gammaloop/gammaloop, (3) ./gammaloop.
-    Returns the path only if `<gammaloop> --version` succeeds — the gammaloop
-    launcher is a Python script that exits with an error if no compiled binary
-    is in the target/ directory, so we explicitly verify it works.
+    Looks in (1) PATH, (2) ~/Documents/GitHub/gammaloop/gammaloop (the launcher
+    wrapper), (3) ~/Documents/GitHub/gammaloop/target/*/gammaloop (the raw
+    compiled binary), (4) ./gammaloop. We don't try to probe gammaloop with a
+    fake command — its CLI is finicky about what counts as "valid invocation"
+    so we settle for "the file exists and is executable" and rely on the real
+    `import graphs` invocation to surface any actual issue.
     """
+    import os
+
     candidates: list[str] = []
     on_path = shutil.which("gammaloop")
     if on_path:
         candidates.append(on_path)
-    candidates.extend(
-        str(p)
-        for p in (
-            Path.home() / "Documents" / "GitHub" / "gammaloop" / "gammaloop",
-            Path.cwd() / "gammaloop",
-        )
-        if p.is_file()
-    )
+    base = Path.home() / "Documents" / "GitHub" / "gammaloop"
+    for p in (
+        base / "gammaloop",
+        base / "target" / "release" / "gammaloop",
+        base / "target" / "dev-optim" / "gammaloop",
+        base / "target" / "debug" / "gammaloop",
+        Path.cwd() / "gammaloop",
+    ):
+        if p.is_file():
+            candidates.append(str(p))
     for cand in candidates:
-        try:
-            result = subprocess.run(
-                [cand, "--version"], capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                return cand
-        except (subprocess.TimeoutExpired, OSError):
-            continue
+        if os.access(cand, os.X_OK):
+            return cand
     return None
 
 
@@ -96,9 +96,14 @@ def test_gammaloop_accepts_ee_mumu_golden(tmp_path: Path) -> None:
     )
 
 
+_ALL_STARTER_IDS = sorted(
+    p.stem for p in EXAMPLES_DIR.glob("*.json")
+) if EXAMPLES_DIR.is_dir() else ["ee_mumu", "qq_tt", "gg_H"]
+
+
 @pytest.mark.gammaloop
 @pytest.mark.skipif(GAMMALOOP_BIN is None, reason="gammaloop not installed / not on PATH")
-@pytest.mark.parametrize("example_id", ["ee_mumu", "qq_tt", "gg_H"])
+@pytest.mark.parametrize("example_id", _ALL_STARTER_IDS)
 def test_gammaloop_accepts_generated_starter(example_id: str, tmp_path: Path) -> None:
     """Each bundled starter, when exported via /api/export-dot, parses cleanly."""
     client = TestClient(create_app())

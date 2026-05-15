@@ -20,7 +20,14 @@ export function IssuesPanel() {
       .validateGraph(spec)
       .then((resp) => setIssues(resp.issues))
       .catch(() => setIssues([]));
-  }, [state.modelId, state.theoryId, state.nodes, state.edges, state.externalLegs]);
+  }, [
+    state.modelId,
+    state.theoryId,
+    state.nodes,
+    state.edges,
+    state.externalLegs,
+    state.lmbEdgeIds,
+  ]);
 
   if (issues.length === 0) {
     return (

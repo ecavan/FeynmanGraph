@@ -1,0 +1,21 @@
+{
+  "model_id": "sm",
+  "theory_id": "sm",
+  "process_name": "h_bb",
+  "nodes": [
+    { "id": "ext_h",    "position": [-150, 0] },
+    { "id": "ext_b",    "position": [200, 60] },
+    { "id": "ext_bbar", "position": [200, -60] },
+    { "id": "v1", "position": [0, 0], "ufo_vertex_id": "V_78" }
+  ],
+  "edges": [
+    { "id": "e1", "source_node_id": "ext_h", "target_node_id": "v1",       "particle_pdg_id": 25, "direction": "source_to_target" },
+    { "id": "e2", "source_node_id": "v1",    "target_node_id": "ext_b",    "particle_pdg_id": 5,  "direction": "source_to_target" },
+    { "id": "e3", "source_node_id": "v1",    "target_node_id": "ext_bbar", "particle_pdg_id": -5, "direction": "source_to_target" }
+  ],
+  "external_legs": [
+    { "node_id": "ext_h",    "kind": "incoming", "label": "p1" },
+    { "node_id": "ext_b",    "kind": "outgoing", "label": "p2" },
+    { "node_id": "ext_bbar", "kind": "outgoing", "label": "p3" }
+  ]
+}

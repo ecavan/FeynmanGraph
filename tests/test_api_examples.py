@@ -3,12 +3,14 @@ from fastapi.testclient import TestClient
 from feyngraph.server import create_app
 
 
-def test_list_examples_returns_three_starters():
+def test_list_examples_includes_required_starters():
+    """The three original starters must always ship; the library can grow."""
     client = TestClient(create_app())
     resp = client.get("/api/examples")
     assert resp.status_code == 200
     ids = {ex["id"] for ex in resp.json()}
-    assert ids == {"ee_mumu", "qq_tt", "gg_H"}
+    required = {"ee_mumu", "qq_tt", "gg_H"}
+    assert required.issubset(ids), f"missing required starters: {required - ids}"
 
 
 def test_get_example_ee_mumu():
