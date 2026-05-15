@@ -64,7 +64,7 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
-
+docs/
 # Scrapy stuff:
 .scrapy
 
@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# feyngraph: built frontend bundle (regenerated at packaging time)
+feyngraph/data/frontend/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "feyngraph"
+dynamic = ["version"]
+description = "Interactive Feynman diagram builder that exports gammaloop-compatible .dot files"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Elijah Cavan" }]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "networkx>=3.3",
+    "ufo-model-loader>=0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "types-networkx>=3.3",
+]
+
+[project.scripts]
+feyngraph = "feyngraph.__main__:main"
+
+[tool.hatch.version]
+path = "feyngraph/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["feyngraph"]
+artifacts = ["feyngraph/data/frontend/**"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["feyngraph"]
+plugins = ["pydantic.mypy"]

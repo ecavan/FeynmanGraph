@@ -1,0 +1,15 @@
+{
+  "id": "sm",
+  "name": "Standard Model (minimal fixture)",
+  "particles": [
+    { "pdg_id": 22, "name": "a", "anti_name": "a", "mass": "0", "charge": 0, "lepton_number": 0, "baryon_number": 0, "spin": 2, "color_rep": 1 },
+    { "pdg_id": 11, "name": "e-", "anti_name": "e+", "mass": "Me", "charge": -1, "lepton_number": 1, "baryon_number": 0, "spin": 1, "color_rep": 1 },
+    { "pdg_id": -11, "name": "e+", "anti_name": "e-", "mass": "Me", "charge": 1, "lepton_number": -1, "baryon_number": 0, "spin": 1, "color_rep": 1 },
+    { "pdg_id": 13, "name": "mu-", "anti_name": "mu+", "mass": "MM", "charge": -1, "lepton_number": 1, "baryon_number": 0, "spin": 1, "color_rep": 1 },
+    { "pdg_id": -13, "name": "mu+", "anti_name": "mu-", "mass": "MM", "charge": 1, "lepton_number": -1, "baryon_number": 0, "spin": 1, "color_rep": 1 }
+  ],
+  "vertices": [
+    { "id": "V_QED_eea", "particles": [22, 11, -11] },
+    { "id": "V_QED_mma", "particles": [22, 13, -13] }
+  ]
+}
