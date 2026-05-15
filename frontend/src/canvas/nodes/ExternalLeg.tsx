@@ -9,7 +9,8 @@ export function ExternalLegNode(props: NodeProps<ExternalLegData>) {
       style={{
         padding: "4px 8px",
         background: isIncoming ? "#cfe" : "#fce",
-        border: "1px solid #888",
+        border: props.selected ? "2px solid #0066ff" : "1px solid #888",
+        boxShadow: props.selected ? "0 0 0 2px rgba(0, 102, 255, 0.25)" : undefined,
         borderRadius: 4,
         fontSize: 12,
       }}

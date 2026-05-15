@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
@@ -145,6 +147,39 @@ def _convert_ufo_to_feyngraph_schema(ufo_json_path: Path, model_id: str) -> dict
     }
 
 
+def _invoke_ufo_loader(
+    *, ufo_root: Path, output_path: Path, restriction_name: str | None,
+) -> None:
+    """Run ufo_model_loader in a fresh subprocess.
+
+    Isolation is required because Symbolica's mimalloc allocator crashes when
+    `load_model` is called twice in the same process. Tests stub this whole
+    function (rather than the underlying ufo_model_loader entry points) so
+    they can avoid spawning real subprocesses.
+    """
+    cmd = [
+        sys.executable, "-m", "feyngraph._ufo_subprocess",
+        "--input", str(ufo_root),
+        "--output", str(output_path),
+    ]
+    if restriction_name:
+        cmd += ["--restriction", restriction_name]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    if proc.returncode == 2:
+        raise FeyngraphHTTPException(
+            status_code=500,
+            detail="ufo-model-loader not installed in server environment",
+            code="UFO_LOADER_MISSING",
+        )
+    if proc.returncode != 0:
+        raise FeyngraphHTTPException(
+            status_code=422,
+            detail=f"UFO model load failed: {proc.stderr.strip() or 'unknown error'}",
+            code="UFO_LOAD_FAILED",
+            hint="Check the UFO directory contains valid particles.py, vertices.py, couplings.py, etc.",
+        )
+
+
 @router.post("/upload-ufo", response_model=UploadResult)
 async def upload_ufo(
     file: Annotated[UploadFile, File(...)],
@@ -188,35 +223,11 @@ async def upload_ufo(
         ufo_root = _find_ufo_root(extracted)
         ufo_json_path = tmp / "ufo.json"
 
-        try:
-            from ufo_model_loader.commands import export_model, load_model  # type: ignore[import-untyped]
-        except ImportError as exc:
-            raise FeyngraphHTTPException(
-                status_code=500,
-                detail="ufo-model-loader not installed in server environment",
-                code="UFO_LOADER_MISSING",
-            ) from exc
-
-        try:
-            model, input_param_card = load_model(
-                input_model_path=str(ufo_root),
-                restriction_name=restriction_name,
-                simplify_model=False,
-                wrap_indices_in_lorentz_structures=False,
-            )
-            export_model(
-                model=model,
-                input_param_card=input_param_card,
-                output_model_path=str(ufo_json_path),
-                allow_overwrite=True,
-            )
-        except Exception as exc:
-            raise FeyngraphHTTPException(
-                status_code=422,
-                detail=f"UFO model load failed: {exc!s}",
-                code="UFO_LOAD_FAILED",
-                hint="Check the UFO directory contains valid particles.py, vertices.py, couplings.py, etc.",
-            ) from exc
+        _invoke_ufo_loader(
+            ufo_root=ufo_root,
+            output_path=ufo_json_path,
+            restriction_name=restriction_name,
+        )
 
         feyngraph_doc = _convert_ufo_to_feyngraph_schema(ufo_json_path, chosen_id)
         target.write_text(json.dumps(feyngraph_doc, indent=2))

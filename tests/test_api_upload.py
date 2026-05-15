@@ -1,18 +1,18 @@
 """Tests for the /api/models/upload-ufo route.
 
-Note on Symbolica + repeated load_model calls:
-  ufo-model-loader's load_model() invokes Symbolica internally, and Symbolica's
-  current mimalloc-based allocator segfaults when load_model() is called twice
-  in the same Python process (mi_thread_init reinitialisation). To avoid this
-  we keep ONE real end-to-end upload test (`test_upload_real_sm_ufo_tar_gz`)
-  and mock load_model for the route-logic tests (error paths, archive safety,
-  id validation, conflict handling, etc.).
+The upload route invokes ufo-model-loader in a subprocess via
+`feyngraph.api.upload._invoke_ufo_loader` (subprocess isolation works around
+Symbolica's mimalloc bug — see feyngraph/_ufo_subprocess.py).
 
-  If/when that Symbolica bug is fixed upstream, the mocked tests can be
-  rewritten as real-UFO tests.
+Tests:
+- One real end-to-end test runs the actual subprocess against the gammaloop SM UFO.
+- Route-logic tests stub `_invoke_ufo_loader` so they don't pay subprocess cost
+  AND can simulate specific loader-failure modes without needing a real
+  malformed UFO.
 """
 
 import io
+import json
 import tarfile
 import zipfile
 from pathlib import Path
@@ -42,8 +42,8 @@ def _make_tar_gz_from_dir(d: Path, archive_root: str | None = None) -> bytes:
 def _make_fake_ufo_archive(*, with_particles_py: bool = True) -> bytes:
     """A minimal tar.gz that LOOKS like a UFO layout (has particles.py at root).
 
-    Used for tests that exercise the route's archive-handling code without
-    actually invoking ufo-model-loader (which is mocked in those tests).
+    The route uses the archive's particles.py only to locate the UFO root; the
+    actual loader is stubbed in these tests, so the file's contents are unused.
     """
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
@@ -66,7 +66,7 @@ def client():
 
 
 # -------------------------------------------------------------------
-# One real end-to-end test (single per process — see note at top)
+# One real end-to-end test (spawns a real subprocess)
 # -------------------------------------------------------------------
 
 @pytest.mark.skipif(not GAMMALOOP_SM_UFO.is_dir(), reason="gammaloop SM UFO not available")
@@ -93,18 +93,13 @@ def test_upload_real_sm_ufo_end_to_end(client):
 
 
 # -------------------------------------------------------------------
-# Route-logic tests (mock load_model + export_model to avoid Symbolica)
+# Route-logic tests (stub _invoke_ufo_loader to skip the subprocess)
 # -------------------------------------------------------------------
 
 @pytest.fixture
-def mock_ufo_loader(monkeypatch, tmp_path):
-    """Stub ufo_model_loader.commands.load_model + export_model.
-
-    Writes a minimal feyngraph-shaped JSON to the path export_model is given,
-    so the route's post-conversion step finds a valid file.
-    """
-    import json as _json
-
+def stub_ufo_loader(monkeypatch):
+    """Replace _invoke_ufo_loader with a stub that writes a minimal valid JSON
+    to its output_path. Lets route-logic tests skip subprocess spawning."""
     fake_ufo_json = {
         "name": "MockSM",
         "particles": [
@@ -128,20 +123,14 @@ def mock_ufo_loader(monkeypatch, tmp_path):
         ],
     }
 
-    def fake_load_model(input_model_path, restriction_name, simplify_model,
-                       wrap_indices_in_lorentz_structures):
-        return ("FAKE_MODEL", "FAKE_PARAM_CARD")
+    def fake_invoke(*, ufo_root, output_path, restriction_name):
+        output_path.write_text(json.dumps(fake_ufo_json))
 
-    def fake_export_model(model, input_param_card, output_model_path, **_kwargs):
-        Path(output_model_path).write_text(_json.dumps(fake_ufo_json))
-        return output_model_path
-
-    import ufo_model_loader.commands as cmds
-    monkeypatch.setattr(cmds, "load_model", fake_load_model)
-    monkeypatch.setattr(cmds, "export_model", fake_export_model)
+    from feyngraph.api import upload as upload_mod
+    monkeypatch.setattr(upload_mod, "_invoke_ufo_loader", fake_invoke)
 
 
-def test_upload_mocked_succeeds(client, mock_ufo_loader):
+def test_upload_stubbed_succeeds(client, stub_ufo_loader):
     archive = _make_fake_ufo_archive()
     resp = client.post(
         "/api/models/upload-ufo",
@@ -165,7 +154,6 @@ def test_upload_rejects_non_archive(client):
 
 
 def test_upload_rejects_archive_without_particles_py(client):
-    # Build an archive that's a valid tar.gz but contains no particles.py.
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
         info = tarfile.TarInfo("README.md")
@@ -182,7 +170,6 @@ def test_upload_rejects_archive_without_particles_py(client):
 
 
 def test_upload_rejects_bad_model_id(client):
-    # Use a real tar.gz so we don't trip INVALID_ARCHIVE first
     archive = _make_fake_ufo_archive()
     resp = client.post(
         "/api/models/upload-ufo",
@@ -193,7 +180,7 @@ def test_upload_rejects_bad_model_id(client):
     assert resp.json()["code"] == "INVALID_MODEL_ID"
 
 
-def test_upload_conflict_without_overwrite(client, mock_ufo_loader):
+def test_upload_conflict_without_overwrite(client, stub_ufo_loader):
     archive = _make_fake_ufo_archive()
     resp = client.post(
         "/api/models/upload-ufo",
@@ -229,3 +216,25 @@ def test_upload_rejects_unsafe_zip_path(client):
     )
     assert resp.status_code == 422
     assert resp.json()["code"] == "UNSAFE_ARCHIVE_PATH"
+
+
+def test_upload_surfaces_subprocess_failure(client, monkeypatch):
+    """If the subprocess returns nonzero, the route returns 422 UFO_LOAD_FAILED."""
+    def fake_invoke(*, ufo_root, output_path, restriction_name):
+        from feyngraph.api.errors import FeyngraphHTTPException
+        raise FeyngraphHTTPException(
+            status_code=422,
+            detail="UFO model load failed: simulated stderr",
+            code="UFO_LOAD_FAILED",
+        )
+    from feyngraph.api import upload as upload_mod
+    monkeypatch.setattr(upload_mod, "_invoke_ufo_loader", fake_invoke)
+
+    archive = _make_fake_ufo_archive()
+    resp = client.post(
+        "/api/models/upload-ufo",
+        files={"file": ("Mock.tar.gz", archive, "application/gzip")},
+        data={"model_id": "willfail"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "UFO_LOAD_FAILED"
