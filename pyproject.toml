@@ -50,3 +50,8 @@ python_version = "3.11"
 strict = true
 files = ["feyngraph"]
 plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+markers = [
+    "gammaloop: tests that require the gammaloop binary to be installed (run nightly)",
+]

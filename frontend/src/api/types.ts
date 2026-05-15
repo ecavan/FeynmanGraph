@@ -42,3 +42,20 @@ export type APIError = {
 };
 
 export type ExportResponse = { dot: string; warnings: string[] };
+
+export type ExampleMeta = { id: string; process_name: string };
+
+export type ExampleSpec = {
+  model_id: string;
+  theory_id: string;
+  process_name: string;
+  nodes: { id: string; position: [number, number]; ufo_vertex_id?: string | null }[];
+  edges: {
+    id: string;
+    source_node_id: string;
+    target_node_id: string;
+    particle_pdg_id: number | null;
+    direction?: "source_to_target" | "target_to_source";
+  }[];
+  external_legs: { node_id: string; kind: "incoming" | "outgoing"; label: string }[];
+};

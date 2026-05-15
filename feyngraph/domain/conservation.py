@@ -23,14 +23,14 @@ def _triality(particle: Particle) -> int:
 class ConservationResult:
     charge_deficit: float
     lepton_deficit: int
-    baryon_deficit: int
+    baryon_deficit: float  # quarks carry +/-1/3 so deficit can be fractional
     color_deficit: int   # mod 3
 
     def is_conserved(self) -> bool:
         return (
             abs(self.charge_deficit) < 1e-9
             and self.lepton_deficit == 0
-            and self.baryon_deficit == 0
+            and abs(self.baryon_deficit) < 1e-9
             and self.color_deficit % 3 == 0
         )
 
@@ -41,7 +41,7 @@ def check_boundary(spec: GraphSpec, model: Model) -> ConservationResult:
 
     charge: float = 0.0
     lepton: int = 0
-    baryon: int = 0
+    baryon: float = 0.0
     color: int = 0
 
     for edge in spec.edges:

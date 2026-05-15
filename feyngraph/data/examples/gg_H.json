@@ -1,0 +1,26 @@
+{
+  "model_id": "sm",
+  "theory_id": "sm",
+  "process_name": "gg_H",
+  "nodes": [
+    { "id": "ext_g1", "position": [-150, 80] },
+    { "id": "ext_g2", "position": [-150, -80] },
+    { "id": "ext_H",  "position": [200, 0] },
+    { "id": "v1", "position": [0, 60], "ufo_vertex_id": "V_137" },
+    { "id": "v2", "position": [0, -60], "ufo_vertex_id": "V_137" },
+    { "id": "v3", "position": [80, 0], "ufo_vertex_id": "V_141" }
+  ],
+  "edges": [
+    { "id": "e1", "source_node_id": "ext_g1", "target_node_id": "v1", "particle_pdg_id": 21, "direction": "source_to_target" },
+    { "id": "e2", "source_node_id": "ext_g2", "target_node_id": "v2", "particle_pdg_id": 21, "direction": "source_to_target" },
+    { "id": "e3", "source_node_id": "v3", "target_node_id": "ext_H",  "particle_pdg_id": 25, "direction": "source_to_target" },
+    { "id": "e4", "source_node_id": "v1", "target_node_id": "v2", "particle_pdg_id": 6,  "direction": "source_to_target" },
+    { "id": "e5", "source_node_id": "v2", "target_node_id": "v3", "particle_pdg_id": 6,  "direction": "source_to_target" },
+    { "id": "e6", "source_node_id": "v3", "target_node_id": "v1", "particle_pdg_id": 6,  "direction": "source_to_target" }
+  ],
+  "external_legs": [
+    { "node_id": "ext_g1", "kind": "incoming", "label": "p1" },
+    { "node_id": "ext_g2", "kind": "incoming", "label": "p2" },
+    { "node_id": "ext_H",  "kind": "outgoing", "label": "p3" }
+  ]
+}

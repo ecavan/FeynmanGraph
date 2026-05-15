@@ -1,0 +1,26 @@
+{
+  "model_id": "sm",
+  "theory_id": "qcd",
+  "process_name": "qq_tt",
+  "nodes": [
+    { "id": "ext_d", "position": [-150, 60] },
+    { "id": "ext_dbar", "position": [-150, -60] },
+    { "id": "ext_t", "position": [250, 60] },
+    { "id": "ext_tbar", "position": [250, -60] },
+    { "id": "v1", "position": [0, 0], "ufo_vertex_id": "V_74" },
+    { "id": "v2", "position": [100, 0], "ufo_vertex_id": "V_137" }
+  ],
+  "edges": [
+    { "id": "e1", "source_node_id": "ext_d",    "target_node_id": "v1", "particle_pdg_id": 1,   "direction": "source_to_target" },
+    { "id": "e2", "source_node_id": "ext_dbar", "target_node_id": "v1", "particle_pdg_id": -1,  "direction": "source_to_target" },
+    { "id": "e3", "source_node_id": "v2", "target_node_id": "ext_t",    "particle_pdg_id": 6,   "direction": "source_to_target" },
+    { "id": "e4", "source_node_id": "v2", "target_node_id": "ext_tbar", "particle_pdg_id": -6,  "direction": "source_to_target" },
+    { "id": "e5", "source_node_id": "v1", "target_node_id": "v2",       "particle_pdg_id": 21,  "direction": "source_to_target" }
+  ],
+  "external_legs": [
+    { "node_id": "ext_d",    "kind": "incoming", "label": "p1" },
+    { "node_id": "ext_dbar", "kind": "incoming", "label": "p2" },
+    { "node_id": "ext_t",    "kind": "outgoing", "label": "p3" },
+    { "node_id": "ext_tbar", "kind": "outgoing", "label": "p4" }
+  ]
+}

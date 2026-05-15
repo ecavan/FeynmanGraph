@@ -1,6 +1,8 @@
 import type {
   APIError,
   CompletionOption,
+  ExampleMeta,
+  ExampleSpec,
   ExportResponse,
   GraphIssue,
   Model,
@@ -73,5 +75,13 @@ export class ApiClient {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(spec),
     });
+  }
+
+  listExamples(): Promise<ExampleMeta[]> {
+    return this.request("/api/examples");
+  }
+
+  getExample(id: string): Promise<ExampleSpec> {
+    return this.request(`/api/examples/${encodeURIComponent(id)}`);
   }
 }

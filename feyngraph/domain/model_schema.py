@@ -8,7 +8,7 @@ class Particle(BaseModel):
     mass: str           # symbolic, e.g. "MT" or "0"
     charge: float       # in units of e
     lepton_number: int
-    baryon_number: int
+    baryon_number: float  # quarks carry +/-1/3
     spin: int           # 2J
     color_rep: int      # 1, 3, -3, 6, -6, 8, ...
 

@@ -3,11 +3,14 @@ from fastapi.testclient import TestClient
 from feyngraph.server import create_app
 
 
-def test_app_root_returns_404_when_frontend_missing():
+def test_app_root_responds():
+    """`/` either serves the React bundle (after `npm run build`) or 404s
+    (in a fresh checkout). Both are valid; just verify the server doesn't 500.
+    """
     app = create_app()
     client = TestClient(app)
     resp = client.get("/")
-    assert resp.status_code in (404, 500)
+    assert resp.status_code in (200, 404)
 
 
 def test_health_endpoint():

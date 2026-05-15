@@ -1,0 +1,1732 @@
+{
+  "id": "sm",
+  "name": "Standard Model",
+  "particles": [
+    {
+      "pdg_id": 22,
+      "name": "a",
+      "anti_name": "a",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 2,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 23,
+      "name": "Z",
+      "anti_name": "Z",
+      "mass": "MZ",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 2,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 24,
+      "name": "W+",
+      "anti_name": "W-",
+      "mass": "MW",
+      "charge": 1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 2,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -24,
+      "name": "W-",
+      "anti_name": "W+",
+      "mass": "MW",
+      "charge": -1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 2,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 21,
+      "name": "g",
+      "anti_name": "g",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 2,
+      "color_rep": 8
+    },
+    {
+      "pdg_id": 9000001,
+      "name": "ghA",
+      "anti_name": "ghA~",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -9000001,
+      "name": "ghA~",
+      "anti_name": "ghA",
+      "mass": "ZERO",
+      "charge": -0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 9000002,
+      "name": "ghZ",
+      "anti_name": "ghZ~",
+      "mass": "MZ",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -9000002,
+      "name": "ghZ~",
+      "anti_name": "ghZ",
+      "mass": "MZ",
+      "charge": -0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 9000003,
+      "name": "ghWp",
+      "anti_name": "ghWp~",
+      "mass": "MW",
+      "charge": 1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -9000003,
+      "name": "ghWp~",
+      "anti_name": "ghWp",
+      "mass": "MW",
+      "charge": -1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 9000004,
+      "name": "ghWm",
+      "anti_name": "ghWm~",
+      "mass": "MW",
+      "charge": -1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -9000004,
+      "name": "ghWm~",
+      "anti_name": "ghWm",
+      "mass": "MW",
+      "charge": 1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 9000005,
+      "name": "ghG",
+      "anti_name": "ghG~",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 8
+    },
+    {
+      "pdg_id": -9000005,
+      "name": "ghG~",
+      "anti_name": "ghG",
+      "mass": "ZERO",
+      "charge": -0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 8
+    },
+    {
+      "pdg_id": 12,
+      "name": "ve",
+      "anti_name": "ve~",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -12,
+      "name": "ve~",
+      "anti_name": "ve",
+      "mass": "ZERO",
+      "charge": -0.0,
+      "lepton_number": -1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 14,
+      "name": "vm",
+      "anti_name": "vm~",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -14,
+      "name": "vm~",
+      "anti_name": "vm",
+      "mass": "ZERO",
+      "charge": -0.0,
+      "lepton_number": -1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 16,
+      "name": "vt",
+      "anti_name": "vt~",
+      "mass": "ZERO",
+      "charge": 0.0,
+      "lepton_number": 1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -16,
+      "name": "vt~",
+      "anti_name": "vt",
+      "mass": "ZERO",
+      "charge": -0.0,
+      "lepton_number": -1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 2,
+      "name": "u",
+      "anti_name": "u~",
+      "mass": "ZERO",
+      "charge": 0.6666666666666666,
+      "lepton_number": 0,
+      "baryon_number": 0.3333333333333333,
+      "spin": 1,
+      "color_rep": 3
+    },
+    {
+      "pdg_id": -2,
+      "name": "u~",
+      "anti_name": "u",
+      "mass": "ZERO",
+      "charge": -0.6666666666666666,
+      "lepton_number": 0,
+      "baryon_number": -0.3333333333333333,
+      "spin": 1,
+      "color_rep": -3
+    },
+    {
+      "pdg_id": 4,
+      "name": "c",
+      "anti_name": "c~",
+      "mass": "MC",
+      "charge": 0.6666666666666666,
+      "lepton_number": 0,
+      "baryon_number": 0.3333333333333333,
+      "spin": 1,
+      "color_rep": 3
+    },
+    {
+      "pdg_id": -4,
+      "name": "c~",
+      "anti_name": "c",
+      "mass": "MC",
+      "charge": -0.6666666666666666,
+      "lepton_number": 0,
+      "baryon_number": -0.3333333333333333,
+      "spin": 1,
+      "color_rep": -3
+    },
+    {
+      "pdg_id": 6,
+      "name": "t",
+      "anti_name": "t~",
+      "mass": "MT",
+      "charge": 0.6666666666666666,
+      "lepton_number": 0,
+      "baryon_number": 0.3333333333333333,
+      "spin": 1,
+      "color_rep": 3
+    },
+    {
+      "pdg_id": -6,
+      "name": "t~",
+      "anti_name": "t",
+      "mass": "MT",
+      "charge": -0.6666666666666666,
+      "lepton_number": 0,
+      "baryon_number": -0.3333333333333333,
+      "spin": 1,
+      "color_rep": -3
+    },
+    {
+      "pdg_id": 1,
+      "name": "d",
+      "anti_name": "d~",
+      "mass": "ZERO",
+      "charge": -0.3333333333333333,
+      "lepton_number": 0,
+      "baryon_number": 0.3333333333333333,
+      "spin": 1,
+      "color_rep": 3
+    },
+    {
+      "pdg_id": -1,
+      "name": "d~",
+      "anti_name": "d",
+      "mass": "ZERO",
+      "charge": 0.3333333333333333,
+      "lepton_number": 0,
+      "baryon_number": -0.3333333333333333,
+      "spin": 1,
+      "color_rep": -3
+    },
+    {
+      "pdg_id": 3,
+      "name": "s",
+      "anti_name": "s~",
+      "mass": "ZERO",
+      "charge": -0.3333333333333333,
+      "lepton_number": 0,
+      "baryon_number": 0.3333333333333333,
+      "spin": 1,
+      "color_rep": 3
+    },
+    {
+      "pdg_id": -3,
+      "name": "s~",
+      "anti_name": "s",
+      "mass": "ZERO",
+      "charge": 0.3333333333333333,
+      "lepton_number": 0,
+      "baryon_number": -0.3333333333333333,
+      "spin": 1,
+      "color_rep": -3
+    },
+    {
+      "pdg_id": 5,
+      "name": "b",
+      "anti_name": "b~",
+      "mass": "MB",
+      "charge": -0.3333333333333333,
+      "lepton_number": 0,
+      "baryon_number": 0.3333333333333333,
+      "spin": 1,
+      "color_rep": 3
+    },
+    {
+      "pdg_id": -5,
+      "name": "b~",
+      "anti_name": "b",
+      "mass": "MB",
+      "charge": 0.3333333333333333,
+      "lepton_number": 0,
+      "baryon_number": -0.3333333333333333,
+      "spin": 1,
+      "color_rep": -3
+    },
+    {
+      "pdg_id": 25,
+      "name": "H",
+      "anti_name": "H",
+      "mass": "MH",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 250,
+      "name": "G0",
+      "anti_name": "G0",
+      "mass": "MZ",
+      "charge": 0.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 251,
+      "name": "G+",
+      "anti_name": "G-",
+      "mass": "MW",
+      "charge": 1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -251,
+      "name": "G-",
+      "anti_name": "G+",
+      "mass": "MW",
+      "charge": -1.0,
+      "lepton_number": 0,
+      "baryon_number": 0.0,
+      "spin": 0,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 11,
+      "name": "e-",
+      "anti_name": "e+",
+      "mass": "Me",
+      "charge": -1.0,
+      "lepton_number": 1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -11,
+      "name": "e+",
+      "anti_name": "e-",
+      "mass": "Me",
+      "charge": 1.0,
+      "lepton_number": -1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 13,
+      "name": "mu-",
+      "anti_name": "mu+",
+      "mass": "MM",
+      "charge": -1.0,
+      "lepton_number": 1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -13,
+      "name": "mu+",
+      "anti_name": "mu-",
+      "mass": "MM",
+      "charge": 1.0,
+      "lepton_number": -1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": 15,
+      "name": "ta-",
+      "anti_name": "ta+",
+      "mass": "MTA",
+      "charge": -1.0,
+      "lepton_number": 1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    },
+    {
+      "pdg_id": -15,
+      "name": "ta+",
+      "anti_name": "ta-",
+      "mass": "MTA",
+      "charge": 1.0,
+      "lepton_number": -1,
+      "baryon_number": 0.0,
+      "spin": 1,
+      "color_rep": 1
+    }
+  ],
+  "vertices": [
+    {
+      "id": "V_1",
+      "particles": [
+        250,
+        250,
+        250,
+        250
+      ]
+    },
+    {
+      "id": "V_2",
+      "particles": [
+        250,
+        250,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_3",
+      "particles": [
+        -251,
+        -251,
+        251,
+        251
+      ]
+    },
+    {
+      "id": "V_4",
+      "particles": [
+        250,
+        250,
+        25,
+        25
+      ]
+    },
+    {
+      "id": "V_5",
+      "particles": [
+        -251,
+        251,
+        25,
+        25
+      ]
+    },
+    {
+      "id": "V_6",
+      "particles": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "id": "V_7",
+      "particles": [
+        250,
+        250,
+        25
+      ]
+    },
+    {
+      "id": "V_8",
+      "particles": [
+        -251,
+        251,
+        25
+      ]
+    },
+    {
+      "id": "V_9",
+      "particles": [
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "id": "V_10",
+      "particles": [
+        22,
+        22,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_11",
+      "particles": [
+        22,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_12",
+      "particles": [
+        9000001,
+        -9000004,
+        -24
+      ]
+    },
+    {
+      "id": "V_13",
+      "particles": [
+        9000001,
+        -9000003,
+        24
+      ]
+    },
+    {
+      "id": "V_14",
+      "particles": [
+        9000004,
+        -9000001,
+        251
+      ]
+    },
+    {
+      "id": "V_15",
+      "particles": [
+        9000004,
+        -9000001,
+        24
+      ]
+    },
+    {
+      "id": "V_16",
+      "particles": [
+        9000004,
+        -9000004,
+        250
+      ]
+    },
+    {
+      "id": "V_17",
+      "particles": [
+        9000004,
+        -9000004,
+        25
+      ]
+    },
+    {
+      "id": "V_18",
+      "particles": [
+        9000004,
+        -9000004,
+        22
+      ]
+    },
+    {
+      "id": "V_19",
+      "particles": [
+        9000004,
+        -9000004,
+        23
+      ]
+    },
+    {
+      "id": "V_20",
+      "particles": [
+        9000004,
+        -9000002,
+        251
+      ]
+    },
+    {
+      "id": "V_21",
+      "particles": [
+        9000004,
+        -9000002,
+        24
+      ]
+    },
+    {
+      "id": "V_22",
+      "particles": [
+        9000003,
+        -9000001,
+        -251
+      ]
+    },
+    {
+      "id": "V_23",
+      "particles": [
+        9000003,
+        -9000001,
+        -24
+      ]
+    },
+    {
+      "id": "V_24",
+      "particles": [
+        9000003,
+        -9000003,
+        250
+      ]
+    },
+    {
+      "id": "V_25",
+      "particles": [
+        9000003,
+        -9000003,
+        25
+      ]
+    },
+    {
+      "id": "V_26",
+      "particles": [
+        9000003,
+        -9000003,
+        22
+      ]
+    },
+    {
+      "id": "V_27",
+      "particles": [
+        9000003,
+        -9000003,
+        23
+      ]
+    },
+    {
+      "id": "V_28",
+      "particles": [
+        9000003,
+        -9000002,
+        -251
+      ]
+    },
+    {
+      "id": "V_29",
+      "particles": [
+        9000003,
+        -9000002,
+        -24
+      ]
+    },
+    {
+      "id": "V_30",
+      "particles": [
+        9000002,
+        -9000004,
+        -251
+      ]
+    },
+    {
+      "id": "V_31",
+      "particles": [
+        9000002,
+        -9000004,
+        -24
+      ]
+    },
+    {
+      "id": "V_32",
+      "particles": [
+        9000002,
+        -9000003,
+        251
+      ]
+    },
+    {
+      "id": "V_33",
+      "particles": [
+        9000002,
+        -9000003,
+        24
+      ]
+    },
+    {
+      "id": "V_34",
+      "particles": [
+        9000002,
+        -9000002,
+        25
+      ]
+    },
+    {
+      "id": "V_35",
+      "particles": [
+        9000005,
+        -9000005,
+        21
+      ]
+    },
+    {
+      "id": "V_36",
+      "particles": [
+        21,
+        21,
+        21
+      ]
+    },
+    {
+      "id": "V_37",
+      "particles": [
+        21,
+        21,
+        21,
+        21
+      ]
+    },
+    {
+      "id": "V_38",
+      "particles": [
+        22,
+        -24,
+        250,
+        251
+      ]
+    },
+    {
+      "id": "V_39",
+      "particles": [
+        22,
+        -24,
+        251,
+        25
+      ]
+    },
+    {
+      "id": "V_40",
+      "particles": [
+        22,
+        -24,
+        251
+      ]
+    },
+    {
+      "id": "V_41",
+      "particles": [
+        -24,
+        250,
+        251
+      ]
+    },
+    {
+      "id": "V_42",
+      "particles": [
+        -24,
+        251,
+        25
+      ]
+    },
+    {
+      "id": "V_43",
+      "particles": [
+        22,
+        -24,
+        24
+      ]
+    },
+    {
+      "id": "V_44",
+      "particles": [
+        22,
+        24,
+        250,
+        -251
+      ]
+    },
+    {
+      "id": "V_45",
+      "particles": [
+        22,
+        24,
+        -251,
+        25
+      ]
+    },
+    {
+      "id": "V_46",
+      "particles": [
+        22,
+        24,
+        -251
+      ]
+    },
+    {
+      "id": "V_47",
+      "particles": [
+        24,
+        250,
+        -251
+      ]
+    },
+    {
+      "id": "V_48",
+      "particles": [
+        24,
+        -251,
+        25
+      ]
+    },
+    {
+      "id": "V_49",
+      "particles": [
+        -24,
+        24,
+        250,
+        250
+      ]
+    },
+    {
+      "id": "V_50",
+      "particles": [
+        -24,
+        24,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_51",
+      "particles": [
+        -24,
+        24,
+        25,
+        25
+      ]
+    },
+    {
+      "id": "V_52",
+      "particles": [
+        -24,
+        24,
+        25
+      ]
+    },
+    {
+      "id": "V_53",
+      "particles": [
+        22,
+        22,
+        -24,
+        24
+      ]
+    },
+    {
+      "id": "V_54",
+      "particles": [
+        -24,
+        24,
+        23
+      ]
+    },
+    {
+      "id": "V_55",
+      "particles": [
+        -24,
+        -24,
+        24,
+        24
+      ]
+    },
+    {
+      "id": "V_56",
+      "particles": [
+        22,
+        23,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_57",
+      "particles": [
+        23,
+        250,
+        25
+      ]
+    },
+    {
+      "id": "V_58",
+      "particles": [
+        23,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_59",
+      "particles": [
+        -24,
+        23,
+        250,
+        251
+      ]
+    },
+    {
+      "id": "V_60",
+      "particles": [
+        -24,
+        23,
+        251,
+        25
+      ]
+    },
+    {
+      "id": "V_61",
+      "particles": [
+        -24,
+        23,
+        251
+      ]
+    },
+    {
+      "id": "V_62",
+      "particles": [
+        24,
+        23,
+        250,
+        -251
+      ]
+    },
+    {
+      "id": "V_63",
+      "particles": [
+        24,
+        23,
+        -251,
+        25
+      ]
+    },
+    {
+      "id": "V_64",
+      "particles": [
+        24,
+        23,
+        -251
+      ]
+    },
+    {
+      "id": "V_65",
+      "particles": [
+        22,
+        -24,
+        24,
+        23
+      ]
+    },
+    {
+      "id": "V_66",
+      "particles": [
+        23,
+        23,
+        250,
+        250
+      ]
+    },
+    {
+      "id": "V_67",
+      "particles": [
+        23,
+        23,
+        -251,
+        251
+      ]
+    },
+    {
+      "id": "V_68",
+      "particles": [
+        23,
+        23,
+        25,
+        25
+      ]
+    },
+    {
+      "id": "V_69",
+      "particles": [
+        23,
+        23,
+        25
+      ]
+    },
+    {
+      "id": "V_70",
+      "particles": [
+        -24,
+        24,
+        23,
+        23
+      ]
+    },
+    {
+      "id": "V_71",
+      "particles": [
+        -1,
+        1,
+        22
+      ]
+    },
+    {
+      "id": "V_72",
+      "particles": [
+        -3,
+        3,
+        22
+      ]
+    },
+    {
+      "id": "V_73",
+      "particles": [
+        -5,
+        5,
+        22
+      ]
+    },
+    {
+      "id": "V_74",
+      "particles": [
+        -1,
+        1,
+        21
+      ]
+    },
+    {
+      "id": "V_75",
+      "particles": [
+        -3,
+        3,
+        21
+      ]
+    },
+    {
+      "id": "V_76",
+      "particles": [
+        -5,
+        5,
+        21
+      ]
+    },
+    {
+      "id": "V_77",
+      "particles": [
+        -5,
+        5,
+        250
+      ]
+    },
+    {
+      "id": "V_78",
+      "particles": [
+        -5,
+        5,
+        25
+      ]
+    },
+    {
+      "id": "V_79",
+      "particles": [
+        -1,
+        1,
+        23
+      ]
+    },
+    {
+      "id": "V_80",
+      "particles": [
+        -3,
+        3,
+        23
+      ]
+    },
+    {
+      "id": "V_81",
+      "particles": [
+        -5,
+        5,
+        23
+      ]
+    },
+    {
+      "id": "V_82",
+      "particles": [
+        -4,
+        1,
+        251
+      ]
+    },
+    {
+      "id": "V_83",
+      "particles": [
+        -6,
+        1,
+        251
+      ]
+    },
+    {
+      "id": "V_84",
+      "particles": [
+        -4,
+        3,
+        251
+      ]
+    },
+    {
+      "id": "V_85",
+      "particles": [
+        -6,
+        3,
+        251
+      ]
+    },
+    {
+      "id": "V_86",
+      "particles": [
+        -2,
+        5,
+        251
+      ]
+    },
+    {
+      "id": "V_87",
+      "particles": [
+        -4,
+        5,
+        251
+      ]
+    },
+    {
+      "id": "V_88",
+      "particles": [
+        -6,
+        5,
+        251
+      ]
+    },
+    {
+      "id": "V_89",
+      "particles": [
+        -2,
+        1,
+        24
+      ]
+    },
+    {
+      "id": "V_90",
+      "particles": [
+        -4,
+        1,
+        24
+      ]
+    },
+    {
+      "id": "V_91",
+      "particles": [
+        -6,
+        1,
+        24
+      ]
+    },
+    {
+      "id": "V_92",
+      "particles": [
+        -2,
+        3,
+        24
+      ]
+    },
+    {
+      "id": "V_93",
+      "particles": [
+        -4,
+        3,
+        24
+      ]
+    },
+    {
+      "id": "V_94",
+      "particles": [
+        -6,
+        3,
+        24
+      ]
+    },
+    {
+      "id": "V_95",
+      "particles": [
+        -2,
+        5,
+        24
+      ]
+    },
+    {
+      "id": "V_96",
+      "particles": [
+        -4,
+        5,
+        24
+      ]
+    },
+    {
+      "id": "V_97",
+      "particles": [
+        -6,
+        5,
+        24
+      ]
+    },
+    {
+      "id": "V_98",
+      "particles": [
+        -11,
+        11,
+        22
+      ]
+    },
+    {
+      "id": "V_99",
+      "particles": [
+        -13,
+        13,
+        22
+      ]
+    },
+    {
+      "id": "V_100",
+      "particles": [
+        -15,
+        15,
+        22
+      ]
+    },
+    {
+      "id": "V_101",
+      "particles": [
+        -11,
+        11,
+        250
+      ]
+    },
+    {
+      "id": "V_102",
+      "particles": [
+        -13,
+        13,
+        250
+      ]
+    },
+    {
+      "id": "V_103",
+      "particles": [
+        -15,
+        15,
+        250
+      ]
+    },
+    {
+      "id": "V_104",
+      "particles": [
+        -11,
+        11,
+        25
+      ]
+    },
+    {
+      "id": "V_105",
+      "particles": [
+        -13,
+        13,
+        25
+      ]
+    },
+    {
+      "id": "V_106",
+      "particles": [
+        -15,
+        15,
+        25
+      ]
+    },
+    {
+      "id": "V_107",
+      "particles": [
+        -11,
+        11,
+        23
+      ]
+    },
+    {
+      "id": "V_108",
+      "particles": [
+        -13,
+        13,
+        23
+      ]
+    },
+    {
+      "id": "V_109",
+      "particles": [
+        -15,
+        15,
+        23
+      ]
+    },
+    {
+      "id": "V_110",
+      "particles": [
+        -12,
+        11,
+        251
+      ]
+    },
+    {
+      "id": "V_111",
+      "particles": [
+        -14,
+        13,
+        251
+      ]
+    },
+    {
+      "id": "V_112",
+      "particles": [
+        -16,
+        15,
+        251
+      ]
+    },
+    {
+      "id": "V_113",
+      "particles": [
+        -12,
+        11,
+        24
+      ]
+    },
+    {
+      "id": "V_114",
+      "particles": [
+        -14,
+        13,
+        24
+      ]
+    },
+    {
+      "id": "V_115",
+      "particles": [
+        -16,
+        15,
+        24
+      ]
+    },
+    {
+      "id": "V_116",
+      "particles": [
+        -5,
+        2,
+        -251
+      ]
+    },
+    {
+      "id": "V_117",
+      "particles": [
+        -1,
+        4,
+        -251
+      ]
+    },
+    {
+      "id": "V_118",
+      "particles": [
+        -3,
+        4,
+        -251
+      ]
+    },
+    {
+      "id": "V_119",
+      "particles": [
+        -5,
+        4,
+        -251
+      ]
+    },
+    {
+      "id": "V_120",
+      "particles": [
+        -1,
+        6,
+        -251
+      ]
+    },
+    {
+      "id": "V_121",
+      "particles": [
+        -3,
+        6,
+        -251
+      ]
+    },
+    {
+      "id": "V_122",
+      "particles": [
+        -5,
+        6,
+        -251
+      ]
+    },
+    {
+      "id": "V_123",
+      "particles": [
+        -1,
+        2,
+        -24
+      ]
+    },
+    {
+      "id": "V_124",
+      "particles": [
+        -3,
+        2,
+        -24
+      ]
+    },
+    {
+      "id": "V_125",
+      "particles": [
+        -5,
+        2,
+        -24
+      ]
+    },
+    {
+      "id": "V_126",
+      "particles": [
+        -1,
+        4,
+        -24
+      ]
+    },
+    {
+      "id": "V_127",
+      "particles": [
+        -3,
+        4,
+        -24
+      ]
+    },
+    {
+      "id": "V_128",
+      "particles": [
+        -5,
+        4,
+        -24
+      ]
+    },
+    {
+      "id": "V_129",
+      "particles": [
+        -1,
+        6,
+        -24
+      ]
+    },
+    {
+      "id": "V_130",
+      "particles": [
+        -3,
+        6,
+        -24
+      ]
+    },
+    {
+      "id": "V_131",
+      "particles": [
+        -5,
+        6,
+        -24
+      ]
+    },
+    {
+      "id": "V_132",
+      "particles": [
+        -2,
+        2,
+        22
+      ]
+    },
+    {
+      "id": "V_133",
+      "particles": [
+        -4,
+        4,
+        22
+      ]
+    },
+    {
+      "id": "V_134",
+      "particles": [
+        -6,
+        6,
+        22
+      ]
+    },
+    {
+      "id": "V_135",
+      "particles": [
+        -2,
+        2,
+        21
+      ]
+    },
+    {
+      "id": "V_136",
+      "particles": [
+        -4,
+        4,
+        21
+      ]
+    },
+    {
+      "id": "V_137",
+      "particles": [
+        -6,
+        6,
+        21
+      ]
+    },
+    {
+      "id": "V_138",
+      "particles": [
+        -4,
+        4,
+        250
+      ]
+    },
+    {
+      "id": "V_139",
+      "particles": [
+        -6,
+        6,
+        250
+      ]
+    },
+    {
+      "id": "V_140",
+      "particles": [
+        -4,
+        4,
+        25
+      ]
+    },
+    {
+      "id": "V_141",
+      "particles": [
+        -6,
+        6,
+        25
+      ]
+    },
+    {
+      "id": "V_142",
+      "particles": [
+        -2,
+        2,
+        23
+      ]
+    },
+    {
+      "id": "V_143",
+      "particles": [
+        -4,
+        4,
+        23
+      ]
+    },
+    {
+      "id": "V_144",
+      "particles": [
+        -6,
+        6,
+        23
+      ]
+    },
+    {
+      "id": "V_145",
+      "particles": [
+        -11,
+        12,
+        -251
+      ]
+    },
+    {
+      "id": "V_146",
+      "particles": [
+        -13,
+        14,
+        -251
+      ]
+    },
+    {
+      "id": "V_147",
+      "particles": [
+        -15,
+        16,
+        -251
+      ]
+    },
+    {
+      "id": "V_148",
+      "particles": [
+        -11,
+        12,
+        -24
+      ]
+    },
+    {
+      "id": "V_149",
+      "particles": [
+        -13,
+        14,
+        -24
+      ]
+    },
+    {
+      "id": "V_150",
+      "particles": [
+        -15,
+        16,
+        -24
+      ]
+    },
+    {
+      "id": "V_151",
+      "particles": [
+        -12,
+        12,
+        23
+      ]
+    },
+    {
+      "id": "V_152",
+      "particles": [
+        -14,
+        14,
+        23
+      ]
+    },
+    {
+      "id": "V_153",
+      "particles": [
+        -16,
+        16,
+        23
+      ]
+    }
+  ]
+}
