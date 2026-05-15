@@ -12,9 +12,11 @@ from feyngraph.domain.theories import (
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 
-def test_list_theories_has_three_v01_theories():
+def test_list_theories_includes_core_set():
+    """The four core gauge-theory presets must be available; the list can grow."""
     ids = {t.id for t in list_theories()}
-    assert ids == {"qed", "qcd", "sm"}
+    required = {"qed", "qcd", "electroweak", "sm"}
+    assert required.issubset(ids)
 
 
 def test_qed_filter_drops_non_qed_vertices():

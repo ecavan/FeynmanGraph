@@ -53,11 +53,10 @@ export function SelectionPanel() {
     return (
       <div data-testid="selection-panel">
         <h4>Selection</h4>
-        <p style={{ fontSize: 12, opacity: 0.6, lineHeight: 1.4 }}>
-          Click a vertex or edge to edit it. Drag the "New vertex" handle from the
-          left toolbox onto the canvas to add a vertex. Drag from the top of one
-          vertex to the bottom of another to draw an edge. Press Delete or
-          Backspace to remove the selection.
+        <p style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.5 }}>
+          Click a vertex or edge to edit it here. Use the buttons in the left
+          toolbox to add vertices and particles. Press Delete or Backspace to
+          remove the selected element.
         </p>
       </div>
     );

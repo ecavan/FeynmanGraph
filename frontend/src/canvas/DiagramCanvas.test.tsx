@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useDiagramStore } from "../state/diagram";
 import { DiagramCanvas } from "./DiagramCanvas";
@@ -19,11 +19,16 @@ describe("DiagramCanvas", () => {
     expect(document.querySelectorAll(".react-flow__node").length).toBe(2);
   });
 
-  it("renders external-leg nodes with their label", () => {
+  it("renders external-leg nodes with their label in the DOM (hidden by default, shown on hover)", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
     s.addExternalLeg({ nodeId: "v1", kind: "incoming", label: "p1" });
     render(<DiagramCanvas />);
-    expect(screen.getByText(/p1 \(incoming\)/)).toBeInTheDocument();
+    // The label is rendered but hidden via CSS opacity until hover/selection;
+    // the node has a title attribute as the always-available accessible label.
+    const legNode = document.querySelector(".react-flow__node-externalLeg");
+    expect(legNode).toBeTruthy();
+    expect(legNode?.querySelector("[title*='p1']")).toBeTruthy();
+    expect(legNode?.textContent).toContain("p1");
   });
 });

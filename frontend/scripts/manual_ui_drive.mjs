@@ -38,7 +38,7 @@ async function run() {
   await page.screenshot({ path: join(SHOTS, "01-canvas-on-load.png"), fullPage: true });
 
   console.log("[drive] settings tab");
-  await page.getByRole("button", { name: /^settings$/i }).click();
+  await page.getByRole("button", { name: /^setup$/i }).click();
   await page.waitForTimeout(800);
   await page.screenshot({ path: join(SHOTS, "02-settings.png"), fullPage: true });
 
@@ -78,7 +78,7 @@ async function run() {
 
   // Test loading gg_H (1-loop)
   console.log("[drive] settings -> load gg_H");
-  await page.getByRole("button", { name: /^settings$/i }).click();
+  await page.getByRole("button", { name: /^setup$/i }).click();
   await page.waitForTimeout(500);
   await page.locator("select").selectOption("sm").catch(() => {});
   await page.waitForTimeout(300);

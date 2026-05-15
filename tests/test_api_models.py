@@ -34,3 +34,21 @@ def test_get_unknown_model_returns_404():
     assert resp.status_code == 404
     body = resp.json()
     assert body["code"] == "MODEL_NOT_FOUND"
+
+
+def test_get_model_filtered_by_theory_drops_qcd_particles():
+    """?theory=qed must return ONLY QED particles (photon, leptons); no quarks/gluon."""
+    resp = _client().get("/api/models/sm?theory=qed")
+    assert resp.status_code == 200
+    body = resp.json()
+    pdgs = {p["pdg_id"] for p in body["particles"]}
+    assert 22 in pdgs  # photon
+    assert 11 in pdgs  # electron
+    assert 21 not in pdgs  # gluon
+    assert 1 not in pdgs   # down quark
+
+
+def test_get_model_with_unknown_theory_returns_404():
+    resp = _client().get("/api/models/sm?theory=nonsense")
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "THEORY_NOT_FOUND"

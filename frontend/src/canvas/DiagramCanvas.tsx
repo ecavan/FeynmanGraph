@@ -1,7 +1,6 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import ReactFlow, {
   Background,
-  type Connection,
   Controls,
   type Edge,
   type EdgeTypes,
@@ -20,24 +19,28 @@ import { VertexNode } from "./nodes/VertexNode";
 const nodeTypes: NodeTypes = { vertex: VertexNode, externalLeg: ExternalLegNode };
 const edgeTypes: EdgeTypes = { particle: ParticleEdge };
 
-/** MIME type used for the sidebar "drag a new vertex" interaction. */
-export const NEW_VERTEX_DRAG_TYPE = "application/feyngraph-new-vertex";
-
 function DiagramCanvasInner() {
   const nodes = useDiagramStore((s) => s.nodes);
   const edges = useDiagramStore((s) => s.edges);
   const externalLegs = useDiagramStore((s) => s.externalLegs);
   const selectedId = useDiagramStore((s) => s.selectedId);
   const selectedKind = useDiagramStore((s) => s.selectedKind);
-  const addEdgeFn = useDiagramStore((s) => s.addEdge);
-  const addVertex = useDiagramStore((s) => s.addVertex);
   const removeVertex = useDiagramStore((s) => s.removeVertex);
   const removeEdge = useDiagramStore((s) => s.removeEdge);
   const updateVertexPosition = useDiagramStore((s) => s.updateVertexPosition);
   const setSelection = useDiagramStore((s) => s.setSelection);
 
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const rf = useReactFlow();
+
+  // Re-fit the viewport whenever the diagram topology changes so newly placed
+  // vertices stay on-screen after the force-directed layout reshuffles things.
+  // Skip the call when the canvas is empty — fitView on an empty graph
+  // produces NaN dimensions which react-flow's <pattern> can't render.
+  useEffect(() => {
+    if (nodes.length === 0) return;
+    const t = setTimeout(() => rf.fitView({ padding: 0.25, duration: 200 }), 60);
+    return () => clearTimeout(t);
+  }, [nodes.length, edges.length, externalLegs.length, rf.fitView]);
 
   const rfNodes: Node[] = nodes.map((n) => {
     const leg = externalLegs.find((l) => l.nodeId === n.id);
@@ -69,15 +72,6 @@ function DiagramCanvasInner() {
     data: { particlePdgId: e.particlePdgId },
   }));
 
-  const onConnect = useCallback(
-    (c: Connection) => {
-      if (!c.source || !c.target) return;
-      const id = `e${Date.now()}`;
-      addEdgeFn({ id, sourceNodeId: c.source, targetNodeId: c.target });
-    },
-    [addEdgeFn],
-  );
-
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       for (const change of changes) {
@@ -103,31 +97,13 @@ function DiagramCanvasInner() {
     [removeEdge],
   );
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  }, []);
-
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      const kind = event.dataTransfer.getData(NEW_VERTEX_DRAG_TYPE);
-      if (kind !== "vertex") return;
-      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      const id = `v${Date.now()}`;
-      addVertex({ id, position: [position.x, position.y] });
-    },
-    [addVertex, screenToFlowPosition],
-  );
-
   return (
-    <div ref={wrapperRef} style={{ width: "100%", height: "100%" }} onDragOver={onDragOver} onDrop={onDrop}>
+    <div style={{ width: "100%", height: "100%" }}>
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onConnect={onConnect}
         onNodesChange={onNodesChange}
         onNodesDelete={onNodesDelete}
         onEdgesDelete={onEdgesDelete}
@@ -135,6 +111,8 @@ function DiagramCanvasInner() {
         onEdgeClick={(_, edge) => setSelection(edge.id, "edge")}
         onPaneClick={() => setSelection(null, null)}
         deleteKeyCode={["Backspace", "Delete"]}
+        // Disable drag-to-connect entirely — particle creation goes through the toolbox form.
+        nodesConnectable={false}
         fitView
       >
         <Background />

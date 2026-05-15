@@ -37,7 +37,7 @@ let perStarter = [];
 
 for (const ex of examples) {
   console.log(`\n[all] === ${ex.id} ===`);
-  await page.getByRole("button", { name: /^settings$/i }).click();
+  await page.getByRole("button", { name: /^setup$/i }).click();
   await page.waitForTimeout(400);
   await page.getByRole("button", { name: new RegExp(`Load: ${ex.process_name.replace(/[+*?.()]/g, "\\$&")}`, "i") }).click();
   await page.waitForTimeout(800);

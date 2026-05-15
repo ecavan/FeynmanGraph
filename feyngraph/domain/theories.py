@@ -33,13 +33,29 @@ THEORY_QCD = Theory(
     particle_predicate=lambda pdg: pdg in _QCD_PDGS,
 )
 
+# Electroweak: photons, W±, Z, Higgs, all leptons, all quarks (which carry
+# weak isospin and hypercharge). Excludes the gluon and pure-QCD-only states
+# (like ghosts and Goldstone-of-gluon).
+_EW_PDGS = (
+    {22, 23, 24, -24, 25}
+    | set(range(11, 17)) | {-i for i in range(11, 17)}
+    | set(range(1, 7)) | set(range(-6, 0))
+)
+THEORY_ELECTROWEAK = Theory(
+    id="electroweak",
+    name="Electroweak",
+    particle_predicate=lambda pdg: pdg in _EW_PDGS,
+)
+
 THEORY_SM = Theory(
     id="sm",
     name="Standard Model",
     particle_predicate=lambda _: True,
 )
 
-_ALL_THEORIES: tuple[Theory, ...] = (THEORY_QED, THEORY_QCD, THEORY_SM)
+_ALL_THEORIES: tuple[Theory, ...] = (
+    THEORY_QED, THEORY_QCD, THEORY_ELECTROWEAK, THEORY_SM,
+)
 
 
 def list_theories() -> list[Theory]:

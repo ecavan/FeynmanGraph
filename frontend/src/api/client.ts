@@ -41,8 +41,9 @@ export class ApiClient {
     return this.request("/api/models");
   }
 
-  getModel(id: string): Promise<Model> {
-    return this.request(`/api/models/${encodeURIComponent(id)}`);
+  getModel(id: string, theoryId?: string): Promise<Model> {
+    const q = theoryId ? `?theory=${encodeURIComponent(theoryId)}` : "";
+    return this.request(`/api/models/${encodeURIComponent(id)}${q}`);
   }
 
   listTheories(): Promise<TheoryMeta[]> {

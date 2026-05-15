@@ -8,4 +8,5 @@ def test_list_theories():
     resp = client.get("/api/theories")
     assert resp.status_code == 200
     ids = {t["id"] for t in resp.json()}
-    assert ids == {"qed", "qcd", "sm"}
+    required = {"qed", "qcd", "electroweak", "sm"}
+    assert required.issubset(ids)

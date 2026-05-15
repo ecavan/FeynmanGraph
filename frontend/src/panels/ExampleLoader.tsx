@@ -5,33 +5,36 @@ import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
-/** Load a wire-format ExampleSpec into the zustand store. */
+/** Load a wire-format ExampleSpec into the zustand store, then run a single
+ *  force-directed layout pass over the result. Bulk-writes the topology to
+ *  avoid spawning a layout per addVertex/addEdge call. */
 export function loadExampleIntoStore(spec: ExampleSpec): void {
-  const s = useDiagramStore.getState();
-  s.reset();
-  s.setModelId(spec.model_id);
-  s.setTheoryId(spec.theory_id);
-  s.setProcessName(spec.process_name);
-  for (const n of spec.nodes) {
-    s.addVertex({
+  useDiagramStore.setState({
+    modelId: spec.model_id,
+    theoryId: spec.theory_id,
+    processName: spec.process_name,
+    nodes: spec.nodes.map((n) => ({
       id: n.id,
       position: n.position,
       ufoVertexId: n.ufo_vertex_id ?? undefined,
-    });
-  }
-  for (const e of spec.edges) {
-    s.addEdge({
+    })),
+    edges: spec.edges.map((e) => ({
       id: e.id,
       sourceNodeId: e.source_node_id,
       targetNodeId: e.target_node_id,
       particlePdgId: e.particle_pdg_id,
-    });
-  }
-  for (const leg of spec.external_legs) {
-    s.addExternalLeg({ nodeId: leg.node_id, kind: leg.kind, label: leg.label });
-  }
-  // Loaded examples always use auto-routing; clear any prior override.
-  s.setLmbEdgeIds(null);
+    })),
+    externalLegs: spec.external_legs.map((leg) => ({
+      nodeId: leg.node_id,
+      kind: leg.kind,
+      label: leg.label,
+    })),
+    lmbEdgeIds: null,
+    selectedId: null,
+    selectedKind: null,
+  });
+  // Single relayout pass over the fully-loaded topology.
+  useDiagramStore.getState().runLayout();
 }
 
 export function ExampleLoader() {

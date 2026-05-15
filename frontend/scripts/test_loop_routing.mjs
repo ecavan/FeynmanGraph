@@ -23,7 +23,7 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 
 // Load gg_H (1-loop) so the routing panel appears
-await page.getByRole("button", { name: /^settings$/i }).click();
+await page.getByRole("button", { name: /^setup$/i }).click();
 await page.waitForTimeout(500);
 await page.getByRole("button", { name: /Load: gg_H/i }).click();
 await page.waitForTimeout(1500);
@@ -60,7 +60,7 @@ await page.getByRole("button", { name: /^Reset$/ }).click().catch(() => {});
 await page.waitForTimeout(1000);
 
 // Now go to ee_mumu (tree-level) and verify the panel is HIDDEN
-await page.getByRole("button", { name: /^settings$/i }).click();
+await page.getByRole("button", { name: /^setup$/i }).click();
 await page.waitForTimeout(500);
 await page.getByRole("button", { name: /Load: ee_mumu/i }).click();
 await page.waitForTimeout(1500);

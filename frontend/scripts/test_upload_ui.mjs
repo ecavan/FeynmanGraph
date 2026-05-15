@@ -38,14 +38,14 @@ page.on("console", (m) => { if (m.type() === "error") issues.push({ kind: "conso
 await page.goto(BASE, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 
-await page.getByRole("button", { name: /^settings$/i }).click();
+await page.getByRole("button", { name: /^import$/i }).click();
 await page.waitForTimeout(500);
-await page.screenshot({ path: join(SHOTS, "10-settings-with-upload-ui.png"), fullPage: true });
+await page.screenshot({ path: join(SHOTS, "10-import-with-upload-ui.png"), fullPage: true });
 
-const uploadHeader = await page.locator("text=Upload UFO (BSM)").count();
-console.log(`[upload] 'Upload UFO (BSM)' label present: ${uploadHeader > 0}`);
+const uploadHeader = await page.locator("text=/Import a UFO model/").count();
+console.log(`[upload] 'Import a UFO model' header present: ${uploadHeader > 0}`);
 if (uploadHeader === 0) {
-  issues.push({ kind: "upload_ui_missing", detail: "Upload UFO header not found in Settings" });
+  issues.push({ kind: "upload_ui_missing", detail: "Upload UFO header not found in Import tab" });
 }
 
 // Find the hidden file input and set the archive
@@ -63,7 +63,11 @@ await page.waitForFunction(
 ).catch(() => issues.push({ kind: "upload_no_response", detail: "Did not see upload status within 30s" }));
 
 await page.waitForTimeout(2000);
-await page.screenshot({ path: join(SHOTS, "11-settings-after-upload.png"), fullPage: true });
+await page.screenshot({ path: join(SHOTS, "11-import-after-upload.png"), fullPage: true });
+
+// Switch to Setup tab to verify the uploaded model is selected in the picker.
+await page.getByRole("button", { name: /^setup$/i }).click();
+await page.waitForTimeout(500);
 
 const status = await page.locator("text=Uploaded").first().textContent().catch(() => null);
 console.log(`[upload] status text: ${status}`);

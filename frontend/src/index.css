@@ -1,0 +1,5 @@
+/* Reveal the external-leg label on hover (selection also reveals it via the
+   `opacity: 1` set inline in ExternalLegNode). */
+.react-flow__node-externalLeg:hover .external-leg-label {
+  opacity: 1 !important;
+}

@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from feyngraph.api.errors import FeyngraphHTTPException
 from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError
 from feyngraph.domain.model_schema import Model, ModelMeta
+from feyngraph.domain.theories import apply_theory, get_theory
 
 router = APIRouter(prefix="/api/models", tags=["models"])
 
@@ -29,9 +30,15 @@ async def list_models() -> list[ModelMeta]:
 
 
 @router.get("/{model_id}", response_model=Model)
-async def get_model(model_id: str) -> Model:
+async def get_model(model_id: str, theory: str | None = None) -> Model:
+    """Return the model, optionally filtered to a single gauge theory.
+
+    If `theory` query param is supplied, only the particles/vertices that
+    belong to that theory are returned (the frontend uses this to filter the
+    canvas particle palette).
+    """
     try:
-        return _loader().load_model(model_id)
+        model = _loader().load_model(model_id)
     except ModelNotFoundError as exc:
         raise FeyngraphHTTPException(
             status_code=404,
@@ -39,3 +46,14 @@ async def get_model(model_id: str) -> Model:
             code="MODEL_NOT_FOUND",
             hint="Use GET /api/models to list available models",
         ) from exc
+    if theory is None:
+        return model
+    try:
+        t = get_theory(theory)
+    except KeyError as exc:
+        raise FeyngraphHTTPException(
+            status_code=404,
+            detail=f"Theory '{theory}' not found",
+            code="THEORY_NOT_FOUND",
+        ) from exc
+    return apply_theory(model, t)
