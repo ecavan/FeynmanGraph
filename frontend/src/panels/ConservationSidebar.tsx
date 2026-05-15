@@ -55,8 +55,12 @@ function Row({ label, value }: { label: string; value: number }) {
 function extractDeficits(issues: GraphIssue[]): Deficits {
   const d: Deficits = {};
   for (const iss of issues) {
-    const m = iss.detail.match(/deficit = ([-+\d.]+)/);
-    const val = m ? Number(m[1]) : Number.NaN;
+    // Prefer the structured `deficit` field; fall back to a regex on `detail`
+    // for backwards compatibility with older server builds.
+    const val =
+      typeof iss.deficit === "number"
+        ? iss.deficit
+        : Number(iss.detail.match(/deficit = ([-+\d.]+)/)?.[1] ?? Number.NaN);
     if (iss.code === "CONSERVATION_CHARGE") d.charge = val;
     if (iss.code === "CONSERVATION_LEPTON") d.lepton = val;
     if (iss.code === "CONSERVATION_BARYON") d.baryon = val;

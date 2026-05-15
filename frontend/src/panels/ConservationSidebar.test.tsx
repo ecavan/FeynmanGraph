@@ -22,4 +22,30 @@ describe("extractDeficits", () => {
     ]);
     expect(d).toEqual({});
   });
+
+  it("prefers the structured `deficit` field over regex-parsing the detail", () => {
+    // Server sends both; if they disagree, the structured field wins.
+    const issues = [
+      {
+        code: "CONSERVATION_CHARGE",
+        detail: "Charge does not conserve: deficit = -1",
+        element_ids: [],
+        deficit: -2,  // disagrees with detail; this should win
+      },
+    ];
+    const d = extractDeficits(issues);
+    expect(d.charge).toBe(-2);
+  });
+
+  it("falls back to regex when `deficit` is absent (back-compat)", () => {
+    const issues = [
+      {
+        code: "CONSERVATION_LEPTON",
+        detail: "Lepton number does not conserve: deficit = 3",
+        element_ids: [],
+      },
+    ];
+    const d = extractDeficits(issues);
+    expect(d.lepton).toBe(3);
+  });
 });

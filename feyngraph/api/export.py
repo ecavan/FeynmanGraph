@@ -17,6 +17,7 @@ from feyngraph.domain.dot_writer import (
 )
 from feyngraph.domain.graph_spec import GraphSpec
 from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError
+from feyngraph.domain.theories import apply_theory, get_theory
 
 router = APIRouter(prefix="/api", tags=["export"])
 
@@ -69,4 +70,34 @@ async def export_dot(spec: GraphSpec) -> ExportResponse:
                 "(removing them must leave a spanning forest)"
             ),
         ) from exc
-    return ExportResponse(dot=dot)
+
+    # Theory consistency: still produce the dot (the user may want to inspect
+    # it), but warn if any particle/vertex isn't in the active theory.
+    warnings: list[str] = []
+    try:
+        theory = get_theory(spec.theory_id)
+    except KeyError:
+        theory = None
+    if theory is not None:
+        filtered = apply_theory(model, theory)
+        allowed_pdgs = {p.pdg_id for p in filtered.particles}
+        allowed_vertex_ids = {v.id for v in filtered.vertices}
+        bad_pdgs = sorted({
+            e.particle_pdg_id for e in spec.edges
+            if e.particle_pdg_id is not None and e.particle_pdg_id not in allowed_pdgs
+        })
+        if bad_pdgs:
+            warnings.append(
+                f"Theory '{spec.theory_id}' does not contain particle(s) "
+                f"PDG {bad_pdgs}; gammaloop import will likely fail."
+            )
+        bad_vtx = sorted({
+            n.ufo_vertex_id for n in spec.nodes
+            if n.ufo_vertex_id is not None and n.ufo_vertex_id not in allowed_vertex_ids
+        })
+        if bad_vtx:
+            warnings.append(
+                f"Theory '{spec.theory_id}' does not contain vertex/vertices "
+                f"{bad_vtx}; gammaloop import will likely fail."
+            )
+    return ExportResponse(dot=dot, warnings=warnings)

@@ -103,4 +103,55 @@ describe("diagram store", () => {
     const node = useDiagramStore.getState().nodes[0];
     expect(node.position).toEqual([200, 150]);
   });
+
+  it("undo restores the state from before the last mutation", () => {
+    const s = useDiagramStore.getState();
+    s.addVertex({ id: "v1", position: [0, 0] });
+    s.addVertex({ id: "v2", position: [0, 0] });
+    expect(useDiagramStore.getState().nodes).toHaveLength(2);
+    useDiagramStore.getState().undo();
+    expect(useDiagramStore.getState().nodes).toHaveLength(1);
+    useDiagramStore.getState().undo();
+    expect(useDiagramStore.getState().nodes).toHaveLength(0);
+  });
+
+  it("redo re-applies an undone mutation", () => {
+    const s = useDiagramStore.getState();
+    s.addVertex({ id: "v1", position: [0, 0] });
+    s.addVertex({ id: "v2", position: [0, 0] });
+    useDiagramStore.getState().undo();
+    expect(useDiagramStore.getState().nodes).toHaveLength(1);
+    useDiagramStore.getState().redo();
+    expect(useDiagramStore.getState().nodes).toHaveLength(2);
+  });
+
+  it("a fresh mutation clears the redo stack (linear history)", () => {
+    const s = useDiagramStore.getState();
+    s.addVertex({ id: "v1", position: [0, 0] });
+    s.addVertex({ id: "v2", position: [0, 0] });
+    useDiagramStore.getState().undo();
+    // After undo, redo is available
+    expect(useDiagramStore.getState()._future).toHaveLength(1);
+    // A new mutation should clear redo
+    useDiagramStore.getState().addVertex({ id: "v3", position: [0, 0] });
+    expect(useDiagramStore.getState()._future).toHaveLength(0);
+    // Redo should now do nothing
+    useDiagramStore.getState().redo();
+    expect(useDiagramStore.getState().nodes.map((n) => n.id).sort()).toEqual(["v1", "v3"]);
+  });
+
+  it("undo is a no-op when history is empty", () => {
+    expect(useDiagramStore.getState()._past).toHaveLength(0);
+    useDiagramStore.getState().undo();
+    expect(useDiagramStore.getState().nodes).toHaveLength(0);
+  });
+
+  it("history is bounded so it doesn't grow forever", () => {
+    const s = useDiagramStore.getState();
+    // Push more snapshots than the history limit (50).
+    for (let i = 0; i < 80; i++) {
+      s.addVertex({ id: `vN${i}`, position: [0, 0] });
+    }
+    expect(useDiagramStore.getState()._past.length).toBeLessThanOrEqual(50);
+  });
 });

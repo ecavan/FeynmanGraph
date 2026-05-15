@@ -32,6 +32,10 @@ export type GraphIssue = {
   code: string;
   detail: string;
   element_ids: string[];
+  /** Optional numeric payload for conservation issues (signed deficit).
+   *  Lets ConservationSidebar read the value directly instead of regex-
+   *  parsing it out of `detail`. */
+  deficit?: number | null;
 };
 
 export type APIError = {

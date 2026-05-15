@@ -53,3 +53,32 @@ def legal_completions(partial: PartialVertex, model: Model) -> list[CompletionOp
         CompletionOption(pdg_id=p, ufo_vertex_id=vid)
         for p, vid in sorted(results, key=lambda x: (x[0], x[1]))
     ]
+
+
+def _self_conjugate_pdgs(model: Model) -> set[int]:
+    """PDG codes whose antiparticle == themselves (photon, Z, H, gluon, …).
+    For those particles the sign in an all-incoming convention is irrelevant
+    — ±PDG describe the same physical state — so we normalize to +abs(pdg)
+    when comparing multisets."""
+    return {p.pdg_id for p in model.particles if p.anti_name == p.name}
+
+
+def _canonical_pdg(pdg: int, self_conj: set[int]) -> int:
+    return abs(pdg) if abs(pdg) in self_conj else pdg
+
+
+def matching_ufo_vertices(pdgs: list[int], model: Model) -> list[str]:
+    """Return the UFO vertex IDs whose particle multiset equals `pdgs` exactly
+    under all-incoming convention. Self-conjugate particles are compared by
+    absolute PDG (their sign is physically meaningless).
+
+    Used by `validate-graph` to flag internal vertices whose incident edges
+    don't correspond to any UFO Feynman rule — those would survive conservation
+    but produce a dot file gammaloop can't symbolically interpret.
+    """
+    self_conj = _self_conjugate_pdgs(model)
+    target = Counter(_canonical_pdg(p, self_conj) for p in pdgs)
+    return [
+        v.id for v in model.vertices
+        if Counter(_canonical_pdg(p, self_conj) for p in v.particles) == target
+    ]

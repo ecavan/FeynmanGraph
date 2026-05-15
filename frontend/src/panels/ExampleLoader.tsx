@@ -9,6 +9,8 @@ const api = new ApiClient();
  *  force-directed layout pass over the result. Bulk-writes the topology to
  *  avoid spawning a layout per addVertex/addEdge call. */
 export function loadExampleIntoStore(spec: ExampleSpec): void {
+  // Snapshot what was there before so the user can undo a starter load.
+  const before = useDiagramStore.getState();
   useDiagramStore.setState({
     modelId: spec.model_id,
     theoryId: spec.theory_id,
@@ -32,6 +34,16 @@ export function loadExampleIntoStore(spec: ExampleSpec): void {
     lmbEdgeIds: null,
     selectedId: null,
     selectedKind: null,
+    _past: [
+      ...before._past,
+      {
+        nodes: before.nodes,
+        edges: before.edges,
+        externalLegs: before.externalLegs,
+        lmbEdgeIds: before.lmbEdgeIds,
+      },
+    ].slice(-50),
+    _future: [],
   });
   // Single relayout pass over the fully-loaded topology.
   useDiagramStore.getState().runLayout();

@@ -5,13 +5,11 @@ export type VertexNodeData = { label?: string };
 export const VERTEX_DIAMETER = 12;
 
 /**
- * A Feynman vertex — drawn as a filled black dot that the edges visually
- * terminate at. Bigger than the standard react-flow node so edges look like
- * they're swallowed at a single point regardless of incident angle.
- *
- * The Handle is centered and covers the whole node; this lets react-flow
- * route connection endpoints through the visual center if drag-to-connect is
- * ever re-enabled.
+ * A Feynman vertex — drawn as a filled dot that the edges visually terminate
+ * at. Handles cover the whole node (full opacity transparent) so react-flow
+ * can route any drag-to-connect ops through the visual center, but
+ * drag-to-connect is disabled at the canvas level (`nodesConnectable={false}`)
+ * — particle creation goes through the toolbox form instead.
  */
 export function VertexNode(props: NodeProps<VertexNodeData>) {
   return (

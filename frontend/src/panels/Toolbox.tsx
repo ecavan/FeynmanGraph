@@ -25,6 +25,11 @@ export function Toolbox() {
   const setTheoryId = useDiagramStore((s) => s.setTheoryId);
   const addVertex = useDiagramStore((s) => s.addVertex);
   const addEdge = useDiagramStore((s) => s.addEdge);
+  const undo = useDiagramStore((s) => s.undo);
+  const redo = useDiagramStore((s) => s.redo);
+  const canUndo = useDiagramStore((s) => s._past.length > 0);
+  const canRedo = useDiagramStore((s) => s._future.length > 0);
+  const canAddParticle = nodes.length >= 2;
 
   const [edgeFormOpen, setEdgeFormOpen] = useState(false);
   const [edgeFrom, setEdgeFrom] = useState<string>("");
@@ -41,14 +46,17 @@ export function Toolbox() {
   }
 
   function handleAddVertex() {
-    const id = `v${Date.now()}`;
+    // Read current nodes off the store at click time (not from the closed-over
+    // hook value) so rapid clicks + external mutations always see fresh state.
+    const current = useDiagramStore.getState().nodes;
+    const id = nextVertexId(current.map((n) => n.id));
     // Position [0,0] tells the store action to auto-place near the cluster center.
     addVertex({ id, position: [0, 0] });
   }
 
   function submitNewEdge() {
     if (!edgeFrom || !edgeTo) return;
-    const id = `e${Date.now()}`;
+    const id = nextEdgeId(useDiagramStore.getState().edges.map((e) => e.id));
     addEdge({
       id,
       sourceNodeId: edgeFrom,
@@ -92,26 +100,55 @@ export function Toolbox() {
     <div data-testid="toolbox" style={{ fontSize: 13 }}>
       <TheoryPicker />
       <hr style={{ margin: "10px 0", border: "none", borderTop: "1px solid #e4e4e4" }} />
-      <h3 style={{ marginTop: 0 }}>Build</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <ToolboxButton
-          testId="clear-diagram"
-          label="Clear diagram"
-          onClick={clearDiagram}
-          variant="subtle"
+
+      {/* Edit row: Undo / Redo / Clear — small, subtle, fixed at top */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+        <IconButton
+          testId="undo"
+          label="↶ Undo"
+          title="Undo last action (⌘Z)"
+          onClick={undo}
+          disabled={!canUndo}
         />
+        <IconButton
+          testId="redo"
+          label="↷ Redo"
+          title="Redo (⇧⌘Z)"
+          onClick={redo}
+          disabled={!canRedo}
+        />
+        <IconButton
+          testId="clear-diagram"
+          label="Clear"
+          title="Clear the diagram"
+          onClick={clearDiagram}
+          variant="danger"
+        />
+      </div>
+
+      {/* Add row: vertex + particle, primary actions */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <ToolboxButton
           testId="add-vertex"
           label="+ Add vertex"
           onClick={handleAddVertex}
           variant="primary"
         />
-        <ToolboxButton
-          testId="add-particle"
-          label={edgeFormOpen ? "× Cancel particle" : "+ Add particle"}
-          onClick={() => setEdgeFormOpen((open) => !open)}
-          variant="primary"
-        />
+        <div>
+          <ToolboxButton
+            testId="add-particle"
+            label={edgeFormOpen ? "× Cancel particle" : "+ Add particle"}
+            onClick={() => setEdgeFormOpen((open) => !open)}
+            variant="primary"
+            disabled={!canAddParticle}
+            title={canAddParticle ? undefined : "Add at least 2 vertices first"}
+          />
+          {!canAddParticle && (
+            <p style={{ fontSize: 11, opacity: 0.7, margin: "4px 0 0", color: "#5a4400" }}>
+              Add at least two vertices before drawing a particle line.
+            </p>
+          )}
+        </div>
       </div>
       {edgeFormOpen && (
         <div
@@ -225,6 +262,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+/** Pick the lowest free id of the form `<prefix><N>` (N >= 1). Keeps the
+ *  From / To dropdowns readable instead of timestamp-shaped. */
+function nextId(existing: string[], prefix: string): string {
+  const used = new Set<number>();
+  const re = new RegExp(`^${prefix}(\\d+)$`);
+  for (const id of existing) {
+    const m = id.match(re);
+    if (m) used.add(Number(m[1]));
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return `${prefix}${n}`;
+}
+
+function nextVertexId(existing: string[]): string {
+  return nextId(existing, "v");
+}
+
+function nextEdgeId(existing: string[]): string {
+  return nextId(existing, "e");
+}
+
 function VertexDropdown(props: {
   value: string;
   setValue: (id: string) => void;
@@ -272,24 +331,68 @@ function ToolboxButton(props: {
   onClick: () => void;
   variant: "primary" | "subtle";
   testId?: string;
+  disabled?: boolean;
+  title?: string;
 }) {
   const primary = props.variant === "primary";
+  const disabled = props.disabled ?? false;
   return (
     <button
       type="button"
       data-testid={props.testId}
       onClick={props.onClick}
+      disabled={disabled}
+      title={props.title}
       style={{
         padding: "6px 10px",
         fontSize: 12,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         border: "1px solid",
-        borderColor: primary ? "#0066ff" : "#bbb",
-        background: primary ? "#0066ff" : "#fff",
-        color: primary ? "white" : "#222",
+        borderColor: disabled ? "#bbb" : primary ? "#0066ff" : "#bbb",
+        background: disabled ? "#eee" : primary ? "#0066ff" : "#fff",
+        color: disabled ? "#888" : primary ? "white" : "#222",
         borderRadius: 4,
         textAlign: "left",
         fontWeight: 500,
+        opacity: disabled ? 0.7 : 1,
+      }}
+    >
+      {props.label}
+    </button>
+  );
+}
+
+/** Compact icon-style button used in the top edit row (undo/redo/clear). */
+function IconButton(props: {
+  label: string;
+  onClick: () => void;
+  testId?: string;
+  title?: string;
+  disabled?: boolean;
+  variant?: "default" | "danger";
+}) {
+  const danger = props.variant === "danger";
+  const disabled = props.disabled ?? false;
+  return (
+    <button
+      type="button"
+      data-testid={props.testId}
+      onClick={props.onClick}
+      title={props.title}
+      disabled={disabled}
+      style={{
+        flex: 1,
+        padding: "5px 8px",
+        fontSize: 12,
+        cursor: disabled ? "not-allowed" : "pointer",
+        border: "1px solid",
+        borderColor: danger ? "#c0392b" : "#bbb",
+        background: "white",
+        color: disabled ? "#999" : danger ? "#c0392b" : "#444",
+        borderRadius: 4,
+        fontWeight: 500,
+        opacity: disabled ? 0.55 : 1,
+        whiteSpace: "nowrap",
       }}
     >
       {props.label}

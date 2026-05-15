@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { ApiClient } from "../api/client";
-import type { Model } from "../api/types";
+import {
+  isGhostOrGoldstone,
+  paletteSortKey,
+  particleLabel,
+  visualForEdge,
+} from "../canvas/edges/particle-style";
 import { useDiagramStore } from "../state/diagram";
-import { ParticlePicker } from "./ParticlePicker";
-
-const api = new ApiClient();
 
 /**
  * Renders contextual controls for whatever is currently selected on the canvas.
@@ -19,7 +19,7 @@ export function SelectionPanel() {
   const edges = useDiagramStore((s) => s.edges);
   const externalLegs = useDiagramStore((s) => s.externalLegs);
   const modelId = useDiagramStore((s) => s.modelId);
-  const theoryId = useDiagramStore((s) => s.theoryId);
+  const model = useDiagramStore((s) => s.cachedModel);
   const removeVertex = useDiagramStore((s) => s.removeVertex);
   const removeEdge = useDiagramStore((s) => s.removeEdge);
   const setEdgeParticle = useDiagramStore((s) => s.setEdgeParticle);
@@ -27,27 +27,6 @@ export function SelectionPanel() {
   const addExternalLeg = useDiagramStore((s) => s.addExternalLeg);
   const removeExternalLeg = useDiagramStore((s) => s.removeExternalLeg);
   const setSelection = useDiagramStore((s) => s.setSelection);
-
-  const [model, setModel] = useState<Model | null>(null);
-
-  useEffect(() => {
-    if (!modelId) {
-      setModel(null);
-      return;
-    }
-    let cancelled = false;
-    api
-      .getModel(modelId)
-      .then((m) => {
-        if (!cancelled) setModel(m);
-      })
-      .catch(() => {
-        if (!cancelled) setModel(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [modelId]);
 
   if (selectedKind == null || selectedId == null) {
     return (
@@ -147,12 +126,9 @@ export function SelectionPanel() {
           : `PDG ${edge.particlePdgId}`}
       </p>
       {model && modelId && (
-        <ParticlePicker
-          modelId={modelId}
-          theoryId={theoryId}
-          knownPdgs={[]}
-          unknownCount={0}
-          allParticles={model.particles}
+        <EdgeParticleList
+          model={model}
+          currentPdg={edge.particlePdgId ?? null}
           onPick={(pdgId) => setEdgeParticle(selectedId, pdgId)}
         />
       )}
@@ -197,4 +173,81 @@ function nextLegLabel(existing: string[]): string {
     return Number.isFinite(n) && n > m ? n : m;
   }, 0);
   return `p${max + 1}`;
+}
+
+/** Picker rendered when an edge is selected. Reads from the (theory-filtered)
+ *  cached model in the store; the active theory's filter applies automatically. */
+function EdgeParticleList(props: {
+  model: { particles: { pdg_id: number; name: string }[] };
+  currentPdg: number | null;
+  onPick: (pdgId: number) => void;
+}) {
+  const sorted = [...props.model.particles]
+    .filter((p) => !isGhostOrGoldstone(p.pdg_id))
+    .sort((a, b) => {
+      const [gA, pA] = paletteSortKey(a.pdg_id);
+      const [gB, pB] = paletteSortKey(b.pdg_id);
+      if (gA !== gB) return gA - gB;
+      return pA - pB;
+    });
+  return (
+    <ul style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: 260, overflowY: "auto" }}>
+      {sorted.map((p) => {
+        const active = props.currentPdg === p.pdg_id;
+        return (
+          <li key={p.pdg_id} style={{ padding: "1px 0" }}>
+            <button
+              type="button"
+              onClick={() => props.onPick(p.pdg_id)}
+              aria-pressed={active}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 6px",
+                background: active ? "#e6f0ff" : "white",
+                border: active ? "1px solid #0066ff" : "1px solid #d4d4d4",
+                borderRadius: 3,
+                cursor: "pointer",
+                fontSize: 12,
+                textAlign: "left",
+                fontFamily:
+                  '"Latin Modern Math", "Cambria Math", "Times New Roman", serif',
+              }}
+            >
+              <EdgeStrokePreview pdgId={p.pdg_id} />
+              <span style={{ minWidth: 50 }}>{particleLabel(p.pdg_id, p.name)}</span>
+              <span style={{ opacity: 0.5, fontSize: 11, marginLeft: "auto" }}>{p.name}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function EdgeStrokePreview({ pdgId }: { pdgId: number }) {
+  const w = 44;
+  const h = 14;
+  const y = h / 2;
+  const visual = visualForEdge(pdgId, 2, y, w - 2, y);
+  return (
+    <svg width={w} height={h} style={{ flexShrink: 0 }}>
+      <path
+        d={visual.path}
+        fill="none"
+        stroke={visual.stroke}
+        strokeWidth={visual.strokeWidth}
+        strokeDasharray={visual.strokeDasharray}
+      />
+      {visual.showArrow && (
+        <polygon
+          points="0,-3 6,0 0,3"
+          fill={visual.stroke}
+          transform={`translate(${w / 2}, ${y})`}
+        />
+      )}
+    </svg>
+  );
 }

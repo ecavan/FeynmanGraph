@@ -14,16 +14,56 @@ const api = new ApiClient();
 
 export default function App() {
   const [view, setView] = useState<View>("canvas");
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
 
-  // On mount: restore prior session from localStorage, or fall back to ee_mumu starter.
+  // On mount: restore prior session from localStorage. If the stored
+  // modelId is no longer available server-side, fall back to ee_mumu and
+  // surface a one-line notice so the user isn't silently left with a broken
+  // session.
   useEffect(() => {
-    if (restoreFromLocalStorage()) return;
+    let cancelled = false;
+    const loadDefault = (reason?: string) => {
+      api
+        .getExample("ee_mumu")
+        .then((spec) => {
+          if (!cancelled) {
+            loadExampleIntoStore(spec);
+            if (reason) setRestoreNotice(reason);
+          }
+        })
+        .catch(() => {
+          /* leave canvas empty */
+        });
+    };
+
+    const restored = restoreFromLocalStorage();
+    if (!restored) {
+      loadDefault();
+      return () => {
+        cancelled = true;
+      };
+    }
+    const restoredId = useDiagramStore.getState().modelId;
+    if (!restoredId) return () => { cancelled = true; };
+    // Validate the restored modelId by listing available models. If it's
+    // gone, fall back to the default starter.
     api
-      .getExample("ee_mumu")
-      .then((spec) => loadExampleIntoStore(spec))
+      .listModels()
+      .then((models) => {
+        if (cancelled) return;
+        const ids = new Set(models.map((m) => m.id));
+        if (!ids.has(restoredId)) {
+          loadDefault(
+            `Couldn't restore model "${restoredId}" — loaded ee_mumu starter instead.`,
+          );
+        }
+      })
       .catch(() => {
-        /* leave canvas empty */
+        // Network failure — keep what we restored and try again next time.
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Persist on every store change.
@@ -32,6 +72,23 @@ export default function App() {
       saveToLocalStorage();
     });
     return unsubscribe;
+  }, []);
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Shift+Cmd/Ctrl+Z = redo.
+  // Skip when the user is typing in an input/textarea/select.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) useDiagramStore.getState().redo();
+        else useDiagramStore.getState().undo();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   // Keep the cached Model in sync with whichever (modelId, theoryId) pair is
@@ -81,12 +138,37 @@ export default function App() {
           gap: 8,
           padding: 8,
           borderBottom: "1px solid #ccc",
+          alignItems: "center",
         }}
       >
         <TabButton label="Canvas" active={view === "canvas"} onClick={() => setView("canvas")} />
         <TabButton label="Setup" active={view === "setup"} onClick={() => setView("setup")} />
         <TabButton label="Import" active={view === "import"} onClick={() => setView("import")} />
         <TabButton label="Export" active={view === "export"} onClick={() => setView("export")} />
+        {restoreNotice && (
+          <span
+            role="status"
+            style={{
+              marginLeft: 12,
+              padding: "4px 10px",
+              background: "#fff5d6",
+              border: "1px solid #c89500",
+              borderRadius: 4,
+              fontSize: 12,
+              color: "#5a4400",
+            }}
+          >
+            {restoreNotice}
+            <button
+              type="button"
+              onClick={() => setRestoreNotice(null)}
+              style={{ marginLeft: 6, background: "none", border: "none", cursor: "pointer" }}
+              aria-label="Dismiss restore notice"
+            >
+              ×
+            </button>
+          </span>
+        )}
       </nav>
       <main style={{ flex: 1, overflow: "auto" }}>
         {view === "canvas" && <CanvasView />}
