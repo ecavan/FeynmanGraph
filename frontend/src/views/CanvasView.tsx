@@ -1,9 +1,25 @@
 import { DiagramCanvas } from "../canvas/DiagramCanvas";
+import { ConservationSidebar } from "../panels/ConservationSidebar";
+import { IssuesPanel } from "../panels/IssuesPanel";
 
 export function CanvasView() {
   return (
-    <div data-testid="view-canvas" style={{ height: "100%" }}>
+    <div
+      data-testid="view-canvas"
+      style={{ display: "grid", gridTemplateColumns: "1fr 280px", height: "100%" }}
+    >
       <DiagramCanvas />
+      <aside
+        style={{
+          borderLeft: "1px solid #ccc",
+          padding: 12,
+          overflow: "auto",
+        }}
+      >
+        <ConservationSidebar />
+        <hr />
+        <IssuesPanel />
+      </aside>
     </div>
   );
 }
