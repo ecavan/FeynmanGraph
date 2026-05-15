@@ -54,14 +54,29 @@ def test_each_example_exports_to_dot():
 
 
 def test_ggH_has_loop_chord():
-    """gg→H is a 1-loop top triangle; exactly one chord edge gets lmb_index=0."""
+    """gg→H is a 1-loop top triangle; exactly one chord edge gets lmb_id="0"."""
     client = TestClient(create_app())
     spec = json.loads((EXAMPLES_DIR / "gg_H.json").read_text())
     resp = client.post("/api/export-dot", json=spec)
     assert resp.status_code == 200
     dot = resp.json()["dot"]
-    assert "lmb_index=0" in dot
-    assert "lmb_index=1" not in dot  # exactly one independent loop
+    assert 'lmb_id="0"' in dot
+    assert 'lmb_id="1"' not in dot  # exactly one independent loop
+
+
+def test_2loop_starter_has_two_chord_edges():
+    """ee_ee_double_box is a 2-loop diagram; should get lmb_id="0" and lmb_id="1"."""
+    client = TestClient(create_app())
+    spec = json.loads((EXAMPLES_DIR / "ee_ee_double_box.json").read_text())
+    resp = client.post("/api/export-dot", json=spec)
+    assert resp.status_code == 200
+    dot = resp.json()["dot"]
+    assert 'lmb_id="0"' in dot
+    assert 'lmb_id="1"' in dot
+    # Validate-graph should report 2 loops
+    val = client.post("/api/validate-graph", json=spec)
+    assert val.status_code == 200
+    assert val.json()["loop_count"] == 2
 
 
 def test_each_starter_passes_validation_with_zero_issues():

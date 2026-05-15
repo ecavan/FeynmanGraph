@@ -6,9 +6,9 @@ import { serializeGraphSpec } from "./serialize";
 const api = new ApiClient();
 
 /**
- * Loop momentum routing panel — shows which edges are currently chords (the
- * ones carrying an independent loop momentum) and lets the user override the
- * auto-pick. Hidden entirely if the graph has no loops.
+ * Loop momentum routing panel — always visible. At 0 loops it shows a hint
+ * about how to introduce one; at ≥1 loop it shows the chord edges (carrying
+ * the independent loop momenta) and lets the user override the auto-pick.
  */
 export function LoopRoutingPanel() {
   const [chordIds, setChordIds] = useState<string[]>([]);
@@ -48,9 +48,32 @@ export function LoopRoutingPanel() {
     state.lmbEdgeIds,
   ]);
 
-  if (loopCount === 0) return null;
-
   const isOverridden = state.lmbEdgeIds !== null && state.lmbEdgeIds.length > 0;
+
+  if (loopCount === 0) {
+    return (
+      <div data-testid="loop-routing-panel">
+        <h4>
+          Loops
+          <span style={{ fontWeight: "normal", opacity: 0.6, marginLeft: 6 }}>
+            (0 loops)
+          </span>
+        </h4>
+        <p style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.5, margin: "4px 0" }}>
+          This diagram is tree-level. To add a loop:
+        </p>
+        <ul style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.5, paddingLeft: 20, margin: "4px 0" }}>
+          <li>Add a parallel edge between two existing vertices (forms a bubble)</li>
+          <li>Connect a vertex to itself (forms a tadpole)</li>
+          <li>Close a cycle with three or more vertices (triangle, box, etc.)</li>
+        </ul>
+        <p style={{ fontSize: 11, opacity: 0.6, margin: "4px 0" }}>
+          Or load <code>gg_H</code> (1-loop triangle) or <code>ee_ee_double_box</code>{" "}
+          (2-loop) from the Setup tab as worked examples.
+        </p>
+      </div>
+    );
+  }
 
   function applyDraft() {
     setOverrideError(null);
@@ -76,8 +99,18 @@ export function LoopRoutingPanel() {
     <div data-testid="loop-routing-panel">
       <h4>
         Loop momentum routing
-        <span style={{ fontWeight: "normal", opacity: 0.6, marginLeft: 6 }}>
-          ({loopCount} loop{loopCount === 1 ? "" : "s"})
+        <span
+          style={{
+            fontWeight: 600,
+            marginLeft: 6,
+            padding: "1px 6px",
+            background: loopCount >= 2 ? "#fff3cd" : "#e6f0ff",
+            color: loopCount >= 2 ? "#7a5d00" : "#0044aa",
+            borderRadius: 10,
+            fontSize: 11,
+          }}
+        >
+          {loopCount} loop{loopCount === 1 ? "" : "s"}
         </span>
       </h4>
       <p style={{ fontSize: 12, margin: "4px 0" }}>

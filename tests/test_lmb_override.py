@@ -134,10 +134,10 @@ def test_override_via_export_dot_api(tmp_path):
     resp = client.post("/api/export-dot", json=spec)
     assert resp.status_code == 200, resp.text
     dot = resp.json()["dot"]
-    # e5 is the v2→v3 edge — verify lmb_index=0 appears on that line.
+    # e5 is the v2→v3 edge — verify lmb_id="0" appears on that line.
     assert "v2 -> v3" in dot
     v2_v3_line = next(line for line in dot.splitlines() if "v2 -> v3" in line)
-    assert "lmb_index=0" in v2_v3_line, v2_v3_line
+    assert 'lmb_id="0"' in v2_v3_line, v2_v3_line
 
 
 def test_override_invalid_via_api(tmp_path):

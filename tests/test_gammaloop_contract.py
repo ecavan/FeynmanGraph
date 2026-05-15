@@ -1,4 +1,15 @@
-"""Contract tests: feyngraph .dot output must be accepted by `gammaloop import graphs`.
+"""Contract tests: feyngraph .dot output must be cleanly imported by gammaloop
+under the actual SM model — not just parseable without crash.
+
+The first version of this test only ran `gammaloop import graphs <dot>` without
+loading a model first, so gammaloop printed "Particle with PDG 11 not found in
+model 'ModelNotLoaded'" but still exit-0'd. The current version uses a TOML
+command block (`gammaloop <toml> run <block>`) that:
+  1. imports the SM model
+  2. imports our generated graph
+And we additionally fail if stderr/stdout contains "Unknown" attribute warnings
+(those mean our dot uses attribute names gammaloop doesn't recognize) or any
+particle-not-found errors.
 
 Gated behind the `gammaloop` pytest marker — only runs when gammaloop is
 installed and on PATH. CI runs this nightly (.github/workflows/nightly.yml).
@@ -30,15 +41,7 @@ EXAMPLES_DIR = REPO_ROOT / "feyngraph" / "data" / "examples"
 
 
 def _gammaloop_path() -> str | None:
-    """Find the gammaloop binary if it's installed and executable.
-
-    Looks in (1) PATH, (2) ~/Documents/GitHub/gammaloop/gammaloop (the launcher
-    wrapper), (3) ~/Documents/GitHub/gammaloop/target/*/gammaloop (the raw
-    compiled binary), (4) ./gammaloop. We don't try to probe gammaloop with a
-    fake command — its CLI is finicky about what counts as "valid invocation"
-    so we settle for "the file exists and is executable" and rely on the real
-    `import graphs` invocation to surface any actual issue.
-    """
+    """Find the gammaloop binary if it's installed and executable."""
     import os
 
     candidates: list[str] = []
@@ -64,36 +67,63 @@ def _gammaloop_path() -> str | None:
 GAMMALOOP_BIN = _gammaloop_path()
 
 
-def _run_gammaloop_import(dot_path: Path, tmp_path: Path) -> subprocess.CompletedProcess:
+def _run_gammaloop_with_model(dot_path: Path, tmp_path: Path) -> subprocess.CompletedProcess:
+    """Run gammaloop with a TOML command block that loads SM first then imports.
+
+    Returns the CompletedProcess; callers should check both returncode AND the
+    combined output for forbidden-warning patterns.
+    """
+    assert GAMMALOOP_BIN is not None
     workdir = tmp_path / "state"
     workdir.mkdir(exist_ok=True)
-    assert GAMMALOOP_BIN is not None
+    toml_path = tmp_path / "gammaloop_verify.toml"
+    toml_path.write_text(
+        f"""[[command_blocks]]
+name = "verify"
+commands = [
+  "import model sm-default.json",
+  "import graphs {dot_path} -p test_process -i test_integrand",
+]
+"""
+    )
     return subprocess.run(
-        [
-            GAMMALOOP_BIN,
-            "import",
-            "graphs",
-            str(dot_path),
-            "-p",
-            "test_process",
-            "-i",
-            "test_integrand",
-        ],
+        [GAMMALOOP_BIN, str(toml_path), "run", "verify"],
         cwd=workdir,
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=180,
+    )
+
+
+# Patterns that, if found in stdout/stderr, indicate the dot is broken even
+# though gammaloop exits 0. Each must be ZERO occurrences for a pass.
+_FORBIDDEN_PATTERNS = (
+    "Unknown graph attribute",   # gammaloop didn't recognize an attr we wrote
+    "Unknown edge attribute",
+    "Particle with PDG",         # "Particle with PDG N not found in model" — bad model
+    "not found in model",
+    "Could not parse",
+)
+
+
+def _assert_clean_import(result: subprocess.CompletedProcess, dot_path: Path) -> None:
+    combined = result.stdout + result.stderr
+    issues = [pat for pat in _FORBIDDEN_PATTERNS if pat in combined]
+    assert result.returncode == 0 and not issues, (
+        f"gammaloop import had issues for {dot_path.name}:\n"
+        f"  forbidden patterns found: {issues}\n"
+        f"--- the .dot we generated ---\n{dot_path.read_text()}\n"
+        f"--- stdout ---\n{result.stdout}\n"
+        f"--- stderr ---\n{result.stderr}"
     )
 
 
 @pytest.mark.gammaloop
 @pytest.mark.skipif(GAMMALOOP_BIN is None, reason="gammaloop not installed / not on PATH")
 def test_gammaloop_accepts_ee_mumu_golden(tmp_path: Path) -> None:
-    """The hand-authored golden .dot for e+e- → μ+μ- parses cleanly."""
-    result = _run_gammaloop_import(GOLDEN_DIR / "ee_mumu.dot", tmp_path)
-    assert result.returncode == 0, (
-        f"gammaloop rejected ee_mumu.dot:\n--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}"
-    )
+    """The hand-authored golden .dot for e+e- → μ+μ- imports cleanly under SM."""
+    result = _run_gammaloop_with_model(GOLDEN_DIR / "ee_mumu.dot", tmp_path)
+    _assert_clean_import(result, GOLDEN_DIR / "ee_mumu.dot")
 
 
 _ALL_STARTER_IDS = sorted(
@@ -105,7 +135,9 @@ _ALL_STARTER_IDS = sorted(
 @pytest.mark.skipif(GAMMALOOP_BIN is None, reason="gammaloop not installed / not on PATH")
 @pytest.mark.parametrize("example_id", _ALL_STARTER_IDS)
 def test_gammaloop_accepts_generated_starter(example_id: str, tmp_path: Path) -> None:
-    """Each bundled starter, when exported via /api/export-dot, parses cleanly."""
+    """Each bundled starter, when exported via /api/export-dot, imports cleanly
+    under the SM model (no Unknown-attribute warnings, no particle-not-found
+    errors). Also exercises the 1-loop and 2-loop starters."""
     client = TestClient(create_app())
     spec = json.loads((EXAMPLES_DIR / f"{example_id}.json").read_text())
     resp = client.post("/api/export-dot", json=spec)
@@ -113,11 +145,5 @@ def test_gammaloop_accepts_generated_starter(example_id: str, tmp_path: Path) ->
 
     dot_path = tmp_path / f"{example_id}.dot"
     dot_path.write_text(resp.json()["dot"])
-
-    result = _run_gammaloop_import(dot_path, tmp_path)
-    assert result.returncode == 0, (
-        f"gammaloop rejected {example_id}.dot:\n"
-        f"--- the .dot we generated ---\n{dot_path.read_text()}\n"
-        f"--- stdout ---\n{result.stdout}\n"
-        f"--- stderr ---\n{result.stderr}"
-    )
+    result = _run_gammaloop_with_model(dot_path, tmp_path)
+    _assert_clean_import(result, dot_path)

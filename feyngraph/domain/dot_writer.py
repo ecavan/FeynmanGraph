@@ -55,8 +55,9 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
 
     buf = StringIO()
     buf.write(f"digraph {spec.process_name} {{\n")
-    buf.write("  overall_factor=1;\n")
-    buf.write("  multiplicity_factor=1;\n")
+    # `overall_factor` is a gammaloop-known graph attribute; `multiplicity_factor`
+    # is NOT — see gammaloop's attribute_warnings.rs GRAPH_SPEC.
+    buf.write('  overall_factor="1";\n')
 
     for leg in spec.external_legs:
         buf.write(f"  {leg.node_id} [style=invis];\n")
@@ -78,14 +79,14 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
 
     for edge in spec.edges:
         label = edge_labels[edge.id]
-        attrs = [f"pdg={edge.particle_pdg_id}", f"name={label}"]
-        if (
-            edge.source_node_id in external_node_ids
-            or edge.target_node_id in external_node_ids
-        ):
-            attrs.append(f"mom={label}")
+        # Attribute names follow gammaloop's expectations (see gammaloop's
+        # examples/cli/aa_aa/1L/aa_aa_1L.dot for the canonical format):
+        # - `name="..."` for edge label (quoted)
+        # - `pdg="..."` for particle PDG id (quoted)
+        # - `lmb_id="N"` for chord edges (quoted integer)
+        attrs = [f'pdg="{edge.particle_pdg_id}"', f'name="{label}"']
         if edge.id in chord_set:
-            attrs.append(f"lmb_index={chord_index_by_edge[edge.id]}")
+            attrs.append(f'lmb_id="{chord_index_by_edge[edge.id]}"')
         buf.write(
             f"  {edge.source_node_id} -> {edge.target_node_id} [{', '.join(attrs)}];\n"
         )
