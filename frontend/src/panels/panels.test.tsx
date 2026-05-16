@@ -26,10 +26,8 @@ describe("Toolbox", () => {
     expect(useDiagramStore.getState().nodes.map((n) => n.id).sort()).toEqual(["v1", "v2", "v3"]);
   });
 
-  it("disables + Add particle until 2 vertices exist", () => {
+  it("disables + Add particle until at least 1 vertex exists", () => {
     render(<Toolbox />);
-    expect(screen.getByTestId("add-particle")).toBeDisabled();
-    fireEvent.click(screen.getByTestId("add-vertex"));
     expect(screen.getByTestId("add-particle")).toBeDisabled();
     fireEvent.click(screen.getByTestId("add-vertex"));
     expect(screen.getByTestId("add-particle")).not.toBeDisabled();

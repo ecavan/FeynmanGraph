@@ -29,6 +29,10 @@ function DiagramCanvasInner() {
   const removeEdge = useDiagramStore((s) => s.removeEdge);
   const updateVertexPosition = useDiagramStore((s) => s.updateVertexPosition);
   const setSelection = useDiagramStore((s) => s.setSelection);
+  const edgeDraftActive = useDiagramStore((s) => s.edgeDraftActive);
+  const edgeDraftSource = useDiagramStore((s) => s.edgeDraftSource);
+  const pickEdgeDraftVertex = useDiagramStore((s) => s.pickEdgeDraftVertex);
+  const cancelEdgeDraft = useDiagramStore((s) => s.cancelEdgeDraft);
 
   const rf = useReactFlow();
 
@@ -42,13 +46,14 @@ function DiagramCanvasInner() {
   const rfNodes: Node[] = nodes.map((n) => {
     const leg = externalLegs.find((l) => l.nodeId === n.id);
     const isSelected = selectedKind === "node" && selectedId === n.id;
+    const isDraftSource = edgeDraftActive && edgeDraftSource === n.id;
     if (leg) {
       return {
         id: n.id,
         type: "externalLeg",
         position: { x: n.position[0], y: n.position[1] },
         selected: isSelected,
-        data: { kind: leg.kind, label: leg.label },
+        data: { kind: leg.kind, label: leg.label, draftSource: isDraftSource },
       };
     }
     return {
@@ -56,7 +61,7 @@ function DiagramCanvasInner() {
       type: "vertex",
       position: { x: n.position[0], y: n.position[1] },
       selected: isSelected,
-      data: {},
+      data: { draftSource: isDraftSource },
     };
   });
 
@@ -104,9 +109,18 @@ function DiagramCanvasInner() {
         onNodesChange={onNodesChange}
         onNodesDelete={onNodesDelete}
         onEdgesDelete={onEdgesDelete}
-        onNodeClick={(_, node) => setSelection(node.id, "node")}
-        onEdgeClick={(_, edge) => setSelection(edge.id, "edge")}
-        onPaneClick={() => setSelection(null, null)}
+        onNodeClick={(_, node) => {
+          if (edgeDraftActive) pickEdgeDraftVertex(node.id);
+          else setSelection(node.id, "node");
+        }}
+        onEdgeClick={(_, edge) => {
+          if (edgeDraftActive) cancelEdgeDraft();
+          setSelection(edge.id, "edge");
+        }}
+        onPaneClick={() => {
+          if (edgeDraftActive) cancelEdgeDraft();
+          else setSelection(null, null);
+        }}
         deleteKeyCode={["Backspace", "Delete"]}
         nodesConnectable={false}
         fitView

@@ -133,6 +133,118 @@ describe("diagram store", () => {
     for (let i = 0; i < 80; i++) s.addVertex({ id: `vN${i}`, position: [0, 0] });
     expect(useDiagramStore.getState()._past.length).toBeLessThanOrEqual(50);
   });
+
+  describe("edge draft (click-to-create)", () => {
+    it("starts inactive with no source", () => {
+      const s = useDiagramStore.getState();
+      expect(s.edgeDraftActive).toBe(false);
+      expect(s.edgeDraftSource).toBeNull();
+    });
+
+    it("startEdgeDraft activates and clears any selection", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.setSelection("v1", "node");
+      s.startEdgeDraft();
+      const after = useDiagramStore.getState();
+      expect(after.edgeDraftActive).toBe(true);
+      expect(after.edgeDraftSource).toBeNull();
+      expect(after.selectedId).toBeNull();
+    });
+
+    it("first vertex click sets source, second creates edge and selects it", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.addVertex({ id: "v2", position: [100, 0] });
+      s.startEdgeDraft();
+      s.pickEdgeDraftVertex("v1");
+      expect(useDiagramStore.getState().edgeDraftSource).toBe("v1");
+      s.pickEdgeDraftVertex("v2");
+      const after = useDiagramStore.getState();
+      expect(after.edgeDraftActive).toBe(false);
+      expect(after.edgeDraftSource).toBeNull();
+      expect(after.edges).toHaveLength(1);
+      expect(after.edges[0].sourceNodeId).toBe("v1");
+      expect(after.edges[0].targetNodeId).toBe("v2");
+      expect(after.edges[0].particlePdgId).toBeNull();
+      expect(after.selectedKind).toBe("edge");
+      expect(after.selectedId).toBe(after.edges[0].id);
+    });
+
+    it("clicking the same vertex twice creates a self-loop", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.startEdgeDraft();
+      s.pickEdgeDraftVertex("v1");
+      s.pickEdgeDraftVertex("v1");
+      const e = useDiagramStore.getState().edges[0];
+      expect(e.sourceNodeId).toBe("v1");
+      expect(e.targetNodeId).toBe("v1");
+    });
+
+    it("cancelEdgeDraft drops the in-progress state", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.startEdgeDraft();
+      s.pickEdgeDraftVertex("v1");
+      s.cancelEdgeDraft();
+      const after = useDiagramStore.getState();
+      expect(after.edgeDraftActive).toBe(false);
+      expect(after.edgeDraftSource).toBeNull();
+      expect(after.edges).toHaveLength(0);
+    });
+
+    it("pickEdgeDraftVertex is a no-op when not in draft mode", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.pickEdgeDraftVertex("v1");
+      expect(useDiagramStore.getState().edges).toHaveLength(0);
+    });
+  });
+
+  describe("loop helpers", () => {
+    it("addSelfLoop adds a self-edge on the given vertex and selects it", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      const id = s.addSelfLoop("v1");
+      const after = useDiagramStore.getState();
+      expect(id).not.toBeNull();
+      expect(after.edges).toHaveLength(1);
+      expect(after.edges[0].sourceNodeId).toBe("v1");
+      expect(after.edges[0].targetNodeId).toBe("v1");
+      expect(after.selectedId).toBe(id);
+      expect(after.selectedKind).toBe("edge");
+    });
+
+    it("addSelfLoop is a no-op for an unknown vertex", () => {
+      const s = useDiagramStore.getState();
+      const id = s.addSelfLoop("ghost");
+      expect(id).toBeNull();
+      expect(useDiagramStore.getState().edges).toHaveLength(0);
+    });
+
+    it("duplicateEdge creates a parallel edge with the same particle", () => {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.addVertex({ id: "v2", position: [100, 0] });
+      s.addEdge({ id: "e1", sourceNodeId: "v1", targetNodeId: "v2", particlePdgId: 22 });
+      const newId = s.duplicateEdge("e1");
+      const after = useDiagramStore.getState();
+      expect(newId).not.toBeNull();
+      expect(after.edges).toHaveLength(2);
+      const newEdge = after.edges.find((e) => e.id === newId);
+      expect(newEdge?.sourceNodeId).toBe("v1");
+      expect(newEdge?.targetNodeId).toBe("v2");
+      expect(newEdge?.particlePdgId).toBe(22);
+      expect(after.selectedId).toBe(newId);
+    });
+
+    it("duplicateEdge is a no-op for an unknown edge", () => {
+      const s = useDiagramStore.getState();
+      const id = s.duplicateEdge("ghost");
+      expect(id).toBeNull();
+    });
+  });
 });
 
 describe("persistence", () => {

@@ -43,6 +43,11 @@ export type DiagramState = {
   selectedId: string | null;
   selectedKind: SelectionKind;
   cachedModel: Model | null;
+  // Click-to-create-edge mode. When `edgeDraftActive` is true and
+  // `edgeDraftSource` is null, the next vertex click sets the source. When
+  // both are set, the next vertex click finalizes the edge.
+  edgeDraftActive: boolean;
+  edgeDraftSource: string | null;
   _past: DiagramSnapshot[];
   _future: DiagramSnapshot[];
 
@@ -62,6 +67,11 @@ export type DiagramState = {
   addExternalLeg: (leg: ExternalLeg) => void;
   removeExternalLeg: (nodeId: string) => void;
   cycleLegKind: (nodeId: string) => void;
+  startEdgeDraft: () => void;
+  cancelEdgeDraft: () => void;
+  pickEdgeDraftVertex: (vertexId: string) => void;
+  addSelfLoop: (vertexId: string) => string | null;
+  duplicateEdge: (edgeId: string) => string | null;
   undo: () => void;
   redo: () => void;
   reset: () => void;
@@ -97,9 +107,22 @@ const INITIAL = {
   selectedId: null as string | null,
   selectedKind: null as SelectionKind,
   cachedModel: null as Model | null,
+  edgeDraftActive: false,
+  edgeDraftSource: null as string | null,
   _past: [] as DiagramSnapshot[],
   _future: [] as DiagramSnapshot[],
 };
+
+function nextEdgeId(existing: string[]): string {
+  const used = new Set<number>();
+  for (const id of existing) {
+    const m = id.match(/^e(\d+)$/);
+    if (m) used.add(Number(m[1]));
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return `e${n}`;
+}
 
 export const useDiagramStore = create<DiagramState>((set) => ({
   ...INITIAL,
@@ -245,6 +268,92 @@ export const useDiagramStore = create<DiagramState>((set) => ({
         _future: [],
       };
     }),
+  startEdgeDraft: () =>
+    set({ edgeDraftActive: true, edgeDraftSource: null, selectedId: null, selectedKind: null }),
+  cancelEdgeDraft: () =>
+    set({ edgeDraftActive: false, edgeDraftSource: null }),
+  pickEdgeDraftVertex: (vertexId) =>
+    set((s) => {
+      if (!s.edgeDraftActive) return {};
+      if (s.edgeDraftSource == null) {
+        return { edgeDraftSource: vertexId };
+      }
+      const past = pushHistory(s._past, snapshot(s));
+      const newId = nextEdgeId(s.edges.map((e) => e.id));
+      const nextEdges = [
+        ...s.edges,
+        {
+          id: newId,
+          sourceNodeId: s.edgeDraftSource,
+          targetNodeId: vertexId,
+          particlePdgId: null,
+        },
+      ];
+      const laid = relayout(s.nodes, nextEdges, s.externalLegs);
+      return {
+        edges: nextEdges,
+        nodes: laid.nodes,
+        externalLegs: laid.externalLegs,
+        edgeDraftActive: false,
+        edgeDraftSource: null,
+        selectedId: newId,
+        selectedKind: "edge" as SelectionKind,
+        _past: past,
+        _future: [],
+      };
+    }),
+  addSelfLoop: (vertexId) => {
+    let newId: string | null = null;
+    set((s) => {
+      if (!s.nodes.some((n) => n.id === vertexId)) return {};
+      const past = pushHistory(s._past, snapshot(s));
+      newId = nextEdgeId(s.edges.map((e) => e.id));
+      const nextEdges = [
+        ...s.edges,
+        { id: newId, sourceNodeId: vertexId, targetNodeId: vertexId, particlePdgId: null },
+      ];
+      const laid = relayout(s.nodes, nextEdges, s.externalLegs);
+      return {
+        edges: nextEdges,
+        nodes: laid.nodes,
+        externalLegs: laid.externalLegs,
+        selectedId: newId,
+        selectedKind: "edge" as SelectionKind,
+        _past: past,
+        _future: [],
+      };
+    });
+    return newId;
+  },
+  duplicateEdge: (edgeId) => {
+    let newId: string | null = null;
+    set((s) => {
+      const original = s.edges.find((e) => e.id === edgeId);
+      if (!original) return {};
+      const past = pushHistory(s._past, snapshot(s));
+      newId = nextEdgeId(s.edges.map((e) => e.id));
+      const nextEdges = [
+        ...s.edges,
+        {
+          id: newId,
+          sourceNodeId: original.sourceNodeId,
+          targetNodeId: original.targetNodeId,
+          particlePdgId: original.particlePdgId,
+        },
+      ];
+      const laid = relayout(s.nodes, nextEdges, s.externalLegs);
+      return {
+        edges: nextEdges,
+        nodes: laid.nodes,
+        externalLegs: laid.externalLegs,
+        selectedId: newId,
+        selectedKind: "edge" as SelectionKind,
+        _past: past,
+        _future: [],
+      };
+    });
+    return newId;
+  },
   undo: () =>
     set((s) => {
       if (s._past.length === 0) return {};

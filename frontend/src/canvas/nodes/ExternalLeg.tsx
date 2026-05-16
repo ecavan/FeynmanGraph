@@ -1,12 +1,24 @@
 import { Handle, type NodeProps, Position } from "reactflow";
 import { VERTEX_DIAMETER } from "./VertexNode";
 
-export type ExternalLegData = { kind: "incoming" | "outgoing"; label: string };
+export type ExternalLegData = { kind: "incoming" | "outgoing"; label: string; draftSource?: boolean };
 
 export function ExternalLegNode(props: NodeProps<ExternalLegData>) {
   const isIncoming = props.data.kind === "incoming";
   const baseColor = isIncoming ? "#2f8a3a" : "#c0392b";
   const labelColor = isIncoming ? "#1d6024" : "#7a1c12";
+  const draft = props.data.draftSource;
+  const background = draft ? "#1ea75e" : props.selected ? "#0066ff" : baseColor;
+  const border = draft
+    ? "2px solid #1ea75e"
+    : props.selected
+    ? "2px solid #0066ff"
+    : `2px solid ${baseColor}`;
+  const shadow = draft
+    ? "0 0 0 5px rgba(30, 167, 94, 0.35)"
+    : props.selected
+    ? "0 0 0 4px rgba(0, 102, 255, 0.25)"
+    : undefined;
   return (
     <div
       title={`${props.data.label} (${props.data.kind})`}
@@ -14,9 +26,9 @@ export function ExternalLegNode(props: NodeProps<ExternalLegData>) {
         width: VERTEX_DIAMETER,
         height: VERTEX_DIAMETER,
         borderRadius: "50%",
-        background: props.selected ? "#0066ff" : baseColor,
-        border: props.selected ? "2px solid #0066ff" : `2px solid ${baseColor}`,
-        boxShadow: props.selected ? "0 0 0 4px rgba(0, 102, 255, 0.25)" : undefined,
+        background,
+        border,
+        boxShadow: shadow,
         position: "relative",
         cursor: "pointer",
       }}

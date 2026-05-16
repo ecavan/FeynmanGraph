@@ -54,12 +54,18 @@ export function LoopRoutingPanel() {
           </span>
         </h4>
         <p style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.5, margin: "4px 0" }}>
-          This diagram is tree-level. To add a loop:
+          This diagram is tree-level. Three ways to add a loop:
         </p>
         <ul style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.5, paddingLeft: 20, margin: "4px 0" }}>
-          <li>Add a parallel edge between two existing vertices (forms a bubble)</li>
-          <li>Connect a vertex to itself (forms a tadpole)</li>
-          <li>Close a cycle with three or more vertices (triangle, box, etc.)</li>
+          <li>
+            Select an edge → click <strong>⌇ Add parallel edge</strong> on the
+            right (creates a bubble).
+          </li>
+          <li>
+            Select a vertex → click <strong>↻ Add self-loop</strong> on the
+            right (creates a tadpole).
+          </li>
+          <li>Close a cycle by drawing edges between 3+ vertices (triangle, box, etc.)</li>
         </ul>
         <p style={{ fontSize: 11, opacity: 0.6, margin: "4px 0" }}>
           Or set <em>Loop count</em> ≥ 1 in the <strong>Generate</strong> tab and

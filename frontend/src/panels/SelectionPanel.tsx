@@ -21,6 +21,8 @@ export function SelectionPanel() {
   const addExternalLeg = useDiagramStore((s) => s.addExternalLeg);
   const removeExternalLeg = useDiagramStore((s) => s.removeExternalLeg);
   const setSelection = useDiagramStore((s) => s.setSelection);
+  const addSelfLoop = useDiagramStore((s) => s.addSelfLoop);
+  const duplicateEdge = useDiagramStore((s) => s.duplicateEdge);
 
   if (selectedKind == null || selectedId == null) {
     return (
@@ -79,6 +81,17 @@ export function SelectionPanel() {
           Cycle role
         </button>
         <hr style={{ margin: "10px 0" }} />
+        <p style={{ fontSize: 11, opacity: 0.65, margin: "4px 0" }}>Loops</p>
+        <button
+          type="button"
+          data-testid="add-self-loop"
+          onClick={() => addSelfLoop(selectedId)}
+          title="Add a self-loop edge on this vertex (creates a tadpole)"
+          style={{ padding: "4px 10px", fontSize: 12, marginBottom: 6 }}
+        >
+          ↻ Add self-loop
+        </button>
+        <hr style={{ margin: "10px 0" }} />
         <button
           type="button"
           onClick={() => {
@@ -126,6 +139,17 @@ export function SelectionPanel() {
           onPick={(pdgId) => setEdgeParticle(selectedId, pdgId)}
         />
       )}
+      <hr style={{ margin: "10px 0" }} />
+      <p style={{ fontSize: 11, opacity: 0.65, margin: "4px 0" }}>Loops</p>
+      <button
+        type="button"
+        data-testid="duplicate-edge"
+        onClick={() => duplicateEdge(selectedId)}
+        title="Add a parallel edge between the same two vertices (creates a bubble)"
+        style={{ padding: "4px 10px", fontSize: 12, marginBottom: 6 }}
+      >
+        ⌇ Add parallel edge
+      </button>
       <hr style={{ margin: "10px 0" }} />
       <button
         type="button"

@@ -17,17 +17,16 @@ export function Toolbox() {
   const setModelId = useDiagramStore((s) => s.setModelId);
   const setTheoryId = useDiagramStore((s) => s.setTheoryId);
   const addVertex = useDiagramStore((s) => s.addVertex);
-  const addEdge = useDiagramStore((s) => s.addEdge);
   const undo = useDiagramStore((s) => s.undo);
   const redo = useDiagramStore((s) => s.redo);
   const canUndo = useDiagramStore((s) => s._past.length > 0);
   const canRedo = useDiagramStore((s) => s._future.length > 0);
-  const canAddParticle = nodes.length >= 2;
+  const edgeDraftActive = useDiagramStore((s) => s.edgeDraftActive);
+  const edgeDraftSource = useDiagramStore((s) => s.edgeDraftSource);
+  const startEdgeDraft = useDiagramStore((s) => s.startEdgeDraft);
+  const cancelEdgeDraft = useDiagramStore((s) => s.cancelEdgeDraft);
+  const canAddParticle = nodes.length >= 1;
 
-  const [edgeFormOpen, setEdgeFormOpen] = useState(false);
-  const [edgeFrom, setEdgeFrom] = useState<string>("");
-  const [edgeTo, setEdgeTo] = useState<string>("");
-  const [edgePdg, setEdgePdg] = useState<number | null>(null);
   const [showAllParticles, setShowAllParticles] = useState(false);
 
   function clearDiagram() {
@@ -44,19 +43,9 @@ export function Toolbox() {
     addVertex({ id, position: [0, 0] });
   }
 
-  function submitNewEdge() {
-    if (!edgeFrom || !edgeTo) return;
-    const id = nextEdgeId(useDiagramStore.getState().edges.map((e) => e.id));
-    addEdge({
-      id,
-      sourceNodeId: edgeFrom,
-      targetNodeId: edgeTo,
-      particlePdgId: edgePdg ?? null,
-    });
-    setEdgeFormOpen(false);
-    setEdgeFrom("");
-    setEdgeTo("");
-    setEdgePdg(null);
+  function toggleEdgeDraft() {
+    if (edgeDraftActive) cancelEdgeDraft();
+    else startEdgeDraft();
   }
 
   const paletteParticles = useMemo(() => {
@@ -70,18 +59,6 @@ export function Toolbox() {
       if (gA !== gB) return gA - gB;
       return pA - pB;
     });
-  }, [cachedModel, showAllParticles]);
-
-  const dropdownParticles = useMemo(() => {
-    if (!cachedModel) return [];
-    return [...cachedModel.particles]
-      .filter((p) => showAllParticles || !isGhostOrGoldstone(p.pdg_id))
-      .sort((a, b) => {
-        const [gA, pA] = paletteSortKey(a.pdg_id);
-        const [gB, pB] = paletteSortKey(b.pdg_id);
-        if (gA !== gB) return gA - gB;
-        return pA - pB;
-      });
   }, [cachedModel, showAllParticles]);
 
   return (
@@ -123,73 +100,44 @@ export function Toolbox() {
         <div>
           <ToolboxButton
             testId="add-particle"
-            label={edgeFormOpen ? "× Cancel particle" : "+ Add particle"}
-            onClick={() => setEdgeFormOpen((open) => !open)}
-            variant="primary"
-            disabled={!canAddParticle}
-            title={canAddParticle ? undefined : "Add at least 2 vertices first"}
+            label={edgeDraftActive ? "× Cancel particle" : "+ Add particle"}
+            onClick={toggleEdgeDraft}
+            variant={edgeDraftActive ? "danger" : "primary"}
+            disabled={!canAddParticle && !edgeDraftActive}
+            title={canAddParticle ? "Click two vertices on the canvas" : "Add a vertex first"}
           />
-          {!canAddParticle && (
+          {!canAddParticle && !edgeDraftActive && (
             <p style={{ fontSize: 11, opacity: 0.7, margin: "4px 0 0", color: "#5a4400" }}>
-              Add at least two vertices before drawing a particle line.
+              Add a vertex first, then click + Add particle.
             </p>
           )}
         </div>
       </div>
-      {edgeFormOpen && (
+      {edgeDraftActive && (
         <div
-          data-testid="add-particle-form"
+          data-testid="edge-draft-hint"
           style={{
             marginTop: 8,
-            padding: 10,
-            border: "1px solid #cdd6e0",
+            padding: "8px 10px",
+            border: "1px solid #b4dcc4",
             borderRadius: 6,
-            background: "#f9fbfd",
+            background: "#eafbf1",
+            fontSize: 12,
+            lineHeight: 1.5,
           }}
         >
-          <Field label="From">
-            <VertexDropdown value={edgeFrom} setValue={setEdgeFrom} vertices={nodes} />
-          </Field>
-          <Field label="To">
-            <VertexDropdown value={edgeTo} setValue={setEdgeTo} vertices={nodes} />
-          </Field>
-          {edgeFrom && edgeFrom === edgeTo && (
-            <p style={{ fontSize: 11, opacity: 0.7, margin: "2px 0", color: "#7b5a00" }}>
-              From = To creates a tadpole loop on that vertex (valid topology).
-            </p>
+          {edgeDraftSource == null ? (
+            <>
+              <strong>Click a vertex</strong> on the canvas to set the start of
+              the particle line.
+            </>
+          ) : (
+            <>
+              Start: <code>{edgeDraftSource}</code>. <strong>Click another
+              vertex</strong> to draw the edge (or the same vertex for a
+              self-loop). Then pick the particle on the right.
+            </>
           )}
-          {nodes.length < 1 && (
-            <p style={{ fontSize: 11, color: "#a00", margin: "2px 0" }}>
-              Add at least one vertex first.
-            </p>
-          )}
-          <Field label="Particle">
-            <select
-              value={edgePdg ?? ""}
-              onChange={(e) => setEdgePdg(e.target.value === "" ? null : Number(e.target.value))}
-              style={{ width: "100%", fontSize: 12 }}
-            >
-              <option value="">— pick later —</option>
-              {dropdownParticles.map((p) => (
-                <option key={p.pdg_id} value={p.pdg_id}>
-                  {particleLabel(p.pdg_id, p.name)} ({p.name})
-                </option>
-              ))}
-            </select>
-          </Field>
-          <button
-            type="button"
-            onClick={submitNewEdge}
-            disabled={!edgeFrom || !edgeTo}
-            style={{
-              marginTop: 6,
-              padding: "4px 10px",
-              fontSize: 12,
-              cursor: edgeFrom && edgeTo ? "pointer" : "not-allowed",
-            }}
-          >
-            Add particle
-          </button>
         </div>
       )}
 
@@ -237,17 +185,6 @@ export function Toolbox() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 6 }}>
-      <label style={{ display: "block", fontSize: 11, opacity: 0.7, marginBottom: 2 }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
 function nextId(existing: string[], prefix: string): string {
   const used = new Set<number>();
   const re = new RegExp(`^${prefix}(\\d+)$`);
@@ -262,31 +199,6 @@ function nextId(existing: string[], prefix: string): string {
 
 function nextVertexId(existing: string[]): string {
   return nextId(existing, "v");
-}
-
-function nextEdgeId(existing: string[]): string {
-  return nextId(existing, "e");
-}
-
-function VertexDropdown(props: {
-  value: string;
-  setValue: (id: string) => void;
-  vertices: { id: string; position: [number, number] }[];
-}) {
-  return (
-    <select
-      value={props.value}
-      onChange={(e) => props.setValue(e.target.value)}
-      style={{ width: "100%", fontSize: 12 }}
-    >
-      <option value="">— pick —</option>
-      {props.vertices.map((v) => (
-        <option key={v.id} value={v.id}>
-          {v.id}
-        </option>
-      ))}
-    </select>
-  );
 }
 
 function ParticleStrokePreview({ pdgId }: { pdgId: number }) {
@@ -313,13 +225,29 @@ function ParticleStrokePreview({ pdgId }: { pdgId: number }) {
 function ToolboxButton(props: {
   label: string;
   onClick: () => void;
-  variant: "primary" | "subtle";
+  variant: "primary" | "subtle" | "danger";
   testId?: string;
   disabled?: boolean;
   title?: string;
 }) {
   const primary = props.variant === "primary";
+  const danger = props.variant === "danger";
   const disabled = props.disabled ?? false;
+  const borderColor = disabled
+    ? "#bbb"
+    : danger
+    ? "#c0392b"
+    : primary
+    ? "#0066ff"
+    : "#bbb";
+  const background = disabled
+    ? "#eee"
+    : danger
+    ? "#c0392b"
+    : primary
+    ? "#0066ff"
+    : "#fff";
+  const color = disabled ? "#888" : danger || primary ? "white" : "#222";
   return (
     <button
       type="button"
@@ -332,9 +260,9 @@ function ToolboxButton(props: {
         fontSize: 12,
         cursor: disabled ? "not-allowed" : "pointer",
         border: "1px solid",
-        borderColor: disabled ? "#bbb" : primary ? "#0066ff" : "#bbb",
-        background: disabled ? "#eee" : primary ? "#0066ff" : "#fff",
-        color: disabled ? "#888" : primary ? "white" : "#222",
+        borderColor,
+        background,
+        color,
         borderRadius: 4,
         textAlign: "left",
         fontWeight: 500,
