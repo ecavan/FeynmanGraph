@@ -161,53 +161,64 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
         />
       </div>
 
-      <details style={{ marginTop: 14, maxWidth: 560 }}>
-        <summary style={{ fontSize: 12, opacity: 0.7, cursor: "pointer", userSelect: "none" }}>
-          Coupling orders & loops
-        </summary>
-        <div style={{ marginTop: 10, padding: "10px 12px", background: "#fafafa", border: "1px solid #eee", borderRadius: 4 }}>
-          <p style={{ fontSize: 12, opacity: 0.8, margin: "0 0 10px 0", lineHeight: 1.5 }}>
-            Coupling order = the power of that coupling constant the amplitude scales as. It also equals
-            the number of vertices of that type in each diagram. For e+e- → μ+μ- via one photon: 2 QED
-            vertices, so <code>QED=2</code>. For gg → H via a top-quark loop: 2 QCD + 1 Yukawa vertex,
-            so <code>QCD=2, QED=1</code> (Higgs Yukawa counts as QED here).
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 100px", rowGap: 6, columnGap: 8 }}>
-            <label style={{ fontSize: 13 }}>QED order</label>
-            <input
-              value={qed}
-              onChange={(e) => setQed(e.target.value)}
-              placeholder="2"
-              style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
-            />
-            <label style={{ fontSize: 13 }}>QCD order</label>
-            <input
-              value={qcd}
-              onChange={(e) => setQcd(e.target.value)}
-              placeholder="(none)"
-              style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
-            />
-            <label style={{ fontSize: 13 }}>Loop count</label>
-            <input
-              type="number"
-              min={0}
-              max={4}
-              value={loopCount}
-              onChange={(e) => setLoopCount(e.target.value)}
-              style={{ padding: "4px 6px", fontSize: 13 }}
-            />
-            <label style={{ fontSize: 13 }}>Max diagrams</label>
-            <input
-              type="number"
-              min={1}
-              max={500}
-              value={maxDiagrams}
-              onChange={(e) => setMaxDiagrams(e.target.value)}
-              style={{ padding: "4px 6px", fontSize: 13 }}
-            />
-          </div>
+      <div style={{ marginTop: 16, maxWidth: 560 }}>
+        <h3 style={{ fontSize: 14, margin: "0 0 4px 0" }}>Coupling orders</h3>
+        <p style={{ fontSize: 12, opacity: 0.8, margin: "0 0 10px 0", lineHeight: 1.5 }}>
+          The <strong>order</strong> of a coupling is how many vertices of that type
+          appear in each diagram. Set the orders to pin down which diagrams gammaloop
+          enumerates.
+        </p>
+        <ul style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.5, paddingLeft: 18, margin: "0 0 12px 0" }}>
+          <li>
+            <strong>QED</strong> = number of photon/Z/W/Higgs-Yukawa vertices.
+            Example: <code>e+ e- → μ+ μ-</code> tree-level is a photon exchange,
+            so 2 QED vertices → <code>QED=2</code>.
+          </li>
+          <li>
+            <strong>QCD</strong> = number of gluon vertices. Example:
+            <code> gg → t t~</code> tree has 2 quark-gluon vertices → <code>QCD=2</code>.
+            Leave blank if the process has no QCD vertices.
+          </li>
+          <li>
+            <strong>Loop count</strong> = number of independent loops. 0 = tree level,
+            1 = one-loop (triangle/box/bubble), etc.
+          </li>
+        </ul>
+        <div style={{ display: "grid", gridTemplateColumns: "120px 100px", rowGap: 6, columnGap: 8 }}>
+          <label style={{ fontSize: 13 }}>QED order</label>
+          <input
+            value={qed}
+            onChange={(e) => setQed(e.target.value)}
+            placeholder="2"
+            style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
+          />
+          <label style={{ fontSize: 13 }}>QCD order</label>
+          <input
+            value={qcd}
+            onChange={(e) => setQcd(e.target.value)}
+            placeholder="(none)"
+            style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
+          />
+          <label style={{ fontSize: 13 }}>Loop count</label>
+          <input
+            type="number"
+            min={0}
+            max={4}
+            value={loopCount}
+            onChange={(e) => setLoopCount(e.target.value)}
+            style={{ padding: "4px 6px", fontSize: 13 }}
+          />
+          <label style={{ fontSize: 13 }}>Max diagrams</label>
+          <input
+            type="number"
+            min={1}
+            max={500}
+            value={maxDiagrams}
+            onChange={(e) => setMaxDiagrams(e.target.value)}
+            style={{ padding: "4px 6px", fontSize: 13 }}
+          />
         </div>
-      </details>
+      </div>
 
       <button
         type="button"

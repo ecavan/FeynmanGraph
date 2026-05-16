@@ -19,7 +19,7 @@ export function TheoryPicker() {
 
   return (
     <section>
-      <h3 style={{ margin: "0 0 4px 0" }}>Theory</h3>
+      <h3 style={{ margin: "0 0 4px 0" }}>Theory restriction</h3>
       <select
         value={theoryId}
         onChange={(e) => setTheoryId(e.target.value)}
@@ -33,7 +33,8 @@ export function TheoryPicker() {
         ))}
       </select>
       <p style={{ fontSize: 11, opacity: 0.6, margin: "4px 0 0" }}>
-        Filters the particle palette below.
+        Which subset of Standard Model vertices to allow. Picking <em>QED</em>
+        will flag QCD edges as illegal in the issues panel.
       </p>
     </section>
   );
