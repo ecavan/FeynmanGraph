@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useDiagramStore } from "../state/diagram";
 import { extractDeficits } from "./ConservationSidebar";
 import { ExportPanel } from "./ExportPanel";
+import { GeneratePanel } from "./GeneratePanel";
 import { IssuesPanel } from "./IssuesPanel";
-import { ModelPicker } from "./ModelPicker";
 import { Toolbox } from "./Toolbox";
 
 describe("Toolbox", () => {
@@ -42,30 +42,6 @@ describe("Toolbox", () => {
     expect(screen.getByTestId("undo")).not.toBeDisabled();
     fireEvent.click(screen.getByTestId("undo"));
     expect(useDiagramStore.getState().nodes).toHaveLength(0);
-  });
-});
-
-describe("ModelPicker", () => {
-  beforeEach(() => useDiagramStore.getState().reset());
-
-  it("lists models fetched from the API", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(
-      new Response(JSON.stringify([
-        { id: "sm", name: "Standard Model" },
-        { id: "qed_min", name: "QED minimal" },
-      ]), { status: 200 }),
-    );
-    render(<ModelPicker />);
-    await waitFor(() => expect(screen.getByText("Standard Model")).toBeInTheDocument());
-    expect(screen.getByText("QED minimal")).toBeInTheDocument();
-  });
-
-  it("shows an error message when the API fails", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(new Response("nope", { status: 500 }));
-    render(<ModelPicker />);
-    await waitFor(() => {
-      expect(document.querySelector("p[style*='red']")).toBeTruthy();
-    });
   });
 });
 
@@ -171,5 +147,81 @@ describe("extractDeficits", () => {
       deficit: -2,
     }]);
     expect(d.charge).toBe(-2);
+  });
+});
+
+describe("GeneratePanel", () => {
+  beforeEach(() => useDiagramStore.getState().reset());
+
+  it("renders the form with defaults and a Generate button", () => {
+    render(<GeneratePanel />);
+    expect(screen.getByPlaceholderText("e+ e-")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("mu+ mu-")).toBeInTheDocument();
+    expect(screen.getByTestId("generate-submit")).toBeInTheDocument();
+  });
+
+  it("renders the gallery and Load buttons when the API returns diagrams", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        count: 2, truncated: false,
+        diagrams: [
+          {
+            process_name: "GL0", model_id: "sm", theory_id: "sm",
+            nodes: [{ id: "v1", position: [0, 0], ufo_vertex_id: "V_98" }],
+            edges: [], external_legs: [],
+          },
+          {
+            process_name: "GL1", model_id: "sm", theory_id: "sm",
+            nodes: [{ id: "v1", position: [0, 0], ufo_vertex_id: "V_99" }],
+            edges: [], external_legs: [],
+          },
+        ],
+      }), { status: 200 }),
+    );
+    render(<GeneratePanel />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(screen.getByText("GL0")).toBeInTheDocument());
+    expect(screen.getByText("GL1")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^load$/i })).toHaveLength(2);
+  });
+
+  it("renders the helpful error message when the API rejects with a known code", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        detail: "Needs a custom projector for colored externals.",
+        code: "GENERATE_NEEDS_PROJECTOR",
+      }), { status: 422 }),
+    );
+    render(<GeneratePanel />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() =>
+      expect(screen.getByText(/GENERATE_NEEDS_PROJECTOR/)).toBeInTheDocument(),
+    );
+  });
+
+  it("clicking Load drops the spec into the diagram store", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        count: 1, truncated: false,
+        diagrams: [{
+          process_name: "GL0", model_id: "sm", theory_id: "sm",
+          nodes: [
+            { id: "ext0", position: [0, 0] },
+            { id: "v1", position: [0, 0], ufo_vertex_id: "V_98" },
+          ],
+          edges: [{
+            id: "e1", source_node_id: "ext0", target_node_id: "v1",
+            particle_pdg_id: 11, direction: "source_to_target",
+          }],
+          external_legs: [{ node_id: "ext0", kind: "incoming", label: "p1" }],
+        }],
+      }), { status: 200 }),
+    );
+    render(<GeneratePanel />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(screen.getByText("GL0")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /^load$/i }));
+    expect(useDiagramStore.getState().processName).toBe("GL0");
+    expect(useDiagramStore.getState().nodes).toHaveLength(2);
   });
 });

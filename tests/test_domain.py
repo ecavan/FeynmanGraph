@@ -7,6 +7,7 @@ import pytest
 
 from feyngraph.domain.conservation import ConservationResult, check_boundary
 from feyngraph.domain.cycle_basis import compute_loop_momenta
+from feyngraph.domain.dot_parser import DotParseError, parse_gammaloop_dot
 from feyngraph.domain.dot_writer import (
     NoExternalLegsError,
     UnassignedEdgeError,
@@ -273,3 +274,51 @@ def test_no_external_legs_raises(model):
     spec.external_legs = []
     with pytest.raises(NoExternalLegsError):
         to_gammaloop_dot(spec, model)
+
+
+# ---------- dot parser (gammaloop dot → GraphSpec) ----------
+
+_GLOOP_DOT_SAMPLE = """digraph GLsample{
+    num = "1";
+    overall_factor = "1";
+    projector = "1";
+
+    0 [int_id="V_98"];
+    1 [int_id="V_99"];
+    exte0   [style=invis];
+    exte0   -> 0:0  [id=0 particle="e-"];
+    exte1   [style=invis];
+    exte1   -> 0:1  [id=1 dir=back particle="e+"];
+    exte2   [style=invis];
+    1:2     -> exte2 [id=2 particle="mu-"];
+    exte3   [style=invis];
+    1:3     -> exte3 [id=3 dir=back particle="mu+"];
+    0:4     -> 1:5  [id=4 lmb_id="0" particle="a"];
+}
+"""
+
+
+def test_parser_round_trips_tree_diagram(model):
+    spec = parse_gammaloop_dot(_GLOOP_DOT_SAMPLE, model)
+    assert spec.process_name == "GLsample"
+    assert {n.id for n in spec.nodes} == {"0", "1", "exte0", "exte1", "exte2", "exte3"}
+    assert sum(1 for n in spec.nodes if n.ufo_vertex_id) == 2
+    assert {(l.node_id, l.kind) for l in spec.external_legs} == {
+        ("exte0", "incoming"), ("exte1", "incoming"),
+        ("exte2", "outgoing"), ("exte3", "outgoing"),
+    }
+    assert len(spec.edges) == 5
+    pdgs = {e.particle_pdg_id for e in spec.edges}
+    assert pdgs == {11, -11, 13, -13, 22}
+    assert spec.lmb_edge_ids == ["e5"]
+
+
+def test_parser_rejects_non_digraph(model):
+    with pytest.raises(DotParseError):
+        parse_gammaloop_dot("not a digraph", model)
+
+
+def test_parser_rejects_unknown_particle(model):
+    bad = _GLOOP_DOT_SAMPLE.replace('particle="a"', 'particle="nonexistent"')
+    with pytest.raises(DotParseError):
+        parse_gammaloop_dot(bad, model)

@@ -196,7 +196,7 @@ export function Toolbox() {
       <h3 style={{ marginTop: 18 }}>Particle palette</h3>
       {!cachedModel ? (
         <p style={{ fontSize: 12, opacity: 0.6 }}>
-          Pick a model in the <em>Setup</em> tab to see the particle list.
+          Model not loaded yet. Generate a process first or import a UFO.
         </p>
       ) : (
         <>

@@ -62,8 +62,8 @@ export function LoopRoutingPanel() {
           <li>Close a cycle with three or more vertices (triangle, box, etc.)</li>
         </ul>
         <p style={{ fontSize: 11, opacity: 0.6, margin: "4px 0" }}>
-          Or load <code>gg_H</code> (1-loop triangle) or <code>ee_ee_double_box</code>{" "}
-          (2-loop) from the Setup tab as worked examples.
+          Or set <em>Loop count</em> ≥ 1 in the <strong>Generate</strong> tab and
+          let gammaloop enumerate the loop diagrams for a process.
         </p>
       </div>
     );

@@ -14,8 +14,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="feyngraph", version=__version__)
     register_exception_handlers(app)
 
-    from feyngraph.api.examples import router as examples_router
     from feyngraph.api.export import router as export_router
+    from feyngraph.api.generate import router as generate_router
     from feyngraph.api.models import router as models_router
     from feyngraph.api.theories import router as theories_router
     from feyngraph.api.upload import router as upload_router
@@ -25,8 +25,8 @@ def create_app() -> FastAPI:
     app.include_router(theories_router)
     app.include_router(validate_router)
     app.include_router(export_router)
-    app.include_router(examples_router)
     app.include_router(upload_router)
+    app.include_router(generate_router)
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:

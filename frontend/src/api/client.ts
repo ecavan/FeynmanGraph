@@ -1,7 +1,6 @@
 import type {
   APIError,
   CompletionOption,
-  ExampleMeta,
   ExampleSpec,
   ExportResponse,
   GraphIssue,
@@ -80,12 +79,20 @@ export class ApiClient {
     });
   }
 
-  listExamples(): Promise<ExampleMeta[]> {
-    return this.request("/api/examples");
-  }
-
-  getExample(id: string): Promise<ExampleSpec> {
-    return this.request(`/api/examples/${encodeURIComponent(id)}`);
+  generateAmp(req: {
+    initial_state: string[];
+    final_state: string[];
+    coupling_orders?: Record<string, number>;
+    loop_count?: number;
+    model_id?: string;
+    theory_id?: string;
+    max_diagrams?: number;
+  }): Promise<{ diagrams: ExampleSpec[]; count: number; truncated: boolean }> {
+    return this.request("/api/generate-amp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(req),
+    });
   }
 
   async uploadUfo(

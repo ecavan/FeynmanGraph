@@ -86,7 +86,7 @@ describe("styleForPdg", () => {
   it("classifies SM bosons", () => {
     expect(styleForPdg(21)).toBe("gluon");
     expect(styleForPdg(22)).toBe("photon");
-    expect(styleForPdg(23)).toBe("wboson");
+    expect(styleForPdg(23)).toBe("zboson");
     expect(styleForPdg(24)).toBe("wboson");
     expect(styleForPdg(-24)).toBe("wboson");
     expect(styleForPdg(25)).toBe("scalar");
@@ -133,13 +133,16 @@ describe("visualForEdge", () => {
     expect(v.strokeDasharray).toBeTruthy();
   });
 
-  it("W/Z is wavy + thicker + red, distinct from photon", () => {
+  it("W and Z use a zigzag distinct from the photon's sinusoidal wave", () => {
     const w = visualForEdge(24, 0, 0, 100, 0);
     const z = visualForEdge(23, 0, 0, 100, 0);
     const gamma = visualForEdge(22, 0, 0, 100, 0);
-    expect(w.stroke).toBe(z.stroke);
     expect(w.stroke).not.toBe(gamma.stroke);
+    expect(z.stroke).not.toBe(gamma.stroke);
+    expect(w.stroke).not.toBe(z.stroke);  // Z is purple, W is red
     expect(w.strokeWidth).toBeGreaterThan(gamma.strokeWidth);
+    // Zigzag path is distinguishable from photon's sinusoidal wave
+    expect(w.path).not.toBe(gamma.path);
   });
 
   it("unknown PDG falls back to a plain straight line", () => {

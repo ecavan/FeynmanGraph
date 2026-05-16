@@ -1,53 +1,21 @@
 import { useEffect, useState } from "react";
 import { ApiClient } from "./api/client";
-import { loadExampleIntoStore } from "./panels/ExampleLoader";
 import { useDiagramStore } from "./state/diagram";
 import { restoreFromLocalStorage, saveToLocalStorage } from "./state/persistence";
 import { CanvasView } from "./views/CanvasView";
 import { ExportView } from "./views/ExportView";
+import { GenerateView } from "./views/GenerateView";
 import { ImportView } from "./views/ImportView";
-import { SetupView } from "./views/SetupView";
 
-type View = "canvas" | "setup" | "import" | "export";
+type View = "canvas" | "generate" | "import" | "export";
 
 const api = new ApiClient();
 
 export default function App() {
-  const [view, setView] = useState<View>("canvas");
-  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
+  const [view, setView] = useState<View>("generate");
 
   useEffect(() => {
-    let cancelled = false;
-    const loadDefault = (reason?: string) => {
-      api
-        .getExample("ee_mumu")
-        .then((spec) => {
-          if (!cancelled) {
-            loadExampleIntoStore(spec);
-            if (reason) setRestoreNotice(reason);
-          }
-        })
-        .catch(() => {});
-    };
-
-    const restored = restoreFromLocalStorage();
-    if (!restored) {
-      loadDefault();
-      return () => { cancelled = true; };
-    }
-    const restoredId = useDiagramStore.getState().modelId;
-    if (!restoredId) return () => { cancelled = true; };
-    api
-      .listModels()
-      .then((models) => {
-        if (cancelled) return;
-        const ids = new Set(models.map((m) => m.id));
-        if (!ids.has(restoredId)) {
-          loadDefault(`Couldn't restore model "${restoredId}" — loaded ee_mumu starter instead.`);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
+    restoreFromLocalStorage();
   }, []);
 
   useEffect(() => {
@@ -97,38 +65,14 @@ export default function App() {
   return (
     <div data-testid="app-root" style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <nav style={{ display: "flex", gap: 8, padding: 8, borderBottom: "1px solid #ccc", alignItems: "center" }}>
+        <TabButton label="Generate" active={view === "generate"} onClick={() => setView("generate")} />
         <TabButton label="Canvas" active={view === "canvas"} onClick={() => setView("canvas")} />
-        <TabButton label="Setup" active={view === "setup"} onClick={() => setView("setup")} />
         <TabButton label="Import" active={view === "import"} onClick={() => setView("import")} />
         <TabButton label="Export" active={view === "export"} onClick={() => setView("export")} />
-        {restoreNotice && (
-          <span
-            role="status"
-            style={{
-              marginLeft: 12,
-              padding: "4px 10px",
-              background: "#fff5d6",
-              border: "1px solid #c89500",
-              borderRadius: 4,
-              fontSize: 12,
-              color: "#5a4400",
-            }}
-          >
-            {restoreNotice}
-            <button
-              type="button"
-              onClick={() => setRestoreNotice(null)}
-              style={{ marginLeft: 6, background: "none", border: "none", cursor: "pointer" }}
-              aria-label="Dismiss restore notice"
-            >
-              ×
-            </button>
-          </span>
-        )}
       </nav>
       <main style={{ flex: 1, overflow: "auto" }}>
+        {view === "generate" && <GenerateView onLoad={() => setView("canvas")} />}
         {view === "canvas" && <CanvasView />}
-        {view === "setup" && <SetupView />}
         {view === "import" && <ImportView />}
         {view === "export" && <ExportView />}
       </main>

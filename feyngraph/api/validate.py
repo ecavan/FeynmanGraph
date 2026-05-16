@@ -52,9 +52,12 @@ class ValidateGraphResponse(BaseModel):
     loop_count: int = 0
 
 
-def _resolve_model_and_theory(model_id: str, theory_id: str) -> tuple[Model, Theory]:
+def _resolve_model_and_theory(model_id: str, theory_id: str) -> tuple[Model, Model, Theory]:
+    """Return (raw_model, theory_filtered_model, theory). Conservation must run
+    against the raw model so violations show up even when particles are
+    filtered out by a restrictive theory."""
     try:
-        model = _loader().load_model(model_id)
+        raw = _loader().load_model(model_id)
     except ModelNotFoundError as exc:
         raise FeyngraphHTTPException(
             status_code=404,
@@ -69,18 +72,18 @@ def _resolve_model_and_theory(model_id: str, theory_id: str) -> tuple[Model, The
             detail=f"Theory '{theory_id}' not found",
             code="THEORY_NOT_FOUND",
         ) from exc
-    return apply_theory(model, theory), theory
+    return raw, apply_theory(raw, theory), theory
 
 
 @router.post("/validate-vertex", response_model=ValidateVertexResponse)
 async def validate_vertex(req: ValidateVertexRequest) -> ValidateVertexResponse:
-    model, _ = _resolve_model_and_theory(req.model_id, req.theory_id)
+    _, model, _ = _resolve_model_and_theory(req.model_id, req.theory_id)
     return ValidateVertexResponse(options=legal_completions(req.partial, model))
 
 
 @router.post("/validate-graph", response_model=ValidateGraphResponse)
 async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
-    model, _ = _resolve_model_and_theory(spec.model_id, spec.theory_id)
+    raw_model, model, _ = _resolve_model_and_theory(spec.model_id, spec.theory_id)
     issues: list[GraphIssue] = []
 
     unassigned = [e.id for e in spec.edges if e.particle_pdg_id is None]
@@ -95,7 +98,7 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
         issues.append(GraphIssue(code="NO_EXTERNAL_LEGS", detail="No external legs marked"))
 
     if not unassigned and spec.external_legs:
-        cons = check_boundary(spec, model)
+        cons = check_boundary(spec, raw_model)
         if abs(cons.charge_deficit) > 1e-9:
             issues.append(GraphIssue(
                 code="CONSERVATION_CHARGE",
@@ -155,7 +158,8 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
         ))
 
     external_leg_node_ids = {leg.node_id for leg in spec.external_legs}
-    illegal_feynman_vertices: list[tuple[str, list[int]]] = []
+    no_match: list[tuple[str, list[int]]] = []
+    id_mismatch: list[tuple[str, str, list[str]]] = []
     if not unassigned:
         for node in spec.nodes:
             if node.id in external_leg_node_ids:
@@ -169,18 +173,34 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
                     incident.append(-edge.particle_pdg_id)
                 elif edge.target_node_id == node.id:
                     incident.append(edge.particle_pdg_id)
-            if incident and not matching_ufo_vertices(incident, model):
-                illegal_feynman_vertices.append((node.id, sorted(incident)))
-    if illegal_feynman_vertices:
+            if not incident:
+                continue
+            matches = matching_ufo_vertices(incident, model)
+            if not matches:
+                no_match.append((node.id, sorted(incident)))
+            elif node.ufo_vertex_id is not None and node.ufo_vertex_id not in matches:
+                id_mismatch.append((node.id, node.ufo_vertex_id, matches))
+    if no_match:
         issues.append(GraphIssue(
             code="VERTEX_NOT_IN_MODEL",
             detail=(
-                f"{len(illegal_feynman_vertices)} vertex/vertices have an "
+                f"{len(no_match)} vertex/vertices have an "
                 f"incident-particle multiset that no UFO vertex matches. "
                 f"All-incoming PDGs per offender: "
-                + "; ".join(f"{vid}={pdgs}" for vid, pdgs in illegal_feynman_vertices)
+                + "; ".join(f"{vid}={pdgs}" for vid, pdgs in no_match)
             ),
-            element_ids=[vid for vid, _ in illegal_feynman_vertices],
+            element_ids=[vid for vid, _ in no_match],
+        ))
+    if id_mismatch:
+        issues.append(GraphIssue(
+            code="VERTEX_ID_MISMATCH",
+            detail=(
+                f"{len(id_mismatch)} vertex/vertices have an assigned ufo_vertex_id "
+                f"that doesn't match their incident-particle multiset. "
+                + "; ".join(f"{vid}: assigned {aid}, expected one of {ok}"
+                            for vid, aid, ok in id_mismatch)
+            ),
+            element_ids=[vid for vid, _, _ in id_mismatch],
         ))
 
     chord_ids: list[str] = []

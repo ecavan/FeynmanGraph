@@ -41,8 +41,6 @@ export type APIError = {
 
 export type ExportResponse = { dot: string; warnings: string[] };
 
-export type ExampleMeta = { id: string; process_name: string };
-
 export type ExampleSpec = {
   model_id: string;
   theory_id: string;

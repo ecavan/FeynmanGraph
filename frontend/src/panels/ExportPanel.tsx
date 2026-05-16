@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
 import { serializeGraphSpec } from "./serialize";
@@ -9,90 +9,64 @@ export function ExportPanel() {
   const [dot, setDot] = useState<string>("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [stale, setStale] = useState<boolean>(false);
-  const state = useDiagramStore();
+  const processName = useDiagramStore((s) => s.processName);
 
-  const doExport = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
     setError(null);
-    setStale(false);
-    try {
-      const spec = serializeGraphSpec(useDiagramStore.getState());
-      const resp = await api.exportDot(spec);
-      setDot(resp.dot);
-      setWarnings(resp.warnings ?? []);
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(`${e.code}: ${e.message}${e.hint ? ` (${e.hint})` : ""}`);
-      } else {
-        setError(String(e));
+    (async () => {
+      try {
+        const spec = serializeGraphSpec(useDiagramStore.getState());
+        const resp = await api.exportDot(spec);
+        if (cancelled) return;
+        setDot(resp.dot);
+        setWarnings(resp.warnings ?? []);
+      } catch (e) {
+        if (cancelled) return;
+        if (e instanceof ApiError) {
+          setError(`${e.code}: ${e.message}${e.hint ? ` (${e.hint})` : ""}`);
+        } else {
+          setError(String(e));
+        }
+        setDot("");
+        setWarnings([]);
       }
-      setDot("");
-      setWarnings([]);
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    doExport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (dot) setStale(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.nodes, state.edges, state.externalLegs, state.modelId, state.theoryId, state.lmbEdgeIds]);
 
   function download() {
     const blob = new Blob([dot], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${state.processName}.dot`;
+    a.download = `${processName}.dot`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   return (
     <div data-testid="export-panel" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={doExport}
-          style={{
-            padding: "6px 14px",
-            background: stale ? "#0066ff" : "white",
-            color: stale ? "white" : "#222",
-            border: "1px solid #0066ff",
-            borderRadius: 4,
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 500,
-          }}
-        >
-          {dot ? "Re-export .dot" : "Export .dot"}
-        </button>
-        {dot && (
+      {dot && (
+        <div>
           <button
             type="button"
             onClick={download}
             style={{
               padding: "6px 14px",
-              background: "white",
-              color: "#222",
-              border: "1px solid #999",
+              background: "#0066ff",
+              color: "white",
+              border: "none",
               borderRadius: 4,
               cursor: "pointer",
               fontSize: 13,
+              fontWeight: 500,
             }}
           >
-            Download {state.processName}.dot
+            Download {processName}.dot
           </button>
-        )}
-        {stale && dot && (
-          <span style={{ fontSize: 12, color: "#a85b00" }}>
-            Diagram changed — click "Re-export .dot" to refresh.
-          </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {error && (
         <div

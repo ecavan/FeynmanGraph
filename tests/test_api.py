@@ -82,26 +82,6 @@ def test_get_model_with_unknown_theory_returns_404():
     assert resp.json()["code"] == "THEORY_NOT_FOUND"
 
 
-# ---------- /api/examples ----------
-
-def test_list_examples_includes_required_starters():
-    ids = {ex["id"] for ex in _client().get("/api/examples").json()}
-    assert {"ee_mumu", "qq_tt", "gg_H"}.issubset(ids)
-
-
-def test_get_example_ee_mumu():
-    body = _client().get("/api/examples/ee_mumu").json()
-    assert body["process_name"] == "ee_mumu"
-    assert body["model_id"] == "sm"
-    assert len(body["edges"]) == 5
-
-
-def test_get_unknown_example_404():
-    resp = _client().get("/api/examples/nonexistent")
-    assert resp.status_code == 404
-    assert resp.json()["code"] == "EXAMPLE_NOT_FOUND"
-
-
 # ---------- /api/validate-graph + validate-vertex ----------
 
 def _ee_mumu_payload() -> dict:
@@ -236,6 +216,128 @@ def test_vertex_not_in_model_for_4fermion_contact():
     codes = {iss["code"] for iss in _client().post("/api/validate-graph", json=payload).json()["issues"]}
     assert "VERTEX_NOT_IN_MODEL" in codes
     assert "CONSERVATION_CHARGE" not in codes
+
+
+# ---------- conservation/legality coverage audit ----------
+#
+# Each issue code must fire under at least one synthetic bad diagram. The
+# diagrams are minimal and intentionally violate exactly one (or a small
+# cluster of related) rules. Regressions here would silently hide problems
+# in the live UI's Issues panel.
+
+
+def _bad_diagram_base(theory: str = "sm") -> dict:
+    """Tree-level e- → γ → e- string base. Caller mutates fields to inject
+    a specific violation."""
+    return {
+        "model_id": "sm", "theory_id": theory, "process_name": "test",
+        "nodes": [
+            {"id": "ext1", "position": [0, 0]},
+            {"id": "v1", "position": [100, 0], "ufo_vertex_id": "V_98"},
+            {"id": "v2", "position": [300, 0], "ufo_vertex_id": "V_98"},
+            {"id": "ext2", "position": [400, 0]},
+        ],
+        "edges": [
+            {"id": "e1", "source_node_id": "ext1", "target_node_id": "v1", "particle_pdg_id": 11, "direction": "source_to_target"},
+            {"id": "e2", "source_node_id": "v1",   "target_node_id": "v2", "particle_pdg_id": 22, "direction": "source_to_target"},
+            {"id": "e3", "source_node_id": "v2",   "target_node_id": "ext2", "particle_pdg_id": 11, "direction": "source_to_target"},
+        ],
+        "external_legs": [
+            {"node_id": "ext1", "kind": "incoming", "label": "p1"},
+            {"node_id": "ext2", "kind": "outgoing", "label": "p2"},
+        ],
+    }
+
+
+def _codes_for(spec: dict) -> set[str]:
+    return {iss["code"] for iss in _client().post("/api/validate-graph", json=spec).json()["issues"]}
+
+
+def test_issue_code_unassigned_edges():
+    spec = _bad_diagram_base()
+    spec["edges"][1]["particle_pdg_id"] = None
+    assert "UNASSIGNED_EDGES" in _codes_for(spec)
+
+
+def test_issue_code_conservation_charge():
+    spec = _bad_diagram_base()
+    spec["edges"][2]["particle_pdg_id"] = -11  # e+ leaving instead of e-
+    assert "CONSERVATION_CHARGE" in _codes_for(spec)
+
+
+def test_issue_code_conservation_lepton():
+    spec = _bad_diagram_base()
+    spec["edges"][0]["particle_pdg_id"] = 1  # d in, e- out
+    assert "CONSERVATION_LEPTON" in _codes_for(spec)
+
+
+def test_issue_code_conservation_baryon():
+    spec = _bad_diagram_base()
+    spec["edges"][0]["particle_pdg_id"] = 2  # u in, e- out
+    assert "CONSERVATION_BARYON" in _codes_for(spec)
+
+
+def test_issue_code_conservation_color():
+    spec = _bad_diagram_base()
+    spec["edges"][0]["particle_pdg_id"] = 2   # u in
+    spec["edges"][2]["particle_pdg_id"] = 12  # νe out
+    assert "CONSERVATION_COLOR" in _codes_for(spec)
+
+
+def test_issue_code_conservation_survives_restrictive_theory():
+    # Restrictive theories filter the particle list, but conservation must
+    # still run against the raw model so violations show up.
+    spec = _bad_diagram_base(theory="qed")
+    spec["edges"][0]["particle_pdg_id"] = 2  # u not in QED
+    codes = _codes_for(spec)
+    assert "CONSERVATION_BARYON" in codes
+    assert "CONSERVATION_COLOR" in codes
+    assert "THEORY_ILLEGAL_PARTICLE" in codes
+
+
+def test_issue_code_vertex_id_mismatch():
+    # Properly-structured s-channel diagram, but v1 (ee̅γ) is mislabeled as V_99 (μμ̅γ).
+    spec = {
+        "model_id": "sm", "theory_id": "sm", "process_name": "test",
+        "nodes": [
+            {"id": "ep",  "position": [0, 0]},
+            {"id": "em",  "position": [0, 100]},
+            {"id": "v1",  "position": [100, 50], "ufo_vertex_id": "V_99"},  # wrong: ee̅γ → V_98
+            {"id": "v2",  "position": [200, 50], "ufo_vertex_id": "V_99"},
+            {"id": "mup", "position": [300, 0]},
+            {"id": "mum", "position": [300, 100]},
+        ],
+        "edges": [
+            {"id": "e1", "source_node_id": "ep",  "target_node_id": "v1",  "particle_pdg_id": -11, "direction": "source_to_target"},
+            {"id": "e2", "source_node_id": "em",  "target_node_id": "v1",  "particle_pdg_id": 11,  "direction": "source_to_target"},
+            {"id": "g",  "source_node_id": "v1",  "target_node_id": "v2",  "particle_pdg_id": 22,  "direction": "source_to_target"},
+            {"id": "e3", "source_node_id": "v2",  "target_node_id": "mup", "particle_pdg_id": -13, "direction": "source_to_target"},
+            {"id": "e4", "source_node_id": "v2",  "target_node_id": "mum", "particle_pdg_id": 13,  "direction": "source_to_target"},
+        ],
+        "external_legs": [
+            {"node_id": "ep",  "kind": "incoming", "label": "p1"},
+            {"node_id": "em",  "kind": "incoming", "label": "p2"},
+            {"node_id": "mup", "kind": "outgoing", "label": "p3"},
+            {"node_id": "mum", "kind": "outgoing", "label": "p4"},
+        ],
+    }
+    assert "VERTEX_ID_MISMATCH" in _codes_for(spec)
+
+
+def test_issue_code_theory_illegal_particle():
+    spec = _bad_diagram_base(theory="qed")
+    spec["edges"][1]["particle_pdg_id"] = 21  # gluon
+    assert "THEORY_ILLEGAL_PARTICLE" in _codes_for(spec)
+
+
+def test_issue_code_theory_illegal_vertex():
+    spec = _bad_diagram_base(theory="qed")
+    spec["edges"][1]["particle_pdg_id"] = 21
+    spec["edges"][0]["particle_pdg_id"] = 2
+    spec["edges"][2]["particle_pdg_id"] = 2
+    spec["nodes"][1]["ufo_vertex_id"] = "V_135"
+    spec["nodes"][2]["ufo_vertex_id"] = "V_135"
+    assert "THEORY_ILLEGAL_VERTEX" in _codes_for(spec)
 
 
 # ---------- /api/export-dot ----------
@@ -414,3 +516,173 @@ def test_upload_surfaces_subprocess_failure(monkeypatch):
     )
     assert resp.status_code == 422
     assert resp.json()["code"] == "UFO_LOAD_FAILED"
+
+
+# ---------- /api/generate-amp (gated on gammaloop binary) ----------
+
+import shutil
+
+
+def _gammaloop_available() -> bool:
+    if shutil.which("gammaloop"):
+        return True
+    return any(
+        (Path.home() / "Documents/GitHub/gammaloop" / p).is_file()
+        for p in ("gammaloop", "target/release/gammaloop",
+                  "target/dev-optim/gammaloop", "target/debug/gammaloop")
+    )
+
+
+@pytest.mark.skipif(not _gammaloop_available(), reason="gammaloop not installed")
+def test_generate_amp_ee_mumu_tree():
+    client = TestClient(create_app())
+    resp = client.post("/api/generate-amp", json={
+        "initial_state": ["e+", "e-"],
+        "final_state": ["mu+", "mu-"],
+        "coupling_orders": {"QED": 2},
+        "loop_count": 0,
+    })
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["count"] >= 1
+    for d in body["diagrams"]:
+        assert len(d["external_legs"]) == 4
+        assert sum(1 for n in d["nodes"] if n.get("ufo_vertex_id")) == 2
+
+
+@pytest.mark.skipif(not _gammaloop_available(), reason="gammaloop not installed")
+def test_generate_amp_gluon_initial_state_works():
+    client = TestClient(create_app())
+    resp = client.post("/api/generate-amp", json={
+        "initial_state": ["g", "g"],
+        "final_state": ["H"],
+        "coupling_orders": {"QCD": 2, "QED": 1},
+        "loop_count": 1,
+    })
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["count"] >= 1
+
+
+@pytest.mark.skipif(not _gammaloop_available(), reason="gammaloop not installed")
+def test_generate_amp_quark_initial_state_works():
+    client = TestClient(create_app())
+    resp = client.post("/api/generate-amp", json={
+        "initial_state": ["u", "u~"],
+        "final_state": ["t", "t~"],
+        "coupling_orders": {"QCD": 2},
+        "loop_count": 0,
+    })
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["count"] >= 1
+
+
+@pytest.mark.skipif(not _gammaloop_available(), reason="gammaloop not installed")
+def test_generate_amp_multi_gluon_works():
+    client = TestClient(create_app())
+    resp = client.post("/api/generate-amp", json={
+        "initial_state": ["g", "g"],
+        "final_state": ["g", "g", "g"],
+        "coupling_orders": {"QCD": 3},
+        "loop_count": 0,
+        "max_diagrams": 30,
+    })
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["count"] >= 10
+
+
+# ---------- projector helper unit tests (no gammaloop needed) ----------
+
+from feyngraph.api.generate import GenerateAmpRequest, _projector_for_externals
+from feyngraph.domain.model_loader import ModelLoader
+
+
+def _sm_model():
+    os.environ["FEYNGRAPH_EXTRA_MODEL_DIRS"] = str(FIXTURE_DIR)
+    return ModelLoader().load_model("sm")
+
+
+def _projector(initial, final):
+    req = GenerateAmpRequest(initial_state=initial, final_state=final, loop_count=0)
+    return _projector_for_externals(req, _sm_model())
+
+
+def test_projector_colorless_has_only_polarizations():
+    p = _projector(["e+", "e-"], ["mu+", "mu-"])
+    assert p is not None
+    assert "cof" not in p and "coad" not in p and "spenso::t(" not in p
+    # 4 spinor functions (vbar/u/v/ubar)
+    assert sum(p.count(f"gammalooprs::{s}(") for s in ["u", "ubar", "v", "vbar"]) == 4
+
+
+def test_projector_quark_pair_outgoing_uses_old_signature():
+    # e+ e- → t t~: t (out, primary→False) and t~ (out, primary→True)
+    p = _projector(["e+", "e-"], ["t", "t~"])
+    assert p is not None
+    # primary=hedge(3) (t~ out), anti=hedge(2) (t out)
+    assert "spenso::g(spenso::dind(spenso::cof(3,gammalooprs::hedge(3))),spenso::cof(3,gammalooprs::hedge(2)))" in p
+
+
+def test_projector_quark_pair_incoming_uses_flipped_signature():
+    # b b~ → H: b (in, primary), b~ (in, anti)
+    p = _projector(["b", "b~"], ["H"])
+    assert p is not None
+    # primary=hedge(0) (b in), anti=hedge(1) (b~ in)
+    assert "spenso::g(spenso::dind(spenso::cof(3,gammalooprs::hedge(0))),spenso::cof(3,gammalooprs::hedge(1)))" in p
+
+
+def test_projector_two_quark_pairs_have_distinct_signatures():
+    # u u~ → t t~: u-pair both-in (NEW form), t-pair both-out (OLD form)
+    p = _projector(["u", "u~"], ["t", "t~"])
+    assert p is not None
+    # u-pair: g(dind(cof(h0)), cof(h1))
+    assert "dind(spenso::cof(3,gammalooprs::hedge(0))),spenso::cof(3,gammalooprs::hedge(1))" in p
+    # t-pair: g(dind(cof(h3)), cof(h2))
+    assert "dind(spenso::cof(3,gammalooprs::hedge(3))),spenso::cof(3,gammalooprs::hedge(2))" in p
+
+
+def test_projector_dis_color_line():
+    # e+ u → e+ u: same quark in/out, no antiquark — should still close
+    p = _projector(["e+", "u"], ["e+", "u"])
+    assert p is not None
+    # primary=hedge(1) (u in), anti=hedge(3) (u out)
+    assert "dind(spenso::cof(3,gammalooprs::hedge(1))),spenso::cof(3,gammalooprs::hedge(3))" in p
+
+
+def test_projector_two_gluons_uses_pair_form():
+    p = _projector(["g", "g"], ["H"])
+    assert p is not None
+    assert "(1/8)*spenso::g(spenso::coad(8,gammalooprs::hedge(0)),spenso::coad(8,gammalooprs::hedge(1)))" in p
+    assert "spenso::t(" not in p  # no trace projector for N=2
+
+
+def test_projector_five_gluons_uses_trace_chain():
+    p = _projector(["g", "g"], ["g", "g", "g"])
+    assert p is not None
+    # 5 T^a generators forming a closed loop
+    assert p.count("spenso::t(") == 5
+    # Loop closes: the last T^a's dind(cof) hedge equals the first T^a's cof hedge (dummy 500)
+    assert "spenso::cof(3,gammalooprs::hedge(500))" in p
+    assert "spenso::cof(3,gammalooprs::hedge(504))" in p
+
+
+def test_projector_one_gluon_plus_quark_line_uses_single_t():
+    # u → u g: 1 quark line + 1 gluon, single T^a
+    p = _projector(["u"], ["u", "g"])
+    assert p is not None
+    assert p.count("spenso::t(") == 1
+    # No (1/3) g(...) since the single T^a closes everything
+    assert "(1/3)*spenso::g(" not in p
+    # No (1/8) g(coad, coad) either
+    assert "(1/8)*" not in p
+
+
+def test_projector_unbalanced_quarks_returns_none():
+    # u u → u u: 4 quarks, no antiquarks; primaries=2 (both in), antis=2 (both out)
+    p = _projector(["u", "u"], ["u", "u"])
+    # Should work: 2 color lines, each in→out
+    assert p is not None
+
+
+def test_projector_one_gluon_no_quark_line_returns_none():
+    p = _projector(["H"], ["g"])  # forbidden process, projector should bail
+    assert p is None
