@@ -5,7 +5,6 @@ import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
-/** Radio list of available models (built-in + previously uploaded). */
 export function ModelPicker() {
   const [models, setModels] = useState<ModelMeta[]>([]);
   const [error, setError] = useState<string | null>(null);

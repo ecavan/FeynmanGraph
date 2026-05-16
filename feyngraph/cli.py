@@ -1,7 +1,3 @@
-"""Command-line interface for feyngraph."""
-
-from __future__ import annotations
-
 import argparse
 import importlib
 import sys
@@ -49,21 +45,18 @@ def _cmd_convert_ufo(args: argparse.Namespace) -> int:
         return 1
     src = Path(args.path).resolve()
     dst = Path(args.output).resolve() if args.output else src.parent / f"{src.name}.json"
-    # ufo-model-loader's API surface: best-effort attempt. The wrapper accepts
-    # the source UFO directory and produces a JSON model. If the function name
-    # has changed in a newer version, this is the one place that needs updating.
     if hasattr(ufo_model_loader, "load_ufo_model"):
         model = ufo_model_loader.load_ufo_model(str(src))
     elif hasattr(ufo_model_loader, "UFOModel"):
         model = ufo_model_loader.UFOModel(str(src))
     else:
-        print("ufo-model-loader API not recognized; see docs/DOT_FORMAT.md", file=sys.stderr)
+        print("ufo-model-loader API not recognized", file=sys.stderr)
         return 1
     if hasattr(model, "to_json"):
         dst.write_text(model.to_json())
     else:
-        import json as _json
-        dst.write_text(_json.dumps(model, default=str))
+        import json
+        dst.write_text(json.dumps(model, default=str))
     print(f"converted {src} -> {dst}")
     return 0
 
@@ -91,5 +84,4 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    rc: int = args.func(args)
-    return rc
+    return args.func(args)

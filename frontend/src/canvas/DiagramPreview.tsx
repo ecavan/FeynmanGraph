@@ -15,11 +15,6 @@ import { VertexNode } from "./nodes/VertexNode";
 const nodeTypes: NodeTypes = { vertex: VertexNode, externalLeg: ExternalLegNode };
 const edgeTypes: EdgeTypes = { particle: ParticleEdge };
 
-/** Read-only preview of the current diagram. Used in the Export view above
- *  the .dot text so the user sees what's being exported.
- *  - No selection, no drag, no delete, no panning beyond fitView
- *  - Reads the same store as the main canvas
- */
 function PreviewInner() {
   const nodes = useDiagramStore((s) => s.nodes);
   const edges = useDiagramStore((s) => s.edges);

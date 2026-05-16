@@ -3,9 +3,6 @@ import { VERTEX_DIAMETER } from "./VertexNode";
 
 export type ExternalLegData = { kind: "incoming" | "outgoing"; label: string };
 
-/** External leg rendered as a small colored dot (same size as an internal
- *  vertex) with the leg label only on hover/selection. Lines visibly meet
- *  at the dot's center. */
 export function ExternalLegNode(props: NodeProps<ExternalLegData>) {
   const isIncoming = props.data.kind === "incoming";
   const baseColor = isIncoming ? "#2f8a3a" : "#c0392b";

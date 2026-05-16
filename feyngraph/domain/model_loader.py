@@ -1,13 +1,5 @@
-"""Loads UFO models (pre-converted to JSON) and caches them in-memory.
-
-The conversion from raw UFO directory -> JSON is performed by `ufo-model-loader`
-at packaging time or via `feyngraph convert-ufo` at the CLI. This module only
-consumes the JSON form.
-"""
-
-from __future__ import annotations
-
 import json
+import os
 from pathlib import Path
 
 from feyngraph.domain.model_schema import Model, ModelMeta
@@ -16,13 +8,6 @@ DEFAULT_BUNDLED_DIR = Path(__file__).resolve().parent.parent / "data" / "models"
 
 
 def user_models_dir() -> Path:
-    """Per-user models directory (defaults to ~/.feyngraph/models).
-
-    Overridable with the `FEYNGRAPH_USER_MODELS_DIR` env var. The directory is
-    created on first access. User-uploaded UFO models live here.
-    """
-    import os
-
     raw = os.environ.get("FEYNGRAPH_USER_MODELS_DIR")
     path = Path(raw).expanduser() if raw else Path.home() / ".feyngraph" / "models"
     path.mkdir(parents=True, exist_ok=True)
@@ -30,12 +15,12 @@ def user_models_dir() -> Path:
 
 
 class ModelNotFoundError(LookupError):
-    """Raised when a requested model id is not found in any search directory."""
+    pass
 
 
 class ModelLoader:
     def __init__(self, extra_search_dirs: list[Path] | None = None) -> None:
-        self._search_dirs: list[Path] = list(extra_search_dirs or [])
+        self._search_dirs = list(extra_search_dirs or [])
         user_dir = user_models_dir()
         if user_dir.is_dir():
             self._search_dirs.append(user_dir)
@@ -64,8 +49,7 @@ class ModelLoader:
             candidate = d / f"{model_id}.json"
             if candidate.is_file():
                 raw = json.loads(candidate.read_text())
-                model = Model.model_validate(raw)
-                model = model.model_copy(update={"id": model_id})
+                model = Model.model_validate(raw).model_copy(update={"id": model_id})
                 self._cache[model_id] = model
                 return model
         raise ModelNotFoundError(model_id)

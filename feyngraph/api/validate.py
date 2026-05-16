@@ -1,7 +1,3 @@
-"""Validation routes: per-vertex completions + full-graph issue scan."""
-
-from __future__ import annotations
-
 import os
 from pathlib import Path
 
@@ -27,8 +23,7 @@ router = APIRouter(prefix="/api", tags=["validate"])
 
 def _loader() -> ModelLoader:
     extra: list[Path] = []
-    env = os.environ.get("FEYNGRAPH_EXTRA_MODEL_DIRS", "")
-    for raw in env.split(os.pathsep):
+    for raw in os.environ.get("FEYNGRAPH_EXTRA_MODEL_DIRS", "").split(os.pathsep):
         if raw:
             extra.append(Path(raw))
     return ModelLoader(extra_search_dirs=extra)
@@ -48,16 +43,11 @@ class GraphIssue(BaseModel):
     code: str
     detail: str
     element_ids: list[str] = []
-    # Structured numeric payload for issues that report a scalar deficit
-    # (charge/lepton/baryon/color). Lets the frontend display the value
-    # without parsing it out of the `detail` string.
     deficit: float | None = None
 
 
 class ValidateGraphResponse(BaseModel):
     issues: list[GraphIssue]
-    # Auto-picked or user-overridden chord edges (one per independent cycle).
-    # Useful for the frontend's "Loop momentum routing" sidebar.
     chord_edge_ids: list[str] = []
     loop_count: int = 0
 
@@ -102,10 +92,7 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
         ))
 
     if not spec.external_legs:
-        issues.append(GraphIssue(
-            code="NO_EXTERNAL_LEGS",
-            detail="No external legs marked",
-        ))
+        issues.append(GraphIssue(code="NO_EXTERNAL_LEGS", detail="No external legs marked"))
 
     if not unassigned and spec.external_legs:
         cons = check_boundary(spec, model)
@@ -134,10 +121,6 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
                 deficit=float(cons.color_deficit % 3),
             ))
 
-    # Theory consistency: every edge particle PDG and every vertex's
-    # ufo_vertex_id must be present in the (theory-filtered) model. Otherwise
-    # the diagram is invalid under the active theory even if conservation
-    # passes, and gammaloop will refuse to import it.
     allowed_pdgs = {p.pdg_id for p in model.particles}
     allowed_vertex_ids = {v.id for v in model.vertices}
     illegal_particle_edges = [
@@ -171,10 +154,6 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
             element_ids=[n.id for n in illegal_vertex_nodes],
         ))
 
-    # Feynman rule check: for each internal vertex, the incident edges' particles
-    # (in the all-incoming convention) must form a multiset matching some UFO
-    # vertex rule. Catches "physically impossible" couplings that conservation
-    # passes (e.g. 4 electrons at one point, e-e+H, etc).
     external_leg_node_ids = {leg.node_id for leg in spec.external_legs}
     illegal_feynman_vertices: list[tuple[str, list[int]]] = []
     if not unassigned:
@@ -182,19 +161,15 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
             if node.id in external_leg_node_ids:
                 continue
             incident: list[int] = []
-            skip = False
             for edge in spec.edges:
                 if edge.particle_pdg_id is None:
                     continue
+                # all-incoming: outgoing edges contribute the antiparticle
                 if edge.source_node_id == node.id:
-                    # Outgoing wrt this vertex → use anti-particle PDG.
                     incident.append(-edge.particle_pdg_id)
                 elif edge.target_node_id == node.id:
-                    # Incoming wrt this vertex → use particle PDG as-is.
                     incident.append(edge.particle_pdg_id)
-            if not incident or skip:
-                continue
-            if not matching_ufo_vertices(incident, model):
+            if incident and not matching_ufo_vertices(incident, model):
                 illegal_feynman_vertices.append((node.id, sorted(incident)))
     if illegal_feynman_vertices:
         issues.append(GraphIssue(
@@ -208,9 +183,6 @@ async def validate_graph(spec: GraphSpec) -> ValidateGraphResponse:
             element_ids=[vid for vid, _ in illegal_feynman_vertices],
         ))
 
-    # Compute the chord edges that would be used at export time. If the user
-    # has overridden them via spec.lmb_edge_ids and the override is invalid,
-    # surface that as an issue alongside whatever else came up.
     chord_ids: list[str] = []
     loop_count = 0
     try:

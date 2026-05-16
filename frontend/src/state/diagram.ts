@@ -23,7 +23,6 @@ export type ExternalLeg = {
 
 export type SelectionKind = "node" | "edge" | null;
 
-/** Snapshot of the topology + routing override — what undo/redo restores. */
 type DiagramSnapshot = {
   nodes: VertexNode[];
   edges: ParticleEdge[];
@@ -40,29 +39,15 @@ export type DiagramState = {
   nodes: VertexNode[];
   edges: ParticleEdge[];
   externalLegs: ExternalLeg[];
-  /**
-   * Custom loop momentum routing. When null, the backend auto-picks chord
-   * edges via a spanning-tree algorithm. When a non-empty list, those edge
-   * IDs are used as chords (backend validates them at export time).
-   */
   lmbEdgeIds: string[] | null;
-  /** Currently selected node or edge id (null = no selection). */
   selectedId: string | null;
   selectedKind: SelectionKind;
-  /** Cached Model fetched by modelId; ParticleEdge / Toolbox / SelectionPanel
-   *  read this to get particle names + style metadata. Refreshed in App.tsx
-   *  whenever modelId changes. */
   cachedModel: Model | null;
-  /** Bounded snapshot stacks for undo (past) and redo (future). Each entry
-   *  freezes the topology (nodes/edges/externalLegs/lmbEdgeIds) just before
-   *  the corresponding mutation. */
   _past: DiagramSnapshot[];
   _future: DiagramSnapshot[];
 
   setModelId: (id: string) => void;
   setCachedModel: (m: Model | null) => void;
-  /** Run the force-directed layout against the current topology. Called
-   *  automatically after structural changes; can also be invoked manually. */
   runLayout: () => void;
   setTheoryId: (id: string) => void;
   setProcessName: (name: string) => void;
@@ -76,12 +61,8 @@ export type DiagramState = {
   setEdgeParticle: (id: string, pdgId: number | null) => void;
   addExternalLeg: (leg: ExternalLeg) => void;
   removeExternalLeg: (nodeId: string) => void;
-  /** Cycle a vertex's leg state: internal → incoming → outgoing → internal. */
   cycleLegKind: (nodeId: string) => void;
-  /** Undo the last topology-changing action. Restores positions exactly,
-   *  no layout re-run. */
   undo: () => void;
-  /** Redo the last undone action. */
   redo: () => void;
   reset: () => void;
 };
@@ -100,7 +81,6 @@ function snapshot(s: {
   };
 }
 
-/** Bound the history; drop oldest entries past the limit. */
 function pushHistory(past: DiagramSnapshot[], snap: DiagramSnapshot): DiagramSnapshot[] {
   const next = [...past, snap];
   return next.length > HISTORY_LIMIT ? next.slice(next.length - HISTORY_LIMIT) : next;
@@ -142,7 +122,6 @@ export const useDiagramStore = create<DiagramState>((set) => ({
   addVertex: (v) =>
     set((s) => {
       const past = pushHistory(s._past, snapshot(s));
-      const id = v.id;
       const position =
         v.position[0] === 0 && v.position[1] === 0
           ? spawnPositionForNewVertex(s.nodes)
@@ -152,7 +131,7 @@ export const useDiagramStore = create<DiagramState>((set) => ({
       return {
         nodes: laid.nodes,
         externalLegs: laid.externalLegs,
-        selectedId: id,
+        selectedId: v.id,
         selectedKind: "node",
         _past: past,
         _future: [],
@@ -250,10 +229,7 @@ export const useDiagramStore = create<DiagramState>((set) => ({
             const n = Number(l.label.replace(/^p/, ""));
             return Number.isFinite(n) && n > max ? n : max;
           }, 0) + 1;
-        nextLegs = [
-          ...s.externalLegs,
-          { nodeId, kind: "incoming", label: `p${nextNum}` },
-        ];
+        nextLegs = [...s.externalLegs, { nodeId, kind: "incoming", label: `p${nextNum}` }];
       } else if (existing.kind === "incoming") {
         nextLegs = s.externalLegs.map((l) =>
           l.nodeId === nodeId ? { ...l, kind: "outgoing" } : l,
@@ -273,15 +249,13 @@ export const useDiagramStore = create<DiagramState>((set) => ({
     set((s) => {
       if (s._past.length === 0) return {};
       const previous = s._past[s._past.length - 1];
-      const past = s._past.slice(0, -1);
-      const future = pushHistory(s._future, snapshot(s));
       return {
         nodes: previous.nodes,
         edges: previous.edges,
         externalLegs: previous.externalLegs,
         lmbEdgeIds: previous.lmbEdgeIds,
-        _past: past,
-        _future: future,
+        _past: s._past.slice(0, -1),
+        _future: pushHistory(s._future, snapshot(s)),
         selectedId: null,
         selectedKind: null,
       };
@@ -290,15 +264,13 @@ export const useDiagramStore = create<DiagramState>((set) => ({
     set((s) => {
       if (s._future.length === 0) return {};
       const next = s._future[s._future.length - 1];
-      const future = s._future.slice(0, -1);
-      const past = pushHistory(s._past, snapshot(s));
       return {
         nodes: next.nodes,
         edges: next.edges,
         externalLegs: next.externalLegs,
         lmbEdgeIds: next.lmbEdgeIds,
-        _past: past,
-        _future: future,
+        _past: pushHistory(s._past, snapshot(s)),
+        _future: s._future.slice(0, -1),
         selectedId: null,
         selectedKind: null,
       };

@@ -1,6 +1,3 @@
-// Generated from the FastAPI backend's OpenAPI schema via `npm run generate-types`.
-// For initial development, hand-author the shapes that match feyngraph.domain.*.
-
 export type ModelMeta = { id: string; name: string };
 
 export type Particle = {
@@ -32,9 +29,6 @@ export type GraphIssue = {
   code: string;
   detail: string;
   element_ids: string[];
-  /** Optional numeric payload for conservation issues (signed deficit).
-   *  Lets ConservationSidebar read the value directly instead of regex-
-   *  parsing it out of `detail`. */
   deficit?: number | null;
 };
 

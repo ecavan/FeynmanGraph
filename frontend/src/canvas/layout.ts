@@ -1,12 +1,3 @@
-// Force-directed layout for Feynman diagrams.
-//
-// External legs are pinned: incoming on the left, outgoing on the right,
-// vertically spaced. Internal vertices are positioned by an iterative
-// algorithm with repulsion between all internal pairs + spring forces along
-// each edge.
-//
-// Re-runs on every topology change so the diagram always looks tidy.
-
 import type { ExternalLeg, ParticleEdge, VertexNode } from "../state/diagram";
 
 const LEG_LEFT_X = -260;
@@ -15,8 +6,6 @@ const LEG_VERTICAL_SPACING = 110;
 const TARGET_EDGE_LENGTH = 130;
 const REPULSION_K = 9000;
 const SPRING_K = 0.05;
-// Gentle pull toward the origin so disconnected internal vertices don't fly
-// apart from pure repulsion.
 const CENTERING_K = 0.02;
 const DAMPING = 0.85;
 const ITERATIONS = 220;
@@ -39,7 +28,6 @@ export function relayout(
   const internal = nodes.filter((n) => !externalSet.has(n.id)).map((n) => n.id);
 
   const positions = new Map<string, [number, number]>();
-  // Pin external legs in vertical stacks at the left/right margins
   incoming.forEach((id, i) => {
     const y = (i - (incoming.length - 1) / 2) * LEG_VERTICAL_SPACING;
     positions.set(id, [LEG_LEFT_X, y]);
@@ -48,15 +36,11 @@ export function relayout(
     const y = (i - (outgoing.length - 1) / 2) * LEG_VERTICAL_SPACING;
     positions.set(id, [LEG_RIGHT_X, y]);
   });
-  // Seed internal vertices in a small line near the center (so the force
-  // simulation has somewhere to start from; deterministic seed = stable output).
   internal.forEach((id, i) => {
     const t = internal.length <= 1 ? 0 : i / (internal.length - 1) - 0.5;
     positions.set(id, [t * 120, 0]);
   });
 
-  // Iterative force simulation. Internal nodes feel forces; external legs are
-  // pinned and don't move.
   const velocities = new Map<string, [number, number]>();
   internal.forEach((id) => velocities.set(id, [0, 0]));
 
@@ -64,8 +48,6 @@ export function relayout(
     const forces = new Map<string, [number, number]>();
     internal.forEach((id) => forces.set(id, [0, 0]));
 
-    // Repulsion: every pair of nodes (including external) pushes internal
-    // nodes apart. External legs are immovable but still exert force.
     for (const idA of internal) {
       const [ax, ay] = positions.get(idA) as [number, number];
       for (const nB of nodes) {
@@ -81,7 +63,6 @@ export function relayout(
       }
     }
 
-    // Spring along each edge (Hooke's law toward TARGET_EDGE_LENGTH)
     for (const e of edges) {
       const [ax, ay] = positions.get(e.sourceNodeId) as [number, number];
       const [bx, by] = positions.get(e.targetNodeId) as [number, number];
@@ -101,14 +82,12 @@ export function relayout(
       }
     }
 
-    // Centering force: pull each internal node toward the origin
     for (const id of internal) {
       const [px, py] = positions.get(id) as [number, number];
       const cur = forces.get(id) as [number, number];
       forces.set(id, [cur[0] - px * CENTERING_K, cur[1] - py * CENTERING_K]);
     }
 
-    // Apply forces to internal node velocities, then to positions
     for (const id of internal) {
       const [fx, fy] = forces.get(id) as [number, number];
       const [vx, vy] = velocities.get(id) as [number, number];
@@ -129,13 +108,10 @@ export function relayout(
   };
 }
 
-/** Pick a spawn position for a new vertex so it isn't covered by existing ones. */
 export function spawnPositionForNewVertex(nodes: VertexNode[]): [number, number] {
-  // If empty, spawn at origin. Otherwise pick a spot offset from the cluster center.
   if (nodes.length === 0) return [0, 0];
   const cx = nodes.reduce((s, n) => s + n.position[0], 0) / nodes.length;
   const cy = nodes.reduce((s, n) => s + n.position[1], 0) / nodes.length;
-  // Small spiral around the centroid to avoid collisions
   const offset = ((nodes.length % 6) * Math.PI) / 3;
   return [cx + Math.cos(offset) * 60, cy + Math.sin(offset) * 60];
 }

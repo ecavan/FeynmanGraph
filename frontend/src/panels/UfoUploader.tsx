@@ -4,8 +4,6 @@ import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
-/** Upload form for a UFO directory (zip or tar.gz). On success, selects the
- *  uploaded model so the user can start using it right away. */
 export function UfoUploader() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -1,7 +1,3 @@
-"""FastAPI app factory and uvicorn launcher."""
-
-from __future__ import annotations
-
 from pathlib import Path
 
 import uvicorn

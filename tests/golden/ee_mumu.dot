@@ -1,14 +1,15 @@
 digraph ee_mumu {
   overall_factor="1";
+  projector="u(0,spenso::bis(4,hedge(0)))*vbar(1,spenso::bis(4,hedge(1)))*ubar(2,spenso::bis(4,hedge(2)))*v(3,spenso::bis(4,hedge(3)))";
   ext_e_minus [style=invis];
   ext_e_plus [style=invis];
   ext_mu_minus [style=invis];
   ext_mu_plus [style=invis];
   v1;
   v2;
-  ext_e_minus -> v1 [pdg="11", name="p1"];
-  ext_e_plus -> v1 [pdg="-11", name="p2"];
-  v2 -> ext_mu_minus [pdg="13", name="p3"];
-  v2 -> ext_mu_plus [pdg="-13", name="p4"];
+  ext_e_minus -> v1:0 [pdg="11", name="p1"];
+  ext_e_plus -> v1:1 [pdg="-11", name="p2"];
+  v2:2 -> ext_mu_minus [pdg="13", name="p3"];
+  v2:3 -> ext_mu_plus [pdg="-13", name="p4"];
   v1 -> v2 [pdg="22", name="q1"];
 }

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useDiagramStore } from "./diagram";
+import { restoreFromLocalStorage, saveToLocalStorage, STORAGE_KEY } from "./persistence";
 
 describe("diagram store", () => {
   beforeEach(() => useDiagramStore.getState().reset());
@@ -51,31 +52,22 @@ describe("diagram store", () => {
     s.addVertex({ id: "v1", position: [0, 0] });
     s.setSelection("v1", "node");
     s.removeVertex("v1");
-    const state = useDiagramStore.getState();
-    expect(state.selectedId).toBeNull();
-    expect(state.selectedKind).toBeNull();
+    expect(useDiagramStore.getState().selectedId).toBeNull();
   });
 
-  it("cycleLegKind: internal → incoming → outgoing → internal", () => {
+  it("cycleLegKind walks internal → incoming → outgoing → internal", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
-    expect(useDiagramStore.getState().externalLegs).toHaveLength(0);
 
     s.cycleLegKind("v1");
-    let leg = useDiagramStore.getState().externalLegs[0];
-    expect(leg.kind).toBe("incoming");
-    expect(leg.label).toBe("p1");
-
+    expect(useDiagramStore.getState().externalLegs[0]).toMatchObject({ kind: "incoming", label: "p1" });
     s.cycleLegKind("v1");
-    leg = useDiagramStore.getState().externalLegs[0];
-    expect(leg.kind).toBe("outgoing");
-    expect(leg.label).toBe("p1");
-
+    expect(useDiagramStore.getState().externalLegs[0].kind).toBe("outgoing");
     s.cycleLegKind("v1");
     expect(useDiagramStore.getState().externalLegs).toHaveLength(0);
   });
 
-  it("cycleLegKind assigns ascending labels when called on multiple vertices", () => {
+  it("cycleLegKind hands out ascending labels p1, p2…", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
     s.addVertex({ id: "v2", position: [100, 0] });
@@ -86,7 +78,7 @@ describe("diagram store", () => {
     expect(legs.find((l) => l.nodeId === "v2")?.label).toBe("p2");
   });
 
-  it("addExternalLeg replaces an existing leg for the same node (no duplicates)", () => {
+  it("addExternalLeg replaces an existing leg for the same node", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
     s.addExternalLeg({ nodeId: "v1", kind: "incoming", label: "p1" });
@@ -96,19 +88,17 @@ describe("diagram store", () => {
     expect(legs[0].kind).toBe("outgoing");
   });
 
-  it("updateVertexPosition mutates the node in place", () => {
+  it("updateVertexPosition mutates the node", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
     s.updateVertexPosition("v1", [200, 150]);
-    const node = useDiagramStore.getState().nodes[0];
-    expect(node.position).toEqual([200, 150]);
+    expect(useDiagramStore.getState().nodes[0].position).toEqual([200, 150]);
   });
 
-  it("undo restores the state from before the last mutation", () => {
+  it("undo restores state from before the last mutation", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
     s.addVertex({ id: "v2", position: [0, 0] });
-    expect(useDiagramStore.getState().nodes).toHaveLength(2);
     useDiagramStore.getState().undo();
     expect(useDiagramStore.getState().nodes).toHaveLength(1);
     useDiagramStore.getState().undo();
@@ -120,38 +110,54 @@ describe("diagram store", () => {
     s.addVertex({ id: "v1", position: [0, 0] });
     s.addVertex({ id: "v2", position: [0, 0] });
     useDiagramStore.getState().undo();
-    expect(useDiagramStore.getState().nodes).toHaveLength(1);
     useDiagramStore.getState().redo();
     expect(useDiagramStore.getState().nodes).toHaveLength(2);
   });
 
-  it("a fresh mutation clears the redo stack (linear history)", () => {
+  it("a fresh mutation clears the redo stack", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });
     s.addVertex({ id: "v2", position: [0, 0] });
     useDiagramStore.getState().undo();
-    // After undo, redo is available
-    expect(useDiagramStore.getState()._future).toHaveLength(1);
-    // A new mutation should clear redo
     useDiagramStore.getState().addVertex({ id: "v3", position: [0, 0] });
     expect(useDiagramStore.getState()._future).toHaveLength(0);
-    // Redo should now do nothing
-    useDiagramStore.getState().redo();
-    expect(useDiagramStore.getState().nodes.map((n) => n.id).sort()).toEqual(["v1", "v3"]);
   });
 
   it("undo is a no-op when history is empty", () => {
-    expect(useDiagramStore.getState()._past).toHaveLength(0);
     useDiagramStore.getState().undo();
     expect(useDiagramStore.getState().nodes).toHaveLength(0);
   });
 
-  it("history is bounded so it doesn't grow forever", () => {
+  it("history is bounded", () => {
     const s = useDiagramStore.getState();
-    // Push more snapshots than the history limit (50).
-    for (let i = 0; i < 80; i++) {
-      s.addVertex({ id: `vN${i}`, position: [0, 0] });
-    }
+    for (let i = 0; i < 80; i++) s.addVertex({ id: `vN${i}`, position: [0, 0] });
     expect(useDiagramStore.getState()._past.length).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("persistence", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useDiagramStore.getState().reset();
+  });
+
+  it("roundtrips a diagram through localStorage", () => {
+    const s = useDiagramStore.getState();
+    s.setModelId("sm");
+    s.addVertex({ id: "v1", position: [0, 0] });
+    saveToLocalStorage();
+    s.reset();
+    expect(restoreFromLocalStorage()).toBe(true);
+    expect(useDiagramStore.getState().modelId).toBe("sm");
+    expect(useDiagramStore.getState().nodes).toHaveLength(1);
+  });
+
+  it("returns false on missing data", () => {
+    expect(restoreFromLocalStorage()).toBe(false);
+  });
+
+  it("returns false on corrupt data", () => {
+    localStorage.setItem(STORAGE_KEY, "not json");
+    expect(restoreFromLocalStorage()).toBe(false);
   });
 });

@@ -1,9 +1,5 @@
 import type { DiagramState } from "../state/diagram";
 
-/**
- * Serialize the current zustand state into the wire-format GraphSpec
- * that the backend's Pydantic GraphSpec expects (snake_case fields).
- */
 export function serializeGraphSpec(state: DiagramState) {
   return {
     model_id: state.modelId,

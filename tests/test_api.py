@@ -1,0 +1,416 @@
+"""HTTP API: health, models, theories, examples, validate, export, upload."""
+
+import io
+import json
+import os
+import tarfile
+import zipfile
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from feyngraph.server import create_app
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
+GAMMALOOP_SM_UFO = Path.home() / "Documents/GitHub/gammaloop/assets/models/ufo/sm"
+
+
+def _client() -> TestClient:
+    os.environ["FEYNGRAPH_EXTRA_MODEL_DIRS"] = str(FIXTURE_DIR)
+    return TestClient(create_app())
+
+
+# ---------- core server ----------
+
+def test_health_endpoint():
+    resp = _client().get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
+def test_app_root_responds():
+    resp = _client().get("/")
+    assert resp.status_code in (200, 404)
+
+
+def test_unknown_route_has_error_shape():
+    resp = _client().get("/api/does-not-exist")
+    assert resp.status_code == 404
+    assert "detail" in resp.json()
+
+
+# ---------- /api/theories ----------
+
+def test_list_theories():
+    resp = _client().get("/api/theories")
+    assert resp.status_code == 200
+    ids = {t["id"] for t in resp.json()}
+    assert {"qed", "qcd", "electroweak", "sm"}.issubset(ids)
+
+
+# ---------- /api/models ----------
+
+def test_list_models_includes_fixture():
+    resp = _client().get("/api/models")
+    assert "sm_minimal" in {m["id"] for m in resp.json()}
+
+
+def test_get_model_returns_full_shape():
+    body = _client().get("/api/models/sm_minimal").json()
+    assert body["id"] == "sm_minimal"
+    assert any(p["pdg_id"] == 22 for p in body["particles"])
+    assert any(v["id"] == "V_QED_eea" for v in body["vertices"])
+
+
+def test_get_unknown_model_returns_404():
+    resp = _client().get("/api/models/does-not-exist")
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "MODEL_NOT_FOUND"
+
+
+def test_get_model_filtered_by_theory():
+    body = _client().get("/api/models/sm?theory=qed").json()
+    pdgs = {p["pdg_id"] for p in body["particles"]}
+    assert 22 in pdgs and 11 in pdgs
+    assert 21 not in pdgs and 1 not in pdgs
+
+
+def test_get_model_with_unknown_theory_returns_404():
+    resp = _client().get("/api/models/sm?theory=nonsense")
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "THEORY_NOT_FOUND"
+
+
+# ---------- /api/examples ----------
+
+def test_list_examples_includes_required_starters():
+    ids = {ex["id"] for ex in _client().get("/api/examples").json()}
+    assert {"ee_mumu", "qq_tt", "gg_H"}.issubset(ids)
+
+
+def test_get_example_ee_mumu():
+    body = _client().get("/api/examples/ee_mumu").json()
+    assert body["process_name"] == "ee_mumu"
+    assert body["model_id"] == "sm"
+    assert len(body["edges"]) == 5
+
+
+def test_get_unknown_example_404():
+    resp = _client().get("/api/examples/nonexistent")
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "EXAMPLE_NOT_FOUND"
+
+
+# ---------- /api/validate-graph + validate-vertex ----------
+
+def _ee_mumu_payload() -> dict:
+    return {
+        "model_id": "sm_minimal",
+        "theory_id": "qed",
+        "process_name": "ee_mumu",
+        "nodes": [
+            {"id": "ext_e_minus", "position": [-100, 50]},
+            {"id": "ext_e_plus", "position": [-100, -50]},
+            {"id": "ext_mu_minus", "position": [200, 50]},
+            {"id": "ext_mu_plus", "position": [200, -50]},
+            {"id": "v1", "position": [0, 0]},
+            {"id": "v2", "position": [100, 0]},
+        ],
+        "edges": [
+            {"id": "e1", "source_node_id": "ext_e_minus", "target_node_id": "v1", "particle_pdg_id": 11},
+            {"id": "e2", "source_node_id": "ext_e_plus", "target_node_id": "v1", "particle_pdg_id": -11},
+            {"id": "e3", "source_node_id": "v2", "target_node_id": "ext_mu_minus", "particle_pdg_id": 13},
+            {"id": "e4", "source_node_id": "v2", "target_node_id": "ext_mu_plus", "particle_pdg_id": -13},
+            {"id": "e5", "source_node_id": "v1", "target_node_id": "v2", "particle_pdg_id": 22},
+        ],
+        "external_legs": [
+            {"node_id": "ext_e_minus", "kind": "incoming", "label": "p1"},
+            {"node_id": "ext_e_plus", "kind": "incoming", "label": "p2"},
+            {"node_id": "ext_mu_minus", "kind": "outgoing", "label": "p3"},
+            {"node_id": "ext_mu_plus", "kind": "outgoing", "label": "p4"},
+        ],
+    }
+
+
+def _gg_H_under_qed_payload() -> dict:
+    return {
+        "model_id": "sm",
+        "theory_id": "qed",
+        "process_name": "gg_H_under_qed",
+        "nodes": [
+            {"id": "p1", "position": [-200, -50]},
+            {"id": "p2", "position": [-200, 50]},
+            {"id": "p3", "position": [200, 0]},
+            {"id": "v1", "position": [-50, -30], "ufo_vertex_id": "V_113"},
+            {"id": "v2", "position": [-50, 30], "ufo_vertex_id": "V_113"},
+            {"id": "v3", "position": [80, 0], "ufo_vertex_id": "V_113"},
+        ],
+        "edges": [
+            {"id": "e1", "source_node_id": "p1", "target_node_id": "v1", "particle_pdg_id": 21},
+            {"id": "e2", "source_node_id": "p2", "target_node_id": "v2", "particle_pdg_id": 21},
+            {"id": "e3", "source_node_id": "v1", "target_node_id": "v2", "particle_pdg_id": 6},
+            {"id": "e4", "source_node_id": "v1", "target_node_id": "v3", "particle_pdg_id": 6},
+            {"id": "e5", "source_node_id": "v2", "target_node_id": "v3", "particle_pdg_id": 6},
+            {"id": "e6", "source_node_id": "v3", "target_node_id": "p3", "particle_pdg_id": 25},
+        ],
+        "external_legs": [
+            {"node_id": "p1", "kind": "incoming", "label": "p1"},
+            {"node_id": "p2", "kind": "incoming", "label": "p2"},
+            {"node_id": "p3", "kind": "outgoing", "label": "p3"},
+        ],
+    }
+
+
+def test_validate_vertex_returns_photon_for_ee_pair():
+    resp = _client().post(
+        "/api/validate-vertex",
+        json={
+            "model_id": "sm_minimal", "theory_id": "qed",
+            "partial": {"known_pdgs": [11, -11], "unknown_count": 1},
+        },
+    )
+    assert 22 in {opt["pdg_id"] for opt in resp.json()["options"]}
+
+
+def test_validate_graph_clean():
+    resp = _client().post("/api/validate-graph", json=_ee_mumu_payload())
+    assert resp.json()["issues"] == []
+
+
+def test_validate_graph_unassigned_edge():
+    payload = _ee_mumu_payload()
+    payload["edges"][0]["particle_pdg_id"] = None
+    codes = {iss["code"] for iss in _client().post("/api/validate-graph", json=payload).json()["issues"]}
+    assert "UNASSIGNED_EDGES" in codes
+
+
+def test_validate_graph_charge_violation_with_deficit():
+    payload = _ee_mumu_payload()
+    payload["edges"][2]["particle_pdg_id"] = -13
+    payload["edges"][3]["particle_pdg_id"] = -13
+    issues = _client().post("/api/validate-graph", json=payload).json()["issues"]
+    charge = next(i for i in issues if i["code"] == "CONSERVATION_CHARGE")
+    assert isinstance(charge["deficit"], (int, float))
+    assert charge["deficit"] != 0
+
+
+def test_theory_illegal_particle_and_vertex_under_qed():
+    codes = {iss["code"] for iss in _client().post("/api/validate-graph", json=_gg_H_under_qed_payload()).json()["issues"]}
+    assert "THEORY_ILLEGAL_PARTICLE" in codes
+    assert "THEORY_ILLEGAL_VERTEX" in codes
+
+
+def test_theory_legal_under_sm_passes():
+    payload = _gg_H_under_qed_payload()
+    payload["theory_id"] = "sm"
+    codes = {iss["code"] for iss in _client().post("/api/validate-graph", json=payload).json()["issues"]}
+    assert "THEORY_ILLEGAL_PARTICLE" not in codes
+    assert "THEORY_ILLEGAL_VERTEX" not in codes
+
+
+def test_vertex_not_in_model_for_4fermion_contact():
+    # 4 e/e+ meeting at one vertex: conservation passes but no SM rule matches.
+    payload = {
+        "model_id": "sm", "theory_id": "sm", "process_name": "ee4",
+        "nodes": [
+            {"id": "p1", "position": [-100, -50]},
+            {"id": "p2", "position": [-100, 50]},
+            {"id": "p3", "position": [100, -50]},
+            {"id": "p4", "position": [100, 50]},
+            {"id": "v1", "position": [0, 0]},
+        ],
+        "edges": [
+            {"id": "e1", "source_node_id": "p1", "target_node_id": "v1", "particle_pdg_id": 11},
+            {"id": "e2", "source_node_id": "p2", "target_node_id": "v1", "particle_pdg_id": -11},
+            {"id": "e3", "source_node_id": "v1", "target_node_id": "p3", "particle_pdg_id": 11},
+            {"id": "e4", "source_node_id": "v1", "target_node_id": "p4", "particle_pdg_id": -11},
+        ],
+        "external_legs": [
+            {"node_id": "p1", "kind": "incoming", "label": "p1"},
+            {"node_id": "p2", "kind": "incoming", "label": "p2"},
+            {"node_id": "p3", "kind": "outgoing", "label": "p3"},
+            {"node_id": "p4", "kind": "outgoing", "label": "p4"},
+        ],
+    }
+    codes = {iss["code"] for iss in _client().post("/api/validate-graph", json=payload).json()["issues"]}
+    assert "VERTEX_NOT_IN_MODEL" in codes
+    assert "CONSERVATION_CHARGE" not in codes
+
+
+# ---------- /api/export-dot ----------
+
+def test_export_dot_ee_mumu():
+    resp = _client().post("/api/export-dot", json=_ee_mumu_payload())
+    body = resp.json()
+    assert "digraph ee_mumu" in body["dot"]
+    assert body["warnings"] == []
+
+
+def test_export_dot_blocked_on_unassigned():
+    payload = _ee_mumu_payload()
+    payload["edges"][0]["particle_pdg_id"] = None
+    resp = _client().post("/api/export-dot", json=payload)
+    assert resp.status_code == 422
+    assert resp.json()["code"] in ("UNASSIGNED_EDGES", "VALIDATION_ERROR")
+
+
+def test_export_dot_warns_on_theory_mismatch():
+    body = _client().post("/api/export-dot", json=_gg_H_under_qed_payload()).json()
+    assert "digraph" in body["dot"]
+    joined = " ".join(body["warnings"]).lower()
+    assert "qed" in joined and ("21" in joined or "25" in joined)
+
+
+# ---------- /api/models/upload-ufo ----------
+
+def _make_tar_gz_from_dir(d: Path, archive_root: str | None = None) -> bytes:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for path in sorted(d.rglob("*")):
+            if path.is_file():
+                arcname = Path(archive_root) / path.relative_to(d) if archive_root else path.relative_to(d)
+                tf.add(path, arcname=str(arcname))
+    return buf.getvalue()
+
+
+def _fake_ufo_archive() -> bytes:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        body = b"# fake UFO particles.py\n"
+        info = tarfile.TarInfo("particles.py")
+        info.size = len(body)
+        tf.addfile(info, io.BytesIO(body))
+    return buf.getvalue()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_user_models(monkeypatch, tmp_path):
+    monkeypatch.setenv("FEYNGRAPH_USER_MODELS_DIR", str(tmp_path / "user_models"))
+
+
+@pytest.fixture
+def stub_ufo_loader(monkeypatch):
+    fake_json = {
+        "name": "MockSM",
+        "particles": [
+            {"pdg_code": 22, "name": "a", "antiname": "a", "spin": 3, "color": 1,
+             "mass": "ZERO", "width": "ZERO", "charge": 0.0, "lepton_number": 0,
+             "ghost_number": 0, "y_charge": 0, "texname": "a", "antitexname": "a"},
+            {"pdg_code": 11, "name": "e-", "antiname": "e+", "spin": 2, "color": 1,
+             "mass": "Me", "width": "ZERO", "charge": -1.0, "lepton_number": 1,
+             "ghost_number": 0, "y_charge": -1, "texname": "e-", "antitexname": "e+"},
+        ],
+        "vertex_rules": [
+            {"name": "V_FAKE", "particles": ["a", "e-", "e+"],
+             "color_structures": ["1"], "lorentz_structures": ["FFV1"],
+             "couplings": [["GC_X"]]},
+        ],
+    }
+    def fake_invoke(*, ufo_root, output_path, restriction_name):
+        output_path.write_text(json.dumps(fake_json))
+    from feyngraph.api import upload as upload_mod
+    monkeypatch.setattr(upload_mod, "_invoke_ufo_loader", fake_invoke)
+
+
+@pytest.mark.skipif(not GAMMALOOP_SM_UFO.is_dir(), reason="gammaloop SM UFO not available")
+def test_upload_real_sm_ufo_end_to_end():
+    archive = _make_tar_gz_from_dir(GAMMALOOP_SM_UFO, archive_root="MySM")
+    client = _client()
+    resp = client.post(
+        "/api/models/upload-ufo",
+        files={"file": ("MySM.tar.gz", archive, "application/gzip")},
+        data={"model_id": "mysm_upload"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["particles"] >= 17 and body["vertices"] >= 40
+    assert "mysm_upload" in {m["id"] for m in client.get("/api/models").json()}
+
+
+def test_upload_stubbed_succeeds(stub_ufo_loader):
+    resp = _client().post(
+        "/api/models/upload-ufo",
+        files={"file": ("Mock.tar.gz", _fake_ufo_archive(), "application/gzip")},
+        data={"model_id": "mocksm"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["particles"] == 2
+    assert body["vertices"] == 1
+
+
+def test_upload_rejects_non_archive():
+    resp = _client().post(
+        "/api/models/upload-ufo",
+        files={"file": ("oops.txt", b"not an archive", "text/plain")},
+        data={"model_id": "test_bad"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "INVALID_ARCHIVE"
+
+
+def test_upload_rejects_archive_without_particles_py():
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        body = b"not a UFO model"
+        info = tarfile.TarInfo("README.md")
+        info.size = len(body)
+        tf.addfile(info, io.BytesIO(body))
+    resp = _client().post(
+        "/api/models/upload-ufo",
+        files={"file": ("empty.tar.gz", buf.getvalue(), "application/gzip")},
+        data={"model_id": "test_empty"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "UFO_LAYOUT_INVALID"
+
+
+def test_upload_rejects_bad_model_id():
+    resp = _client().post(
+        "/api/models/upload-ufo",
+        files={"file": ("Mock.tar.gz", _fake_ufo_archive(), "application/gzip")},
+        data={"model_id": "bad id with spaces"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "INVALID_MODEL_ID"
+
+
+def test_upload_conflict_and_overwrite(stub_ufo_loader):
+    client = _client()
+    files = {"file": ("Mock.tar.gz", _fake_ufo_archive(), "application/gzip")}
+    assert client.post("/api/models/upload-ufo", files=files, data={"model_id": "dup"}).status_code == 200
+    assert client.post("/api/models/upload-ufo", files=files, data={"model_id": "dup"}).status_code == 409
+    assert client.post(
+        "/api/models/upload-ufo", files=files, data={"model_id": "dup", "overwrite": "true"}
+    ).status_code == 200
+
+
+def test_upload_rejects_unsafe_zip_path():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w") as zf:
+        zf.writestr("../escape.py", "import os")
+    resp = _client().post(
+        "/api/models/upload-ufo",
+        files={"file": ("evil.zip", buf.getvalue(), "application/zip")},
+        data={"model_id": "evil"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "UNSAFE_ARCHIVE_PATH"
+
+
+def test_upload_surfaces_subprocess_failure(monkeypatch):
+    def fake_invoke(*, ufo_root, output_path, restriction_name):
+        from feyngraph.api.errors import FeyngraphHTTPException
+        raise FeyngraphHTTPException(
+            status_code=422, detail="UFO model load failed: simulated", code="UFO_LOAD_FAILED",
+        )
+    from feyngraph.api import upload as upload_mod
+    monkeypatch.setattr(upload_mod, "_invoke_ufo_loader", fake_invoke)
+    resp = _client().post(
+        "/api/models/upload-ufo",
+        files={"file": ("Mock.tar.gz", _fake_ufo_archive(), "application/gzip")},
+        data={"model_id": "willfail"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "UFO_LOAD_FAILED"

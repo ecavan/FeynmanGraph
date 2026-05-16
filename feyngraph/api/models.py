@@ -1,7 +1,3 @@
-"""Routes for UFO model discovery + retrieval."""
-
-from __future__ import annotations
-
 import os
 from pathlib import Path
 
@@ -17,8 +13,7 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 def _loader() -> ModelLoader:
     extra: list[Path] = []
-    env = os.environ.get("FEYNGRAPH_EXTRA_MODEL_DIRS", "")
-    for raw in env.split(os.pathsep):
+    for raw in os.environ.get("FEYNGRAPH_EXTRA_MODEL_DIRS", "").split(os.pathsep):
         if raw:
             extra.append(Path(raw))
     return ModelLoader(extra_search_dirs=extra)
@@ -31,12 +26,6 @@ async def list_models() -> list[ModelMeta]:
 
 @router.get("/{model_id}", response_model=Model)
 async def get_model(model_id: str, theory: str | None = None) -> Model:
-    """Return the model, optionally filtered to a single gauge theory.
-
-    If `theory` query param is supplied, only the particles/vertices that
-    belong to that theory are returned (the frontend uses this to filter the
-    canvas particle palette).
-    """
     try:
         model = _loader().load_model(model_id)
     except ModelNotFoundError as exc:
@@ -44,7 +33,6 @@ async def get_model(model_id: str, theory: str | None = None) -> Model:
             status_code=404,
             detail=f"Model '{model_id}' not found",
             code="MODEL_NOT_FOUND",
-            hint="Use GET /api/models to list available models",
         ) from exc
     if theory is None:
         return model

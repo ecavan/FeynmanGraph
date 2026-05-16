@@ -36,8 +36,4 @@ class GraphSpec(BaseModel):
     edges: list[ParticleEdge]
     external_legs: list[ExternalLeg]
     process_name: str = "process"
-    # Optional override for loop momentum routing. When set, the listed edge
-    # ids are used as chord edges (one loop momentum each) and the remaining
-    # edges form a spanning forest. When None/empty, cycle_basis picks chord
-    # edges automatically via a spanning-tree algorithm.
     lmb_edge_ids: list[str] | None = None

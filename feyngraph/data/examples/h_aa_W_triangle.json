@@ -1,0 +1,113 @@
+{
+  "model_id": "sm",
+  "theory_id": "sm",
+  "process_name": "h_aa_W_triangle",
+  "nodes": [
+    {
+      "id": "ext_h",
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "id": "ext_a1",
+      "position": [
+        200,
+        80
+      ]
+    },
+    {
+      "id": "ext_a2",
+      "position": [
+        200,
+        -80
+      ]
+    },
+    {
+      "id": "v1",
+      "position": [
+        -50,
+        0
+      ],
+      "ufo_vertex_id": "V_52"
+    },
+    {
+      "id": "v2",
+      "position": [
+        70,
+        60
+      ],
+      "ufo_vertex_id": "V_43"
+    },
+    {
+      "id": "v3",
+      "position": [
+        70,
+        -60
+      ],
+      "ufo_vertex_id": "V_43"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source_node_id": "ext_h",
+      "target_node_id": "v1",
+      "particle_pdg_id": 25,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e2",
+      "source_node_id": "v2",
+      "target_node_id": "ext_a1",
+      "particle_pdg_id": 22,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e3",
+      "source_node_id": "v3",
+      "target_node_id": "ext_a2",
+      "particle_pdg_id": 22,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e4",
+      "source_node_id": "v1",
+      "target_node_id": "v2",
+      "particle_pdg_id": 24,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e5",
+      "source_node_id": "v2",
+      "target_node_id": "v3",
+      "particle_pdg_id": 24,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e6",
+      "source_node_id": "v3",
+      "target_node_id": "v1",
+      "particle_pdg_id": 24,
+      "direction": "source_to_target"
+    }
+  ],
+  "external_legs": [
+    {
+      "node_id": "ext_h",
+      "kind": "incoming",
+      "label": "p1"
+    },
+    {
+      "node_id": "ext_a1",
+      "kind": "outgoing",
+      "label": "p2"
+    },
+    {
+      "node_id": "ext_a2",
+      "kind": "outgoing",
+      "label": "p3"
+    }
+  ]
+}

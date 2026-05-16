@@ -5,11 +5,8 @@ import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
-/** Load a wire-format ExampleSpec into the zustand store, then run a single
- *  force-directed layout pass over the result. Bulk-writes the topology to
- *  avoid spawning a layout per addVertex/addEdge call. */
+// Bulk-write topology so layout runs once, not per addVertex/addEdge.
 export function loadExampleIntoStore(spec: ExampleSpec): void {
-  // Snapshot what was there before so the user can undo a starter load.
   const before = useDiagramStore.getState();
   useDiagramStore.setState({
     modelId: spec.model_id,
@@ -45,7 +42,6 @@ export function loadExampleIntoStore(spec: ExampleSpec): void {
     ].slice(-50),
     _future: [],
   });
-  // Single relayout pass over the fully-loaded topology.
   useDiagramStore.getState().runLayout();
 }
 

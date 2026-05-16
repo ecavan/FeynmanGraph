@@ -5,8 +5,6 @@ import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
-/** Picks the active gauge theory. Renders compactly so it fits in the
- *  Canvas toolbox; on the Setup tab it sits in a wider column. */
 export function TheoryPicker() {
   const [theories, setTheories] = useState<TheoryMeta[]>([]);
   const theoryId = useDiagramStore((s) => s.theoryId);

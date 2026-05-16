@@ -31,13 +31,11 @@ export function ExportPanel() {
     }
   }, []);
 
-  // Auto-run on first render of this panel so the user immediately sees output.
   useEffect(() => {
     doExport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Mark output stale when the diagram topology changes after a successful export.
   useEffect(() => {
     if (dot) setStale(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps

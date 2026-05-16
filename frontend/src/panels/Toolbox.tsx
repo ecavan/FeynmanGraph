@@ -8,13 +8,6 @@ import {
 import { useDiagramStore } from "../state/diagram";
 import { TheoryPicker } from "./TheoryPicker";
 
-/**
- * Left-side toolbox: button-driven editor.
- *  - Clear diagram
- *  - + Add vertex          (auto-placed near canvas center)
- *  - + Add particle        (form: From / To / Particle dropdown)
- *  - Particle palette      (reference — gauge bosons → scalars → fermions)
- */
 export function Toolbox() {
   const modelId = useDiagramStore((s) => s.modelId);
   const theoryId = useDiagramStore((s) => s.theoryId);
@@ -46,11 +39,8 @@ export function Toolbox() {
   }
 
   function handleAddVertex() {
-    // Read current nodes off the store at click time (not from the closed-over
-    // hook value) so rapid clicks + external mutations always see fresh state.
     const current = useDiagramStore.getState().nodes;
     const id = nextVertexId(current.map((n) => n.id));
-    // Position [0,0] tells the store action to auto-place near the cluster center.
     addVertex({ id, position: [0, 0] });
   }
 
@@ -82,8 +72,6 @@ export function Toolbox() {
     });
   }, [cachedModel, showAllParticles]);
 
-  // For the edge-form particle dropdown: hide ghosts/Goldstones too,
-  // ordered the same way.
   const dropdownParticles = useMemo(() => {
     if (!cachedModel) return [];
     return [...cachedModel.particles]
@@ -101,7 +89,6 @@ export function Toolbox() {
       <TheoryPicker />
       <hr style={{ margin: "10px 0", border: "none", borderTop: "1px solid #e4e4e4" }} />
 
-      {/* Edit row: Undo / Redo / Clear — small, subtle, fixed at top */}
       <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
         <IconButton
           testId="undo"
@@ -126,7 +113,6 @@ export function Toolbox() {
         />
       </div>
 
-      {/* Add row: vertex + particle, primary actions */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <ToolboxButton
           testId="add-vertex"
@@ -262,8 +248,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/** Pick the lowest free id of the form `<prefix><N>` (N >= 1). Keeps the
- *  From / To dropdowns readable instead of timestamp-shaped. */
 function nextId(existing: string[], prefix: string): string {
   const used = new Set<number>();
   const re = new RegExp(`^${prefix}(\\d+)$`);
@@ -362,7 +346,6 @@ function ToolboxButton(props: {
   );
 }
 
-/** Compact icon-style button used in the top edit row (undo/redo/clear). */
 function IconButton(props: {
   label: string;
   onClick: () => void;

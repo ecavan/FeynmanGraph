@@ -1,7 +1,3 @@
-"""Routes for loading bundled starter example diagrams."""
-
-from __future__ import annotations
-
 import json
 from pathlib import Path
 from typing import Any
@@ -42,7 +38,5 @@ async def get_example(example_id: str) -> dict[str, Any]:
             status_code=404,
             detail=f"Example '{example_id}' not found",
             code="EXAMPLE_NOT_FOUND",
-            hint="Use GET /api/examples to list available examples",
         )
-    parsed: dict[str, Any] = json.loads(candidate.read_text())
-    return parsed
+    return json.loads(candidate.read_text())

@@ -1,30 +1,18 @@
-"""Subprocess worker for loading UFO models in isolation.
+"""Subprocess worker for loading UFO models.
 
-`ufo_model_loader.commands.load_model` invokes Symbolica, whose current
-mimalloc allocator crashes (`mi_thread_init`) when `load_model` is called
-twice in the same Python process. Isolating each call to a fresh subprocess
-sidesteps the bug — every invocation is the first in its process. The result
-JSON is written to `--output` and the parent process reads it back.
-
-Invoke via `python -m feyngraph._ufo_subprocess --input <UFO_DIR> --output <PATH> [--restriction <NAME>]`.
-
-Exit codes:
-  0 — success
-  1 — load/export failed (message on stderr)
-  2 — ufo-model-loader not installed
+Symbolica's mimalloc allocator crashes if load_model runs twice in the same
+process; isolating each call to a fresh subprocess avoids that.
 """
-
-from __future__ import annotations
 
 import argparse
 import sys
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, help="UFO model directory")
-    parser.add_argument("--output", required=True, help="Output JSON path")
-    parser.add_argument("--restriction", default=None, help="Optional UFO restriction name")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--restriction", default=None)
     args = parser.parse_args()
 
     try:
@@ -50,7 +38,6 @@ def main() -> int:
             allow_overwrite=True,
         )
     except Exception as exc:
-        # Propagate any loader failure as nonzero exit + stderr message.
         print(str(exc), file=sys.stderr)
         return 1
 

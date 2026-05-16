@@ -32,10 +32,7 @@ function DiagramCanvasInner() {
 
   const rf = useReactFlow();
 
-  // Re-fit the viewport whenever the diagram topology changes so newly placed
-  // vertices stay on-screen after the force-directed layout reshuffles things.
-  // Skip the call when the canvas is empty — fitView on an empty graph
-  // produces NaN dimensions which react-flow's <pattern> can't render.
+  // fitView on an empty graph produces NaN dimensions react-flow can't render.
   useEffect(() => {
     if (nodes.length === 0) return;
     const t = setTimeout(() => rf.fitView({ padding: 0.25, duration: 200 }), 60);
@@ -111,7 +108,6 @@ function DiagramCanvasInner() {
         onEdgeClick={(_, edge) => setSelection(edge.id, "edge")}
         onPaneClick={() => setSelection(null, null)}
         deleteKeyCode={["Backspace", "Delete"]}
-        // Disable drag-to-connect entirely — particle creation goes through the toolbox form.
         nodesConnectable={false}
         fitView
       >

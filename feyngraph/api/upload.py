@@ -1,14 +1,4 @@
-"""Upload routes: accept a UFO model directory (zipped or tarred), convert to
-the feyngraph Model schema, and persist under the user-models directory so
-the new model becomes available via /api/models/{id}.
-
-SECURITY: UFO files are Python modules. Loading a UFO model effectively runs
-the uploaded Python code. feyngraph is a local-only tool (binds to 127.0.0.1
-by default) so the trust model is "the user trusts what they uploaded". DO
-NOT expose this endpoint over a public network without sandboxing.
-"""
-
-from __future__ import annotations
+"""UFO model upload. Loading UFO code runs Python from the archive — local-only."""
 
 import json
 import re
@@ -40,7 +30,6 @@ class UploadResult(BaseModel):
 
 
 def _safe_extract(archive: Path, dest: Path) -> None:
-    """Extract a zip or tar.gz to `dest`, guarding against path traversal."""
     if zipfile.is_zipfile(archive):
         with zipfile.ZipFile(archive) as zf:
             for entry_name in zf.namelist():
@@ -70,36 +59,22 @@ def _safe_extract(archive: Path, dest: Path) -> None:
 
 
 def _find_ufo_root(extracted: Path) -> Path:
-    """Locate the UFO model directory under `extracted`.
-
-    A UFO model is a Python package containing `particles.py` (at minimum).
-    We accept either a flat layout (files at the top of the archive) or one
-    level of nesting (typical "MyModel/particles.py" packaging).
-    """
     if (extracted / "particles.py").is_file():
         return extracted
-    candidates = [p for p in extracted.iterdir() if p.is_dir()]
-    for c in candidates:
-        if (c / "particles.py").is_file():
+    for c in extracted.iterdir():
+        if c.is_dir() and (c / "particles.py").is_file():
             return c
     raise FeyngraphHTTPException(
         status_code=422,
         detail="Could not find UFO model in upload (missing particles.py)",
         code="UFO_LAYOUT_INVALID",
-        hint="The archive should contain particles.py at the root or one level deep.",
     )
 
 
 def _convert_ufo_to_feyngraph_schema(ufo_json_path: Path, model_id: str) -> dict[str, Any]:
-    """Convert ufo-model-loader's JSON output into the feyngraph Model schema.
-
-    Mirrors `scripts/convert_gammaloop_sm.py`; kept inline here so uploads do
-    not depend on the script's exact location.
-    """
     raw = json.loads(ufo_json_path.read_text())
     name_to_pdg: dict[str, int] = {}
-    particles_in: list[dict[str, Any]] = raw.get("particles", [])
-    for p in particles_in:
+    for p in raw.get("particles", []):
         pdg_local = int(p["pdg_code"])
         name_to_pdg.setdefault(p["name"], pdg_local)
         if p["antiname"] != p["name"]:
@@ -111,7 +86,7 @@ def _convert_ufo_to_feyngraph_schema(ufo_json_path: Path, model_id: str) -> dict
         return 0.0
 
     particles_out = []
-    for p in particles_in:
+    for p in raw.get("particles", []):
         pdg = int(p["pdg_code"])
         particles_out.append({
             "pdg_id": pdg,
@@ -127,15 +102,8 @@ def _convert_ufo_to_feyngraph_schema(ufo_json_path: Path, model_id: str) -> dict
 
     vertices_out = []
     for v in raw.get("vertex_rules", []):
-        pdgs: list[int] = []
-        ok = True
-        for particle_name in v["particles"]:
-            pdg_lookup = name_to_pdg.get(particle_name)
-            if pdg_lookup is None:
-                ok = False
-                break
-            pdgs.append(pdg_lookup)
-        if not ok:
+        pdgs = [name_to_pdg.get(n) for n in v["particles"]]
+        if any(p is None for p in pdgs):
             continue
         vertices_out.append({"id": v["name"], "particles": pdgs})
 
@@ -147,16 +115,7 @@ def _convert_ufo_to_feyngraph_schema(ufo_json_path: Path, model_id: str) -> dict
     }
 
 
-def _invoke_ufo_loader(
-    *, ufo_root: Path, output_path: Path, restriction_name: str | None,
-) -> None:
-    """Run ufo_model_loader in a fresh subprocess.
-
-    Isolation is required because Symbolica's mimalloc allocator crashes when
-    `load_model` is called twice in the same process. Tests stub this whole
-    function (rather than the underlying ufo_model_loader entry points) so
-    they can avoid spawning real subprocesses.
-    """
+def _invoke_ufo_loader(*, ufo_root: Path, output_path: Path, restriction_name: str | None) -> None:
     cmd = [
         sys.executable, "-m", "feyngraph._ufo_subprocess",
         "--input", str(ufo_root),
@@ -176,7 +135,6 @@ def _invoke_ufo_loader(
             status_code=422,
             detail=f"UFO model load failed: {proc.stderr.strip() or 'unknown error'}",
             code="UFO_LOAD_FAILED",
-            hint="Check the UFO directory contains valid particles.py, vertices.py, couplings.py, etc.",
         )
 
 
@@ -192,7 +150,6 @@ async def upload_ufo(
             status_code=422, detail="Upload missing a filename", code="UPLOAD_MISSING_FILENAME",
         )
 
-    # Derive model id from filename if not supplied
     chosen_id = model_id or Path(file.filename).stem.replace(".tar", "").replace(".gz", "")
     if not _ALLOWED_ID.match(chosen_id):
         raise FeyngraphHTTPException(
@@ -213,8 +170,7 @@ async def upload_ufo(
     with tempfile.TemporaryDirectory(prefix="feyngraph-ufo-") as tmp_str:
         tmp = Path(tmp_str)
         archive_path = tmp / "upload"
-        contents = await file.read()
-        archive_path.write_bytes(contents)
+        archive_path.write_bytes(await file.read())
 
         extracted = tmp / "extracted"
         extracted.mkdir()
@@ -222,7 +178,6 @@ async def upload_ufo(
 
         ufo_root = _find_ufo_root(extracted)
         ufo_json_path = tmp / "ufo.json"
-
         _invoke_ufo_loader(
             ufo_root=ufo_root,
             output_path=ufo_json_path,

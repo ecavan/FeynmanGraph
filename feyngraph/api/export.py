@@ -1,7 +1,3 @@
-"""Export route: GraphSpec -> gammaloop .dot."""
-
-from __future__ import annotations
-
 import os
 from pathlib import Path
 
@@ -24,8 +20,7 @@ router = APIRouter(prefix="/api", tags=["export"])
 
 def _loader() -> ModelLoader:
     extra: list[Path] = []
-    env = os.environ.get("FEYNGRAPH_EXTRA_MODEL_DIRS", "")
-    for raw in env.split(os.pathsep):
+    for raw in os.environ.get("FEYNGRAPH_EXTRA_MODEL_DIRS", "").split(os.pathsep):
         if raw:
             extra.append(Path(raw))
     return ModelLoader(extra_search_dirs=extra)
@@ -49,30 +44,17 @@ async def export_dot(spec: GraphSpec) -> ExportResponse:
     try:
         dot = to_gammaloop_dot(spec, model)
     except UnassignedEdgeError as exc:
-        raise FeyngraphHTTPException(
-            status_code=422,
-            detail=str(exc),
-            code="UNASSIGNED_EDGES",
-        ) from exc
+        raise FeyngraphHTTPException(status_code=422, detail=str(exc), code="UNASSIGNED_EDGES") from exc
     except NoExternalLegsError as exc:
-        raise FeyngraphHTTPException(
-            status_code=422,
-            detail=str(exc),
-            code="NO_EXTERNAL_LEGS",
-        ) from exc
+        raise FeyngraphHTTPException(status_code=422, detail=str(exc), code="NO_EXTERNAL_LEGS") from exc
     except InvalidLoopOverrideError as exc:
         raise FeyngraphHTTPException(
             status_code=422,
             detail=str(exc),
             code="INVALID_LMB_OVERRIDE",
-            hint=(
-                "lmb_edge_ids must list chord edges of the graph "
-                "(removing them must leave a spanning forest)"
-            ),
+            hint="lmb_edge_ids must list chord edges (removing them must leave a spanning forest)",
         ) from exc
 
-    # Theory consistency: still produce the dot (the user may want to inspect
-    # it), but warn if any particle/vertex isn't in the active theory.
     warnings: list[str] = []
     try:
         theory = get_theory(spec.theory_id)
@@ -88,8 +70,8 @@ async def export_dot(spec: GraphSpec) -> ExportResponse:
         })
         if bad_pdgs:
             warnings.append(
-                f"Theory '{spec.theory_id}' does not contain particle(s) "
-                f"PDG {bad_pdgs}; gammaloop import will likely fail."
+                f"Theory '{spec.theory_id}' does not contain particle(s) PDG {bad_pdgs}; "
+                f"gammaloop import will likely fail."
             )
         bad_vtx = sorted({
             n.ufo_vertex_id for n in spec.nodes
@@ -97,7 +79,7 @@ async def export_dot(spec: GraphSpec) -> ExportResponse:
         })
         if bad_vtx:
             warnings.append(
-                f"Theory '{spec.theory_id}' does not contain vertex/vertices "
-                f"{bad_vtx}; gammaloop import will likely fail."
+                f"Theory '{spec.theory_id}' does not contain vertex/vertices {bad_vtx}; "
+                f"gammaloop import will likely fail."
             )
     return ExportResponse(dot=dot, warnings=warnings)

@@ -7,16 +7,8 @@ export type ParticleEdgeData = {
   particlePdgId: number | null;
 };
 
-// Approximate rendered size of an external-leg "dot" so the edge endpoint can
-// snap to its visual center (same as a regular vertex now).
 const EXTERNAL_LEG_DIAMETER = VERTEX_DIAMETER;
 
-/**
- * Reads source/target positions from the diagram store and offsets to each
- * node's visual center. This makes edges visibly converge at a single point
- * inside each vertex regardless of incident angle — the "swallowed" look the
- * user asked for.
- */
 export function ParticleEdge(props: EdgeProps<ParticleEdgeData>) {
   const sourceNode = useDiagramStore((s) =>
     s.nodes.find((n) => n.id === props.source),

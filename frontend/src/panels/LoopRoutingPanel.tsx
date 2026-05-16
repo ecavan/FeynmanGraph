@@ -5,11 +5,6 @@ import { serializeGraphSpec } from "./serialize";
 
 const api = new ApiClient();
 
-/**
- * Loop momentum routing panel — always visible. At 0 loops it shows a hint
- * about how to introduce one; at ≥1 loop it shows the chord edges (carrying
- * the independent loop momenta) and lets the user override the auto-pick.
- */
 export function LoopRoutingPanel() {
   const [chordIds, setChordIds] = useState<string[]>([]);
   const [loopCount, setLoopCount] = useState(0);
@@ -30,7 +25,6 @@ export function LoopRoutingPanel() {
       .then((resp) => {
         setChordIds(resp.chord_edge_ids);
         setLoopCount(resp.loop_count);
-        // If the user has set an override and it's invalid, show that
         const lmbIssue = resp.issues.find((i) => i.code === "INVALID_LMB_OVERRIDE");
         setOverrideError(lmbIssue?.detail ?? null);
       })

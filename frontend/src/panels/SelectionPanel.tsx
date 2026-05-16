@@ -6,12 +6,6 @@ import {
 } from "../canvas/edges/particle-style";
 import { useDiagramStore } from "../state/diagram";
 
-/**
- * Renders contextual controls for whatever is currently selected on the canvas.
- * - vertex selected → leg-state toggle + delete button
- * - edge selected   → particle picker (legal completions first) + delete button
- * - nothing selected → short hint about how to use the canvas
- */
 export function SelectionPanel() {
   const selectedId = useDiagramStore((s) => s.selectedId);
   const selectedKind = useDiagramStore((s) => s.selectedKind);
@@ -175,8 +169,6 @@ function nextLegLabel(existing: string[]): string {
   return `p${max + 1}`;
 }
 
-/** Picker rendered when an edge is selected. Reads from the (theory-filtered)
- *  cached model in the store; the active theory's filter applies automatically. */
 function EdgeParticleList(props: {
   model: { particles: { pdg_id: number; name: string }[] };
   currentPdg: number | null;

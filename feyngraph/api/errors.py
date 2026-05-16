@@ -1,10 +1,3 @@
-"""Unified API error shape and FastAPI exception handlers.
-
-Every error returned by feyngraph follows this shape, matching spec section 6.3.
-"""
-
-from __future__ import annotations
-
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse

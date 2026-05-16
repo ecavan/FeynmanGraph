@@ -55,8 +55,6 @@ function Row({ label, value }: { label: string; value: number }) {
 function extractDeficits(issues: GraphIssue[]): Deficits {
   const d: Deficits = {};
   for (const iss of issues) {
-    // Prefer the structured `deficit` field; fall back to a regex on `detail`
-    // for backwards compatibility with older server builds.
     const val =
       typeof iss.deficit === "number"
         ? iss.deficit
