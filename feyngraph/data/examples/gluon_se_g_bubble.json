@@ -1,0 +1,79 @@
+{
+  "model_id": "sm",
+  "theory_id": "qcd",
+  "process_name": "gluon_se_g_bubble",
+  "nodes": [
+    {
+      "id": "ext_g_in",
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "id": "ext_g_out",
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "id": "v1",
+      "position": [
+        -50,
+        0
+      ],
+      "ufo_vertex_id": "V_36"
+    },
+    {
+      "id": "v2",
+      "position": [
+        50,
+        0
+      ],
+      "ufo_vertex_id": "V_36"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source_node_id": "ext_g_in",
+      "target_node_id": "v1",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e2",
+      "source_node_id": "v2",
+      "target_node_id": "ext_g_out",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e3",
+      "source_node_id": "v1",
+      "target_node_id": "v2",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e4",
+      "source_node_id": "v2",
+      "target_node_id": "v1",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    }
+  ],
+  "external_legs": [
+    {
+      "node_id": "ext_g_in",
+      "kind": "incoming",
+      "label": "p1"
+    },
+    {
+      "node_id": "ext_g_out",
+      "kind": "outgoing",
+      "label": "p2"
+    }
+  ]
+}

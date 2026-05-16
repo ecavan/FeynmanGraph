@@ -1,0 +1,76 @@
+{
+  "model_id": "sm",
+  "theory_id": "electroweak",
+  "process_name": "z_mumu",
+  "nodes": [
+    {
+      "id": "ext_z",
+      "position": [
+        -150,
+        0
+      ]
+    },
+    {
+      "id": "ext_mum",
+      "position": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "ext_mup",
+      "position": [
+        200,
+        -60
+      ]
+    },
+    {
+      "id": "v1",
+      "position": [
+        0,
+        0
+      ],
+      "ufo_vertex_id": "V_108"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source_node_id": "ext_z",
+      "target_node_id": "v1",
+      "particle_pdg_id": 23,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e2",
+      "source_node_id": "v1",
+      "target_node_id": "ext_mum",
+      "particle_pdg_id": 13,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e3",
+      "source_node_id": "v1",
+      "target_node_id": "ext_mup",
+      "particle_pdg_id": -13,
+      "direction": "source_to_target"
+    }
+  ],
+  "external_legs": [
+    {
+      "node_id": "ext_z",
+      "kind": "incoming",
+      "label": "p1"
+    },
+    {
+      "node_id": "ext_mum",
+      "kind": "outgoing",
+      "label": "p2"
+    },
+    {
+      "node_id": "ext_mup",
+      "kind": "outgoing",
+      "label": "p3"
+    }
+  ]
+}

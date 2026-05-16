@@ -1,0 +1,110 @@
+{
+  "model_id": "sm",
+  "theory_id": "qcd",
+  "process_name": "gg_uu",
+  "nodes": [
+    {
+      "id": "ext_g1",
+      "position": [
+        -150,
+        60
+      ]
+    },
+    {
+      "id": "ext_g2",
+      "position": [
+        -150,
+        -60
+      ]
+    },
+    {
+      "id": "ext_u",
+      "position": [
+        250,
+        60
+      ]
+    },
+    {
+      "id": "ext_ubar",
+      "position": [
+        250,
+        -60
+      ]
+    },
+    {
+      "id": "v1",
+      "position": [
+        0,
+        0
+      ],
+      "ufo_vertex_id": "V_36"
+    },
+    {
+      "id": "v2",
+      "position": [
+        100,
+        0
+      ],
+      "ufo_vertex_id": "V_135"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source_node_id": "ext_g1",
+      "target_node_id": "v1",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e2",
+      "source_node_id": "ext_g2",
+      "target_node_id": "v1",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e3",
+      "source_node_id": "v2",
+      "target_node_id": "ext_u",
+      "particle_pdg_id": 2,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e4",
+      "source_node_id": "v2",
+      "target_node_id": "ext_ubar",
+      "particle_pdg_id": -2,
+      "direction": "source_to_target"
+    },
+    {
+      "id": "e5",
+      "source_node_id": "v1",
+      "target_node_id": "v2",
+      "particle_pdg_id": 21,
+      "direction": "source_to_target"
+    }
+  ],
+  "external_legs": [
+    {
+      "node_id": "ext_g1",
+      "kind": "incoming",
+      "label": "p1"
+    },
+    {
+      "node_id": "ext_g2",
+      "kind": "incoming",
+      "label": "p2"
+    },
+    {
+      "node_id": "ext_u",
+      "kind": "outgoing",
+      "label": "p3"
+    },
+    {
+      "node_id": "ext_ubar",
+      "kind": "outgoing",
+      "label": "p4"
+    }
+  ]
+}
