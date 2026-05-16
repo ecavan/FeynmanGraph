@@ -364,6 +364,49 @@ def test_export_dot_warns_on_theory_mismatch():
     assert "qed" in joined and ("21" in joined or "25" in joined)
 
 
+# ---------- /api/export-dot-batch ----------
+
+import zipfile
+
+
+def test_export_dot_batch_packs_zip():
+    payload = {
+        "diagrams": [_ee_mumu_payload(), _ee_mumu_payload()],
+        "archive_name": "twins",
+    }
+    resp = _client().post("/api/export-dot-batch", json=payload)
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/zip"
+    assert 'filename="twins.zip"' in resp.headers["content-disposition"]
+    zf = zipfile.ZipFile(io.BytesIO(resp.content))
+    members = set(zf.namelist())
+    assert "MANIFEST.txt" in members
+    # Both have the same process_name; the second should be uniqued
+    dot_members = [m for m in members if m.endswith(".dot")]
+    assert len(dot_members) == 2
+    assert any("digraph ee_mumu" in zf.read(m).decode() for m in dot_members)
+
+
+def test_export_dot_batch_rejects_empty():
+    resp = _client().post("/api/export-dot-batch", json={"diagrams": []})
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "EMPTY_BATCH"
+
+
+def test_export_dot_batch_emits_error_file_for_bad_diagrams():
+    bad = _ee_mumu_payload()
+    bad["edges"][0]["particle_pdg_id"] = None  # unassigned → render fails
+    payload = {"diagrams": [bad], "archive_name": "broken"}
+    resp = _client().post("/api/export-dot-batch", json=payload)
+    assert resp.status_code == 200
+    zf = zipfile.ZipFile(io.BytesIO(resp.content))
+    names = zf.namelist()
+    assert any(n.endswith(".error.txt") for n in names)
+    manifest = zf.read("MANIFEST.txt").decode()
+    assert "0 succeeded" in manifest
+    assert "1 failed" in manifest
+
+
 # ---------- /api/models/upload-ufo ----------
 
 def _make_tar_gz_from_dir(d: Path, archive_root: str | None = None) -> bytes:

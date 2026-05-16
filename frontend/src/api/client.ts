@@ -95,6 +95,21 @@ export class ApiClient {
     });
   }
 
+  async exportDotBatch(diagrams: ExampleSpec[], archiveName: string): Promise<Blob> {
+    const resp = await fetch(`${this.base}/api/export-dot-batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ diagrams, archive_name: archiveName }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      let payload: APIError = { detail: text, code: "REQUEST_FAILED" };
+      try { payload = JSON.parse(text); } catch {}
+      throw new ApiError(payload);
+    }
+    return resp.blob();
+  }
+
   async uploadUfo(
     file: File,
     options: { modelId?: string; restrictionName?: string; overwrite?: boolean } = {},

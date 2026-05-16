@@ -39,6 +39,7 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
   const [loopCount, setLoopCount] = useState("0");
   const [maxDiagrams, setMaxDiagrams] = useState("50");
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
@@ -81,6 +82,36 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
   function loadIntoCanvas(spec: ExampleSpec) {
     loadGraphIntoStore(spec);
     props.onLoad?.();
+  }
+
+  function archiveBaseName(): string {
+    const sane = `${initial.trim()}_to_${final_.trim()}_L${loopCount}`
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Za-z0-9_+\-~]/g, "");
+    return sane || "diagrams";
+  }
+
+  async function exportAll() {
+    if (!result || result.diagrams.length === 0) return;
+    setExporting(true);
+    setError(null);
+    try {
+      const blob = await api.exportDotBatch(result.diagrams, archiveBaseName());
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${archiveBaseName()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(`${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`);
+      } else {
+        setError(String(e));
+      }
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -217,10 +248,33 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
 
       {result && (
         <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 13, margin: "4px 0" }}>
-            <strong>{result.count}</strong> diagram{result.count === 1 ? "" : "s"}
-            {result.truncated && " (truncated — raise Max diagrams to see more)"}
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <p style={{ fontSize: 13, margin: "4px 0" }}>
+              <strong>{result.count}</strong> diagram{result.count === 1 ? "" : "s"}
+              {result.truncated && " (truncated — raise Max diagrams to see more)"}
+            </p>
+            {result.count > 0 && (
+              <button
+                type="button"
+                data-testid="export-all"
+                onClick={exportAll}
+                disabled={exporting}
+                title="Download all diagrams as a .zip of gammaloop .dot files"
+                style={{
+                  padding: "4px 12px",
+                  background: exporting ? "#aaa" : "white",
+                  color: exporting ? "white" : "#0066ff",
+                  border: "1px solid #0066ff",
+                  borderRadius: 4,
+                  cursor: exporting ? "wait" : "pointer",
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                {exporting ? "Packing…" : `⬇ Export all (.zip)`}
+              </button>
+            )}
+          </div>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {result.diagrams.map((d, i) => (
               <DiagramRow key={i} spec={d} onLoad={() => loadIntoCanvas(d)} />
