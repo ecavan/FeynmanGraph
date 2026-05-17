@@ -95,9 +95,6 @@ class ExportBatchRequest(BaseModel):
 
 @router.post("/export-dot-batch")
 async def export_dot_batch(req: ExportBatchRequest) -> Response:
-    """Render each diagram to .dot and pack into a ZIP. Diagrams that fail
-    to render are written as <name>.error.txt so the user still sees what
-    happened. Theory warnings ride along in MANIFEST.txt."""
     if not req.diagrams:
         raise FeyngraphHTTPException(
             status_code=422, detail="No diagrams supplied", code="EMPTY_BATCH",
@@ -184,7 +181,6 @@ async def export_dot_batch(req: ExportBatchRequest) -> Response:
 
 
 def _safe_filename(name: str) -> str:
-    """Strip path separators and weird characters from a filename component."""
     out: list[str] = []
     for ch in name:
         if ch.isalnum() or ch in "-_":

@@ -49,10 +49,9 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
     for leg in spec.external_legs:
         buf.write(f"  {leg.node_id} [style=invis];\n")
 
-    # If the user's claimed ufo_vertex_id doesn't match the vertex's actual
-    # incident-particle multiset, drop the int_id so gammaloop falls back to
-    # its own incidence lookup (which can self-heal or reject cleanly). This
-    # closes the parity gap where gammaloop blindly trusts mismatched labels.
+    # Drop int_id when it doesn't match incidence — gammaloop trusts the label
+    # blindly, so a stale int_id silently produces wrong physics. Without it,
+    # gammaloop self-heals or rejects cleanly via its own incidence lookup.
     incidence_by_node = _all_incoming_pdgs(spec, external_node_ids)
     for node in spec.nodes:
         if node.id in external_node_ids:
@@ -71,15 +70,10 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
         if edge.id in chord_set:
             chord_index_by_edge[edge.id] = len(chord_index_by_edge)
 
-    # Assign globally-sequential port numbers so gammaloop's hedge(N) ids line
-    # up with our edge order. External edges get ports 0..N_ext-1 in their
-    # spec.edges order (matching the projector). Internal edges then get a
-    # port on each endpoint, continuing from N_ext. We write external edges
-    # first so port assignment stays contiguous regardless of edge interleaving.
-    # The `id=N` attribute is also required: gammaloop uses it (despite being
-    # listed as "ignored" in its parser) to keep edge order stable through
-    # import — without it, `loop_momentum_basis.ext_from(hedge(0))` panics
-    # during inspect because external edges get reordered.
+    # Externals first (ports 0..N-1, matching the projector's hedge indices),
+    # internals next (two ports each). `id=N` is required despite being marked
+    # "ignored" in gammaloop's parser — without it ext_from(hedge(0)) panics
+    # during inspect.
     ext_edges = []
     int_edges = []
     for edge in spec.edges:
@@ -117,8 +111,6 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
 
 
 def _all_incoming_pdgs(spec: GraphSpec, external_node_ids: set[str]) -> dict[str, list[int]]:
-    """For each internal vertex, list incident particle PDGs in the all-incoming
-    convention (outgoing edges contribute their antiparticle)."""
     out: dict[str, list[int]] = {n.id: [] for n in spec.nodes if n.id not in external_node_ids}
     for edge in spec.edges:
         if edge.particle_pdg_id is None:
@@ -131,14 +123,7 @@ def _all_incoming_pdgs(spec: GraphSpec, external_node_ids: set[str]) -> dict[str
 
 
 def _polarization_term(particle: Particle, idx: int, kind: str) -> str | None:
-    """Lorentz polarization/spinor for one external leg.
-
-    Conventions:
-      spin = 2J  (matches feyngraph Model schema; 0=scalar, 1=fermion, 2=vector)
-      kind = "incoming" | "outgoing"
-      particle is identified as antiparticle iff pdg_id < 0 (skipped for
-      self-conjugate particles like γ/Z/H which carry no anti distinction).
-    """
+    # spin = 2J: 0=scalar, 1=fermion, 2=vector. kind ∈ {"incoming","outgoing"}.
     is_anti = particle.pdg_id < 0 and particle.anti_name != particle.name
     h = f"hedge({idx})"
     if particle.spin == 0:
@@ -156,12 +141,6 @@ def _polarization_term(particle: Particle, idx: int, kind: str) -> str | None:
 
 
 def _color_pairings(externals: list[dict]) -> list[str] | None:
-    """Color-singlet contraction terms for paired external colored particles.
-
-    Returns None if the colored externals can't be paired into singlets
-    (odd number of gluons or mismatched q/q̄ counts) — callers should fall
-    back to a polarization-only projector.
-    """
     gluons: list[int] = []
     quarks: list[int] = []
     antiquarks: list[int] = []
@@ -194,9 +173,8 @@ def _build_projector(spec: GraphSpec, model: Model) -> str:
     external_node_ids = {leg.node_id for leg in spec.external_legs}
     leg_kind = {leg.node_id: leg.kind for leg in spec.external_legs}
 
-    # The hedge index in the projector must match the explicit port number
-    # we write on the internal side of each external edge in to_gammaloop_dot.
-    # That port is assigned 0..N-1 in the order external edges appear in spec.
+    # The hedge index in the projector must match the port number written on
+    # the internal side of each external edge in to_gammaloop_dot.
     externals: list[dict] = []
     ext_port = 0
     for edge in spec.edges:

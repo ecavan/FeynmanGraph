@@ -53,9 +53,9 @@ class ValidateGraphResponse(BaseModel):
 
 
 def _resolve_model_and_theory(model_id: str, theory_id: str) -> tuple[Model, Model, Theory]:
-    """Return (raw_model, theory_filtered_model, theory). Conservation must run
-    against the raw model so violations show up even when particles are
-    filtered out by a restrictive theory."""
+    # Return (raw, theory_filtered, theory). Conservation checks must run
+    # against the raw model so violations surface even if the theory filters
+    # the offending particle out.
     try:
         raw = _loader().load_model(model_id)
     except ModelNotFoundError as exc:

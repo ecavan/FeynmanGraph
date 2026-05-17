@@ -1,6 +1,3 @@
-"""POST /api/generate-amp: shell out to gammaloop's `generate amp`, parse
-each emitted .dot back into a GraphSpec, return them as a gallery."""
-
 import os
 import shutil
 import subprocess
@@ -50,7 +47,6 @@ class GenerateAmpResponse(BaseModel):
 
 
 def _resolve_particle(name: str, model: Model):
-    """Look up a particle by name OR anti-name."""
     for p in model.particles:
         if p.name == name:
             return p, False
@@ -90,14 +86,8 @@ def _polarization_term(idx: int, particle, is_anti: bool, kind: str) -> str | No
 
 
 def _color_terms(gluons: list[int], primaries: list[int], antis: list[int]) -> list[str] | None:
-    """Emit color projector atoms. Returns None if the configuration is unsupported.
-
-    - 1 gluon + 1 q-line: single T^a linking them.
-    - 2 gluons + N q-lines: gammaloop's δ_{ab} pair + per-line δs.
-    - ≥3 gluons + 0 q-lines: closed trace T^{a_0} T^{a_1} ... T^{a_{N-1}}.
-    - ≥3 gluons + ≥1 q-lines: trace + per-line δs (one color basis vector).
-    - 0 gluons + N q-lines: per-line δs.
-    """
+    # 1g+1q: single T^a. 2g: δ_{ab} pair + per-line δs. ≥3g+0q: closed trace.
+    # ≥3g+≥1q: trace + per-line δs. 0g+Nq: per-line δs.
     if len(primaries) != len(antis):
         return None
     n_g, n_q = len(gluons), len(primaries)
@@ -121,15 +111,6 @@ def _color_terms(gluons: list[int], primaries: list[int], antis: list[int]) -> l
 
 
 def _projector_for_externals(req: GenerateAmpRequest, model: Model) -> str | None:
-    """Build a Symbolica-atom projector string for the externals.
-
-    Color flow on fundamental-rep externals is classified into two sides:
-    `primary` (incoming quark or outgoing antiquark — the dind side of the
-    color delta) and `anti` (outgoing quark or incoming antiquark — the cof
-    side). Pairing primary↔anti produces structurally-distinct g(dind(cof),
-    cof) factors that spenso doesn't collapse into g(...)^2. Gluons get a
-    pair δ_{ab}, a closed trace, or — for 1g + 1 q-line — a single T^a.
-    """
     pol_terms: list[str] = []
     gluons: list[int] = []
     primaries: list[int] = []
@@ -170,8 +151,6 @@ def _build_process_command(req: GenerateAmpRequest, projector: str | None) -> st
     block = " ".join(spec_parts)
     cmd = f"generate amp {initial} > {final} [{block}] -p amp -i amp -o"
     if projector:
-        # TOML strings escape backslashes and double-quotes; the projector is
-        # a single-quoted string after `--global-prefactor-projector`.
         cmd += f" --global-prefactor-projector '{projector}'"
     return cmd
 

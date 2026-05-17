@@ -1,9 +1,3 @@
-"""Parse a gammaloop-emitted .dot file back into a GraphSpec.
-
-Inverse of dot_writer.to_gammaloop_dot, used by the diagram-generation API
-to ingest gammaloop's `generate amp` output and surface it in the UI.
-"""
-
 import re
 
 from feyngraph.domain.graph_spec import ExternalLeg, GraphSpec, ParticleEdge, VertexNode
@@ -17,7 +11,6 @@ class DotParseError(ValueError):
 _DIGRAPH_HEAD = re.compile(r"digraph\s+(\w+)\s*\{")
 _INTERNAL_VERTEX = re.compile(r'^\s*([A-Za-z0-9_]+)\s*\[int_id="(V_\d+)"', re.M)
 _EXTERNAL_NODE = re.compile(r"^\s*(\w+)\s*\[style=invis\]", re.M)
-# Edge: src[:port] -> tgt[:port] [attrs];
 _EDGE = re.compile(
     r"^\s*([A-Za-z0-9_]+)(?::\d+)?\s*->\s*([A-Za-z0-9_]+)(?::\d+)?\s*\[([^\]]*)\];?",
     re.M,

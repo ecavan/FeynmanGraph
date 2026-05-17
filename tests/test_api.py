@@ -1,8 +1,8 @@
-"""HTTP API: health, models, theories, examples, validate, export, upload."""
-
 import io
 import json
 import os
+import subprocess
+import sys
 import tarfile
 import zipfile
 from pathlib import Path
@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+import feyngraph
 from feyngraph.server import create_app
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -727,5 +728,24 @@ def test_projector_unbalanced_quarks_returns_none():
 
 
 def test_projector_one_gluon_no_quark_line_returns_none():
-    p = _projector(["H"], ["g"])  # forbidden process, projector should bail
+    p = _projector(["H"], ["g"])
     assert p is None
+
+
+def test_version_string():
+    assert isinstance(feyngraph.__version__, str)
+    assert feyngraph.__version__.startswith("0.1")
+
+
+def test_cli_version():
+    r = subprocess.run([sys.executable, "-m", "feyngraph", "version"],
+                       capture_output=True, text=True, check=False)
+    assert r.returncode == 0
+    assert "0.1" in r.stdout
+
+
+def test_cli_doctor():
+    r = subprocess.run([sys.executable, "-m", "feyngraph", "doctor"],
+                       capture_output=True, text=True, check=False)
+    assert r.returncode in (0, 1)
+    assert "Python" in r.stdout

@@ -1,5 +1,3 @@
-"""UFO model upload. Loading UFO code runs Python from the archive — local-only."""
-
 import json
 import re
 import subprocess

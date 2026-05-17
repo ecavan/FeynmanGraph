@@ -1,8 +1,5 @@
-"""Subprocess worker for loading UFO models.
-
-Symbolica's mimalloc allocator crashes if load_model runs twice in the same
-process; isolating each call to a fresh subprocess avoids that.
-"""
+# Each UFO load runs in a fresh subprocess: symbolica's mimalloc crashes if
+# load_model is called twice in the same process.
 
 import argparse
 import sys
