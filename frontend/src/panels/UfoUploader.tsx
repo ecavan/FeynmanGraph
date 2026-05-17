@@ -4,7 +4,7 @@ import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
-export function UfoUploader() {
+export function UfoUploader(props: { onUploaded?: () => void } = {}) {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -21,6 +21,7 @@ export function UfoUploader() {
         `Uploaded ${result.name}: ${result.particles} particles, ${result.vertices} vertices`,
       );
       setModelId(result.id);
+      props.onUploaded?.();
     } catch (e) {
       if (e instanceof ApiError) {
         setError(`${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`);
