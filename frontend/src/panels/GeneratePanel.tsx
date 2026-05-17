@@ -5,6 +5,7 @@ import { relayout } from "../canvas/layout";
 import { isGhostOrGoldstone, paletteSortKey, particleLabel, visualForEdge } from "../canvas/edges/particle-style";
 import { loadGraphIntoStore } from "../state/loadGraph";
 import { useDiagramStore } from "../state/diagram";
+import { useGalleryStore } from "../state/gallery";
 
 const api = new ApiClient();
 
@@ -14,7 +15,7 @@ type Result = {
   truncated: boolean;
 };
 
-export function GeneratePanel(props: { onLoad?: () => void }) {
+export function GeneratePanel(props: { onLoad?: () => void; onSuccess?: () => void }) {
   const [initialList, setInitialList] = useState<string[]>(["e+", "e-"]);
   const [finalList, setFinalList] = useState<string[]>(["mu+", "mu-"]);
   const [qed, setQed] = useState("2");
@@ -42,6 +43,14 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
         max_diagrams: Number(maxDiagrams),
       });
       setResult(resp);
+      useGalleryStore.setState({
+        diagrams: resp.diagrams,
+        count: resp.count,
+        truncated: resp.truncated,
+        archiveName: archiveBaseName(),
+        loadedSpecId: null,
+      });
+      props.onSuccess?.();
     } catch (e) {
       if (e instanceof ApiError) {
         setError(`${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`);
