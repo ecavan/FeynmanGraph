@@ -416,7 +416,7 @@ function DiagramRow(props: { spec: ExampleSpec; onLoad: () => void }) {
 const THUMB_W = 120;
 const THUMB_H = 70;
 
-function DiagramThumbnail({ spec }: { spec: ExampleSpec }) {
+export function DiagramThumbnail({ spec }: { spec: ExampleSpec }) {
   const positions = useMemo(() => {
     const nodes = spec.nodes.map((n) => ({
       id: n.id,
