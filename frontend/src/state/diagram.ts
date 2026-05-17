@@ -65,6 +65,8 @@ export type DiagramState = {
   removeEdge: (id: string) => void;
   setEdgeParticle: (id: string, pdgId: number | null) => void;
   addExternalLeg: (leg: ExternalLeg) => void;
+  addIncomingLeg: () => string;
+  addOutgoingLeg: () => string;
   removeExternalLeg: (nodeId: string) => void;
   cycleLegKind: (nodeId: string) => void;
   startEdgeDraft: () => void;
@@ -112,6 +114,17 @@ const INITIAL = {
   _past: [] as DiagramSnapshot[],
   _future: [] as DiagramSnapshot[],
 };
+
+function nextVertexId(existing: string[]): string {
+  const used = new Set<number>();
+  for (const id of existing) {
+    const m = id.match(/^v(\d+)$/);
+    if (m) used.add(Number(m[1]));
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return `v${n}`;
+}
 
 function nextEdgeId(existing: string[]): string {
   const used = new Set<number>();
@@ -327,6 +340,46 @@ export const useDiagramStore = create<DiagramState>((set) => ({
         externalLegs: laid.externalLegs,
         selectedId: newId,
         selectedKind: "edge" as SelectionKind,
+        _past: past,
+        _future: [],
+      };
+    });
+    return newId;
+  },
+  addIncomingLeg: () => {
+    let newId = "";
+    set((s) => {
+      const past = pushHistory(s._past, snapshot(s));
+      newId = nextVertexId(s.nodes.map((n) => n.id));
+      const label = nextLegLabel(s.externalLegs.map((l) => l.label));
+      const nextNodes = [...s.nodes, { id: newId, position: [0, 0] as [number, number] }];
+      const nextLegs = [...s.externalLegs, { nodeId: newId, kind: "incoming" as const, label }];
+      const laid = relayout(nextNodes, s.edges, nextLegs);
+      return {
+        nodes: laid.nodes,
+        externalLegs: laid.externalLegs,
+        selectedId: newId,
+        selectedKind: "node" as SelectionKind,
+        _past: past,
+        _future: [],
+      };
+    });
+    return newId;
+  },
+  addOutgoingLeg: () => {
+    let newId = "";
+    set((s) => {
+      const past = pushHistory(s._past, snapshot(s));
+      newId = nextVertexId(s.nodes.map((n) => n.id));
+      const label = nextLegLabel(s.externalLegs.map((l) => l.label));
+      const nextNodes = [...s.nodes, { id: newId, position: [0, 0] as [number, number] }];
+      const nextLegs = [...s.externalLegs, { nodeId: newId, kind: "outgoing" as const, label }];
+      const laid = relayout(nextNodes, s.edges, nextLegs);
+      return {
+        nodes: laid.nodes,
+        externalLegs: laid.externalLegs,
+        selectedId: newId,
+        selectedKind: "node" as SelectionKind,
         _past: past,
         _future: [],
       };

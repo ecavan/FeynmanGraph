@@ -204,6 +204,48 @@ describe("diagram store", () => {
     });
   });
 
+  describe("external leg helpers", () => {
+    it("addIncomingLeg adds a vertex + incoming leg in one step and selects it", () => {
+      const s = useDiagramStore.getState();
+      const id = s.addIncomingLeg();
+      const after = useDiagramStore.getState();
+      expect(after.nodes).toHaveLength(1);
+      expect(after.nodes[0].id).toBe(id);
+      expect(after.externalLegs).toHaveLength(1);
+      expect(after.externalLegs[0]).toMatchObject({ nodeId: id, kind: "incoming", label: "p1" });
+      expect(after.selectedId).toBe(id);
+      expect(after.selectedKind).toBe("node");
+    });
+
+    it("addOutgoingLeg adds a vertex + outgoing leg and selects it", () => {
+      const s = useDiagramStore.getState();
+      const id = s.addOutgoingLeg();
+      const after = useDiagramStore.getState();
+      expect(after.externalLegs[0]).toMatchObject({ nodeId: id, kind: "outgoing", label: "p1" });
+      expect(after.selectedId).toBe(id);
+    });
+
+    it("consecutive leg adds hand out ascending p-labels", () => {
+      const s = useDiagramStore.getState();
+      s.addIncomingLeg();
+      s.addIncomingLeg();
+      s.addOutgoingLeg();
+      const labels = useDiagramStore.getState().externalLegs.map((l) => l.label);
+      expect(labels).toEqual(["p1", "p2", "p3"]);
+    });
+
+    it("undo after addIncomingLeg removes both the vertex and the leg", () => {
+      const s = useDiagramStore.getState();
+      s.addIncomingLeg();
+      expect(useDiagramStore.getState().nodes).toHaveLength(1);
+      expect(useDiagramStore.getState().externalLegs).toHaveLength(1);
+      useDiagramStore.getState().undo();
+      const after = useDiagramStore.getState();
+      expect(after.nodes).toEqual([]);
+      expect(after.externalLegs).toEqual([]);
+    });
+  });
+
   describe("loop helpers", () => {
     it("addSelfLoop adds a self-edge on the given vertex and selects it", () => {
       const s = useDiagramStore.getState();
