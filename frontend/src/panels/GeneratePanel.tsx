@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import type { ExampleSpec } from "../api/types";
 import { relayout } from "../canvas/layout";
-import { visualForEdge } from "../canvas/edges/particle-style";
+import { isGhostOrGoldstone, paletteSortKey, particleLabel, visualForEdge } from "../canvas/edges/particle-style";
 import { loadGraphIntoStore } from "../state/loadGraph";
+import { useDiagramStore } from "../state/diagram";
 
 const api = new ApiClient();
 
@@ -13,27 +14,9 @@ type Result = {
   truncated: boolean;
 };
 
-type Preset = {
-  label: string;
-  initial: string;
-  final: string;
-  qed: string;
-  qcd: string;
-  loops: string;
-};
-
-const PRESETS: Preset[] = [
-  { label: "e+ e- → μ+ μ-",      initial: "e+ e-", final: "mu+ mu-",  qed: "2", qcd: "",  loops: "0" },
-  { label: "e+ e- → t t~",       initial: "e+ e-", final: "t t~",     qed: "2", qcd: "",  loops: "0" },
-  { label: "gg → H (1-loop)",    initial: "g g",   final: "H",        qed: "1", qcd: "2", loops: "1" },
-  { label: "gg → t t~",          initial: "g g",   final: "t t~",     qed: "",  qcd: "2", loops: "0" },
-  { label: "H → b b~",           initial: "H",     final: "b b~",     qed: "1", qcd: "",  loops: "0" },
-  { label: "gg → gg",            initial: "g g",   final: "g g",      qed: "",  qcd: "4", loops: "0" },
-];
-
 export function GeneratePanel(props: { onLoad?: () => void }) {
-  const [initial, setInitial] = useState("e+ e-");
-  const [final_, setFinal] = useState("mu+ mu-");
+  const [initialList, setInitialList] = useState<string[]>(["e+", "e-"]);
+  const [finalList, setFinalList] = useState<string[]>(["mu+", "mu-"]);
   const [qed, setQed] = useState("2");
   const [qcd, setQcd] = useState("");
   const [loopCount, setLoopCount] = useState("0");
@@ -42,15 +25,6 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-
-  function applyPreset(p: Preset) {
-    setInitial(p.initial);
-    setFinal(p.final);
-    setQed(p.qed);
-    setQcd(p.qcd);
-    setLoopCount(p.loops);
-    setError(null);
-  }
 
   async function submit() {
     setBusy(true);
@@ -61,8 +35,8 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
     if (qcd.trim()) couplings.QCD = Number(qcd);
     try {
       const resp = await api.generateAmp({
-        initial_state: initial.trim().split(/\s+/),
-        final_state: final_.trim().split(/\s+/),
+        initial_state: initialList,
+        final_state: finalList,
         coupling_orders: Object.keys(couplings).length ? couplings : undefined,
         loop_count: Number(loopCount),
         max_diagrams: Number(maxDiagrams),
@@ -85,7 +59,7 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
   }
 
   function archiveBaseName(): string {
-    const sane = `${initial.trim()}_to_${final_.trim()}_L${loopCount}`
+    const sane = `${initialList.join("_")}_to_${finalList.join("_")}_L${loopCount}`
       .replace(/\s+/g, "_")
       .replace(/[^A-Za-z0-9_+\-~]/g, "");
     return sane || "diagrams";
@@ -116,108 +90,47 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
 
   return (
     <section style={{ padding: 20, maxWidth: 720 }}>
-      <h2 style={{ marginTop: 0, marginBottom: 4 }}>Generate diagrams</h2>
-      <p style={{ fontSize: 13, opacity: 0.75, maxWidth: 560, marginTop: 4 }}>
-        Enumerate every topologically-distinct Feynman diagram for a process.
-        Pick a preset below or type your own particles.
-      </p>
+      <h2 style={{ marginTop: 0, marginBottom: 12 }}>Generate diagrams</h2>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, maxWidth: 560 }}>
-        {PRESETS.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => applyPreset(p)}
-            style={{
-              padding: "4px 10px",
-              fontSize: 12,
-              background: "white",
-              border: "1px solid #c8c8c8",
-              borderRadius: 12,
-              cursor: "pointer",
-              fontFamily: "monospace",
-            }}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, maxWidth: 600 }}>
+        <ParticleSlot label="Initial" particles={initialList} onChange={setInitialList} />
+        <div style={{ fontSize: 20, opacity: 0.5, padding: "6px 4px" }}>→</div>
+        <ParticleSlot label="Final" particles={finalList} onChange={setFinalList} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto 1fr", gap: 8, maxWidth: 560, alignItems: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "100px 80px", rowGap: 6, columnGap: 8 }}>
+        <label style={{ fontSize: 13 }}>QED</label>
         <input
-          value={initial}
-          onChange={(e) => setInitial(e.target.value)}
-          placeholder="e+ e-"
-          aria-label="Initial state"
-          style={{ padding: "6px 8px", fontSize: 14, fontFamily: "monospace", border: "1px solid #bbb", borderRadius: 4 }}
+          value={qed}
+          onChange={(e) => setQed(e.target.value)}
+          placeholder="—"
+          style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
         />
-        <span style={{ fontSize: 18, opacity: 0.6, textAlign: "center" }}>→</span>
+        <label style={{ fontSize: 13 }}>QCD</label>
         <input
-          value={final_}
-          onChange={(e) => setFinal(e.target.value)}
-          placeholder="mu+ mu-"
-          aria-label="Final state"
-          style={{ padding: "6px 8px", fontSize: 14, fontFamily: "monospace", border: "1px solid #bbb", borderRadius: 4, gridColumn: "3 / span 2" }}
+          value={qcd}
+          onChange={(e) => setQcd(e.target.value)}
+          placeholder="—"
+          style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
         />
-      </div>
-
-      <div style={{ marginTop: 16, maxWidth: 560 }}>
-        <h3 style={{ fontSize: 14, margin: "0 0 4px 0" }}>Coupling orders</h3>
-        <p style={{ fontSize: 12, opacity: 0.8, margin: "0 0 10px 0", lineHeight: 1.5 }}>
-          The <strong>order</strong> of a coupling is how many vertices of that type
-          appear in each diagram. Set the orders to pin down which diagrams gammaloop
-          enumerates.
-        </p>
-        <ul style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.5, paddingLeft: 18, margin: "0 0 12px 0" }}>
-          <li>
-            <strong>QED</strong> = number of photon/Z/W/Higgs-Yukawa vertices.
-            Example: <code>e+ e- → μ+ μ-</code> tree-level is a photon exchange,
-            so 2 QED vertices → <code>QED=2</code>.
-          </li>
-          <li>
-            <strong>QCD</strong> = number of gluon vertices. Example:
-            <code> gg → t t~</code> tree has 2 quark-gluon vertices → <code>QCD=2</code>.
-            Leave blank if the process has no QCD vertices.
-          </li>
-          <li>
-            <strong>Loop count</strong> = number of independent loops. 0 = tree level,
-            1 = one-loop (triangle/box/bubble), etc.
-          </li>
-        </ul>
-        <div style={{ display: "grid", gridTemplateColumns: "120px 100px", rowGap: 6, columnGap: 8 }}>
-          <label style={{ fontSize: 13 }}>QED order</label>
-          <input
-            value={qed}
-            onChange={(e) => setQed(e.target.value)}
-            placeholder="2"
-            style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
-          />
-          <label style={{ fontSize: 13 }}>QCD order</label>
-          <input
-            value={qcd}
-            onChange={(e) => setQcd(e.target.value)}
-            placeholder="(none)"
-            style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
-          />
-          <label style={{ fontSize: 13 }}>Loop count</label>
-          <input
-            type="number"
-            min={0}
-            max={4}
-            value={loopCount}
-            onChange={(e) => setLoopCount(e.target.value)}
-            style={{ padding: "4px 6px", fontSize: 13 }}
-          />
-          <label style={{ fontSize: 13 }}>Max diagrams</label>
-          <input
-            type="number"
-            min={1}
-            max={500}
-            value={maxDiagrams}
-            onChange={(e) => setMaxDiagrams(e.target.value)}
-            style={{ padding: "4px 6px", fontSize: 13 }}
-          />
-        </div>
+        <label style={{ fontSize: 13 }}>Loops</label>
+        <input
+          type="number"
+          min={0}
+          max={4}
+          value={loopCount}
+          onChange={(e) => setLoopCount(e.target.value)}
+          style={{ padding: "4px 6px", fontSize: 13 }}
+        />
+        <label style={{ fontSize: 13 }}>Max</label>
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={maxDiagrams}
+          onChange={(e) => setMaxDiagrams(e.target.value)}
+          style={{ padding: "4px 6px", fontSize: 13 }}
+        />
       </div>
 
       <button
@@ -292,10 +205,9 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
             ))}
           </ul>
           {result.diagrams.length > GALLERY_CAP && (
-            <p style={{ fontSize: 12, opacity: 0.65, marginTop: 8 }}>
-              Showing the first {GALLERY_CAP} of {result.diagrams.length} diagrams to
-              keep the page responsive. <strong>The remaining {result.diagrams.length - GALLERY_CAP} are
-              included in the .zip export.</strong>
+            <p style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>
+              Showing {GALLERY_CAP} of {result.diagrams.length}; the rest are in
+              the .zip export.
             </p>
           )}
         </div>
@@ -305,6 +217,163 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
 }
 
 const GALLERY_CAP = 200;
+
+function ParticleSlot(props: {
+  label: string;
+  particles: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [picking, setPicking] = useState(false);
+  const cachedModel = useDiagramStore((s) => s.cachedModel);
+
+  const options = useMemo(() => {
+    if (!cachedModel) return [];
+    const out: { name: string; pdg: number }[] = [];
+    for (const p of cachedModel.particles) {
+      if (isGhostOrGoldstone(p.pdg_id)) continue;
+      out.push({ name: p.name, pdg: p.pdg_id });
+      if (p.anti_name && p.anti_name !== p.name) {
+        out.push({ name: p.anti_name, pdg: -p.pdg_id });
+      }
+    }
+    return out.sort((a, b) => {
+      const [gA, pA] = paletteSortKey(a.pdg);
+      const [gB, pB] = paletteSortKey(b.pdg);
+      if (gA !== gB) return gA - gB;
+      return pA - pB;
+    });
+  }, [cachedModel]);
+
+  function add(name: string) {
+    props.onChange([...props.particles, name]);
+    setPicking(false);
+  }
+  function removeAt(i: number) {
+    props.onChange(props.particles.filter((_, j) => j !== i));
+  }
+
+  return (
+    <div style={{ flex: 1, position: "relative" }}>
+      <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 4 }}>{props.label}</div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 4,
+          padding: "6px 6px",
+          border: "1px solid #bbb",
+          borderRadius: 4,
+          minHeight: 34,
+          alignItems: "center",
+          background: "white",
+        }}
+      >
+        {props.particles.map((name, i) => (
+          <Chip key={i} label={name} onRemove={() => removeAt(i)} />
+        ))}
+        <button
+          type="button"
+          onClick={() => setPicking((p) => !p)}
+          style={{
+            padding: "2px 8px",
+            fontSize: 12,
+            border: "1px dashed #999",
+            background: "white",
+            borderRadius: 12,
+            cursor: "pointer",
+          }}
+        >
+          + Add
+        </button>
+      </div>
+      {picking && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            marginTop: 4,
+            maxHeight: 260,
+            overflowY: "auto",
+            background: "white",
+            border: "1px solid #bbb",
+            borderRadius: 4,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            zIndex: 10,
+          }}
+        >
+          {options.length === 0 && (
+            <div style={{ padding: 8, fontSize: 12, opacity: 0.6 }}>No model loaded</div>
+          )}
+          {options.map((opt) => (
+            <button
+              key={`${opt.pdg}-${opt.name}`}
+              type="button"
+              onClick={() => add(opt.name)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                width: "100%",
+                padding: "4px 8px",
+                border: "none",
+                borderBottom: "1px solid #f0f0f0",
+                background: "white",
+                cursor: "pointer",
+                fontSize: 12,
+                textAlign: "left",
+                fontFamily:
+                  '"Latin Modern Math", "Cambria Math", "Times New Roman", serif',
+              }}
+            >
+              <span style={{ minWidth: 50 }}>{particleLabel(opt.pdg, opt.name)}</span>
+              <span style={{ opacity: 0.5, fontSize: 11 }}>{opt.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Chip(props: { label: string; onRemove: () => void }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 4px 2px 8px",
+        background: "#e6f0ff",
+        color: "#0044aa",
+        border: "1px solid #b8d4ff",
+        borderRadius: 12,
+        fontSize: 12,
+        fontFamily: "monospace",
+      }}
+    >
+      {props.label}
+      <button
+        type="button"
+        onClick={props.onRemove}
+        style={{
+          width: 16,
+          height: 16,
+          padding: 0,
+          fontSize: 11,
+          lineHeight: 1,
+          border: "none",
+          background: "transparent",
+          color: "#0044aa",
+          cursor: "pointer",
+        }}
+      >
+        ×
+      </button>
+    </span>
+  );
+}
 
 function DiagramRow(props: { spec: ExampleSpec; onLoad: () => void }) {
   const { spec } = props;

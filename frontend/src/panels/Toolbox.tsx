@@ -97,61 +97,38 @@ export function Toolbox() {
           onClick={handleAddVertex}
           variant="primary"
         />
-        <div>
-          <ToolboxButton
-            testId="add-particle"
-            label={edgeDraftActive ? "× Cancel particle" : "+ Add particle"}
-            onClick={toggleEdgeDraft}
-            variant={edgeDraftActive ? "danger" : "primary"}
-            disabled={!canAddParticle && !edgeDraftActive}
-            title={canAddParticle ? "Click two vertices on the canvas" : "Add a vertex first"}
-          />
-          {!canAddParticle && !edgeDraftActive && (
-            <p style={{ fontSize: 11, opacity: 0.7, margin: "4px 0 0", color: "#5a4400" }}>
-              Add a vertex first, then click + Add particle.
-            </p>
-          )}
-        </div>
+        <ToolboxButton
+          testId="add-particle"
+          label={edgeDraftActive ? "× Cancel particle" : "+ Add particle"}
+          onClick={toggleEdgeDraft}
+          variant={edgeDraftActive ? "danger" : "primary"}
+          disabled={!canAddParticle && !edgeDraftActive}
+          title={canAddParticle ? "Click two vertices on the canvas" : "Add a vertex first"}
+        />
       </div>
       {edgeDraftActive && (
         <div
           data-testid="edge-draft-hint"
           style={{
             marginTop: 8,
-            padding: "8px 10px",
+            padding: "6px 8px",
             border: "1px solid #b4dcc4",
-            borderRadius: 6,
+            borderRadius: 4,
             background: "#eafbf1",
             fontSize: 12,
-            lineHeight: 1.5,
           }}
         >
-          {edgeDraftSource == null ? (
-            <>
-              <strong>Click a vertex</strong> on the canvas to set the start of
-              the particle line.
-            </>
-          ) : (
-            <>
-              Start: <code>{edgeDraftSource}</code>. <strong>Click another
-              vertex</strong> to draw the edge (or the same vertex for a
-              self-loop). Then pick the particle on the right.
-            </>
-          )}
+          {edgeDraftSource == null
+            ? "Click a vertex to start."
+            : `Start: ${edgeDraftSource}. Click another vertex.`}
         </div>
       )}
 
-      <h3 style={{ marginTop: 18 }}>Particle palette</h3>
+      <h3 style={{ marginTop: 18 }}>Particles</h3>
       {!cachedModel ? (
-        <p style={{ fontSize: 12, opacity: 0.6 }}>
-          Model not loaded yet. Generate a process first or import a UFO.
-        </p>
+        <p style={{ fontSize: 12, opacity: 0.55 }}>No model loaded.</p>
       ) : (
         <>
-          <p style={{ fontSize: 11, opacity: 0.65, margin: "2px 0 6px" }}>
-            Reference. To assign to an existing edge, click the edge in the
-            canvas.
-          </p>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {paletteParticles.map((p) => (
               <li

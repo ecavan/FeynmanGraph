@@ -153,8 +153,10 @@ describe("GeneratePanel", () => {
 
   it("renders the form with defaults and a Generate button", () => {
     render(<GeneratePanel />);
-    expect(screen.getByPlaceholderText("e+ e-")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("mu+ mu-")).toBeInTheDocument();
+    expect(screen.getByText("e+")).toBeInTheDocument();
+    expect(screen.getByText("e-")).toBeInTheDocument();
+    expect(screen.getByText("mu+")).toBeInTheDocument();
+    expect(screen.getByText("mu-")).toBeInTheDocument();
     expect(screen.getByTestId("generate-submit")).toBeInTheDocument();
   });
 

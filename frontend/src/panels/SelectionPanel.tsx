@@ -17,7 +17,6 @@ export function SelectionPanel() {
   const removeVertex = useDiagramStore((s) => s.removeVertex);
   const removeEdge = useDiagramStore((s) => s.removeEdge);
   const setEdgeParticle = useDiagramStore((s) => s.setEdgeParticle);
-  const cycleLegKind = useDiagramStore((s) => s.cycleLegKind);
   const addExternalLeg = useDiagramStore((s) => s.addExternalLeg);
   const removeExternalLeg = useDiagramStore((s) => s.removeExternalLeg);
   const setSelection = useDiagramStore((s) => s.setSelection);
@@ -28,11 +27,7 @@ export function SelectionPanel() {
     return (
       <div data-testid="selection-panel">
         <h4>Selection</h4>
-        <p style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.5 }}>
-          Click a vertex or edge to edit it here. Use the buttons in the left
-          toolbox to add vertices and particles. Press Delete or Backspace to
-          remove the selected element.
-        </p>
+        <p style={{ fontSize: 12, opacity: 0.55 }}>Nothing selected.</p>
       </div>
     );
   }
@@ -73,21 +68,13 @@ export function SelectionPanel() {
           <RoleButton active={status === "incoming"} label="Incoming" onClick={() => setKind("incoming")} />
           <RoleButton active={status === "outgoing"} label="Outgoing" onClick={() => setKind("outgoing")} />
         </div>
-        <p style={{ fontSize: 11, opacity: 0.5, margin: "6px 0" }}>
-          Tip: clicking the same vertex repeatedly via the "Cycle" button below
-          rotates internal → incoming → outgoing.
-        </p>
-        <button type="button" onClick={() => cycleLegKind(selectedId)}>
-          Cycle role
-        </button>
         <hr style={{ margin: "10px 0" }} />
-        <p style={{ fontSize: 11, opacity: 0.65, margin: "4px 0" }}>Loops</p>
         <button
           type="button"
           data-testid="add-self-loop"
           onClick={() => addSelfLoop(selectedId)}
-          title="Add a self-loop edge on this vertex (creates a tadpole)"
-          style={{ padding: "4px 10px", fontSize: 12, marginBottom: 6 }}
+          title="Add a self-loop edge on this vertex"
+          style={{ padding: "4px 10px", fontSize: 12 }}
         >
           ↻ Add self-loop
         </button>
@@ -140,13 +127,12 @@ export function SelectionPanel() {
         />
       )}
       <hr style={{ margin: "10px 0" }} />
-      <p style={{ fontSize: 11, opacity: 0.65, margin: "4px 0" }}>Loops</p>
       <button
         type="button"
         data-testid="duplicate-edge"
         onClick={() => duplicateEdge(selectedId)}
-        title="Add a parallel edge between the same two vertices (creates a bubble)"
-        style={{ padding: "4px 10px", fontSize: 12, marginBottom: 6 }}
+        title="Add a parallel edge between the same two vertices"
+        style={{ padding: "4px 10px", fontSize: 12 }}
       >
         ⌇ Add parallel edge
       </button>

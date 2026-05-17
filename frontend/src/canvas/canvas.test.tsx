@@ -4,12 +4,17 @@ import { useDiagramStore } from "../state/diagram";
 import { DiagramCanvas } from "./DiagramCanvas";
 import { relayout, spawnPositionForNewVertex } from "./layout";
 import {
+  circleSpine,
   coilPath,
   isGhostOrGoldstone,
   paletteSortKey,
   particleLabel,
+  quadraticSpine,
+  straightSpine,
   styleForPdg,
   visualForEdge,
+  visualForSpine,
+  wavyOnSpine,
   wavyPath,
 } from "./edges/particle-style";
 
@@ -179,6 +184,70 @@ describe("particle labels and palette helpers", () => {
     expect(paletteSortKey(22)[0]).toBeLessThan(paletteSortKey(11)[0]);
     expect(paletteSortKey(25)[0]).toBeLessThan(paletteSortKey(11)[0]);
     expect(paletteSortKey(11)[0]).toBeLessThan(paletteSortKey(82)[0]);
+  });
+});
+
+describe("spines", () => {
+  it("straightSpine endpoints and tangent match the chord", () => {
+    const s = straightSpine(0, 0, 100, 0);
+    expect(s.length).toBeCloseTo(100, 6);
+    const s0 = s.sample(0);
+    const s1 = s.sample(1);
+    const sm = s.sample(0.5);
+    expect(s0.x).toBe(0);
+    expect(s1.x).toBe(100);
+    expect(sm.x).toBe(50);
+    expect(sm.tx).toBeCloseTo(1, 6);
+    expect(sm.ty).toBeCloseTo(0, 6);
+  });
+
+  it("circleSpine returns to its start point at t=1", () => {
+    const s = circleSpine(0, 0, 10, 0);
+    const s0 = s.sample(0);
+    const s1 = s.sample(1);
+    expect(s.length).toBeCloseTo(2 * Math.PI * 10, 6);
+    expect(s1.x).toBeCloseTo(s0.x, 6);
+    expect(s1.y).toBeCloseTo(s0.y, 6);
+    // t=0.5 is on the opposite side of the circle from the start.
+    const sm = s.sample(0.5);
+    expect(sm.x).toBeCloseTo(-s0.x, 6);
+    expect(sm.y).toBeCloseTo(-s0.y, 6);
+  });
+
+  it("quadraticSpine tangent at t=0.5 matches the chord direction", () => {
+    // Bezier P0=(0,0) Pc=(50,40) P1=(100,0): symmetric, midpoint tangent
+    // is the chord direction P1-P0 = (1, 0).
+    const s = quadraticSpine(0, 0, 50, 40, 100, 0);
+    const sm = s.sample(0.5);
+    expect(sm.tx).toBeCloseTo(1, 4);
+    expect(sm.ty).toBeCloseTo(0, 4);
+    // Midpoint of the curve is at chord_mid + 0.5*offset = (50, 20).
+    expect(sm.x).toBeCloseTo(50, 4);
+    expect(sm.y).toBeCloseTo(20, 4);
+  });
+
+  it("wavyOnSpine of a circleSpine carries the wave around the loop", () => {
+    const spine = circleSpine(0, 0, 22, 0);
+    const d = wavyOnSpine(spine);
+    // Must be a long polyline (many sample points around the loop).
+    expect((d.match(/ L /g) ?? []).length).toBeGreaterThan(40);
+    // First and last points come back to (nearly) the same place.
+    const first = d.match(/^M (-?\d+\.\d+) (-?\d+\.\d+)/);
+    const last = d.match(/L (-?\d+\.\d+) (-?\d+\.\d+)$/);
+    expect(first).not.toBeNull();
+    expect(last).not.toBeNull();
+    if (first && last) {
+      expect(Math.abs(Number(first[1]) - Number(last[1]))).toBeLessThan(1);
+      expect(Math.abs(Number(first[2]) - Number(last[2]))).toBeLessThan(1);
+    }
+  });
+
+  it("visualForSpine on a photon self-loop produces a non-trivial wavy path", () => {
+    // Self-loop centered above a vertex at the origin.
+    const spine = circleSpine(0, -22, 22, Math.PI / 2);
+    const v = visualForSpine(22, spine);
+    expect(v.stroke).toBe("#e07a00");
+    expect((v.path.match(/ L /g) ?? []).length).toBeGreaterThan(40);
   });
 });
 
