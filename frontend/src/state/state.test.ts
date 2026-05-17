@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { ExampleSpec } from "../api/types";
 import { useDiagramStore } from "./diagram";
+import { useGalleryStore } from "./gallery";
 import { restoreFromLocalStorage, saveToLocalStorage, STORAGE_KEY } from "./persistence";
 
 describe("diagram store", () => {
@@ -271,5 +273,76 @@ describe("persistence", () => {
   it("returns false on corrupt data", () => {
     localStorage.setItem(STORAGE_KEY, "not json");
     expect(restoreFromLocalStorage()).toBe(false);
+  });
+});
+
+function fakeSpec(name: string): ExampleSpec {
+  return {
+    model_id: "sm",
+    theory_id: "qed",
+    process_name: name,
+    nodes: [],
+    edges: [],
+    external_legs: [],
+  };
+}
+
+describe("gallery store", () => {
+  beforeEach(() => useGalleryStore.getState().clear());
+
+  it("starts empty", () => {
+    const s = useGalleryStore.getState();
+    expect(s.diagrams).toEqual([]);
+    expect(s.count).toBe(0);
+    expect(s.truncated).toBe(false);
+    expect(s.archiveName).toBe("diagrams");
+    expect(s.loadedSpecId).toBeNull();
+  });
+
+  it("setResult writes a result and resets loadedSpecId", () => {
+    useGalleryStore.getState().setLoaded("stale");
+    useGalleryStore.getState().setResult({
+      diagrams: [fakeSpec("a"), fakeSpec("b")],
+      count: 2,
+      truncated: false,
+      archiveName: "ee_to_mumu_L0",
+    });
+    const s = useGalleryStore.getState();
+    expect(s.diagrams).toHaveLength(2);
+    expect(s.count).toBe(2);
+    expect(s.archiveName).toBe("ee_to_mumu_L0");
+    expect(s.loadedSpecId).toBeNull();
+  });
+
+  it("setLoaded marks the current spec", () => {
+    useGalleryStore.getState().setLoaded("ee_mumu");
+    expect(useGalleryStore.getState().loadedSpecId).toBe("ee_mumu");
+  });
+
+  it("clear resets to initial state", () => {
+    useGalleryStore.getState().setResult({
+      diagrams: [fakeSpec("x")],
+      count: 1,
+      truncated: true,
+      archiveName: "x",
+    });
+    useGalleryStore.getState().setLoaded("x");
+    useGalleryStore.getState().clear();
+    const s = useGalleryStore.getState();
+    expect(s.diagrams).toEqual([]);
+    expect(s.count).toBe(0);
+    expect(s.truncated).toBe(false);
+    expect(s.archiveName).toBe("diagrams");
+    expect(s.loadedSpecId).toBeNull();
+  });
+
+  it("preserves truncated flag", () => {
+    useGalleryStore.getState().setResult({
+      diagrams: [fakeSpec("a")],
+      count: 1,
+      truncated: true,
+      archiveName: "x",
+    });
+    expect(useGalleryStore.getState().truncated).toBe(true);
   });
 });
