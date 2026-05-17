@@ -124,6 +124,14 @@ function nextEdgeId(existing: string[]): string {
   return `e${n}`;
 }
 
+export function nextLegLabel(existing: string[]): string {
+  const max = existing.reduce((m, l) => {
+    const n = Number(l.replace(/^p/, ""));
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  return `p${max + 1}`;
+}
+
 export const useDiagramStore = create<DiagramState>((set) => ({
   ...INITIAL,
   setModelId: (id) => set({ modelId: id }),

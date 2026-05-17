@@ -4,7 +4,7 @@ import {
   particleLabel,
   visualForEdge,
 } from "../canvas/edges/particle-style";
-import { useDiagramStore } from "../state/diagram";
+import { nextLegLabel, useDiagramStore } from "../state/diagram";
 
 export function SelectionPanel() {
   const selectedId = useDiagramStore((s) => s.selectedId);
@@ -169,14 +169,6 @@ function RoleButton(props: { active: boolean; label: string; onClick: () => void
       {props.label}
     </button>
   );
-}
-
-function nextLegLabel(existing: string[]): string {
-  const max = existing.reduce((m, l) => {
-    const n = Number(l.replace(/^p/, ""));
-    return Number.isFinite(n) && n > m ? n : m;
-  }, 0);
-  return `p${max + 1}`;
 }
 
 function EdgeParticleList(props: {
