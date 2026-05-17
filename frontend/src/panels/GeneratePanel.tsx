@@ -287,15 +287,24 @@ export function GeneratePanel(props: { onLoad?: () => void }) {
             )}
           </div>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {result.diagrams.map((d, i) => (
+            {result.diagrams.slice(0, GALLERY_CAP).map((d, i) => (
               <DiagramRow key={i} spec={d} onLoad={() => loadIntoCanvas(d)} />
             ))}
           </ul>
+          {result.diagrams.length > GALLERY_CAP && (
+            <p style={{ fontSize: 12, opacity: 0.65, marginTop: 8 }}>
+              Showing the first {GALLERY_CAP} of {result.diagrams.length} diagrams to
+              keep the page responsive. <strong>The remaining {result.diagrams.length - GALLERY_CAP} are
+              included in the .zip export.</strong>
+            </p>
+          )}
         </div>
       )}
     </section>
   );
 }
+
+const GALLERY_CAP = 200;
 
 function DiagramRow(props: { spec: ExampleSpec; onLoad: () => void }) {
   const { spec } = props;

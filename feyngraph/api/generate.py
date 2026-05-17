@@ -214,7 +214,7 @@ async def generate_amp(req: GenerateAmpRequest) -> GenerateAmpResponse:
         )
         proc = subprocess.run(
             [gammaloop, str(toml_path), "run", "g"],
-            cwd=tmpdir, capture_output=True, text=True, timeout=300,
+            cwd=tmpdir, capture_output=True, text=True, timeout=600,
         )
         stderr = proc.stderr
         if "dangling tensor indices" in stderr or "Failed to validate full numerator" in stderr:

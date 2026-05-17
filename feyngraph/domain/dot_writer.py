@@ -2,6 +2,7 @@ from io import StringIO
 
 from feyngraph.domain.cycle_basis import compute_loop_momenta
 from feyngraph.domain.graph_spec import GraphSpec
+from feyngraph.domain.legality import matching_ufo_vertices
 from feyngraph.domain.model_schema import Model, Particle
 
 
@@ -48,10 +49,19 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
     for leg in spec.external_legs:
         buf.write(f"  {leg.node_id} [style=invis];\n")
 
+    # If the user's claimed ufo_vertex_id doesn't match the vertex's actual
+    # incident-particle multiset, drop the int_id so gammaloop falls back to
+    # its own incidence lookup (which can self-heal or reject cleanly). This
+    # closes the parity gap where gammaloop blindly trusts mismatched labels.
+    incidence_by_node = _all_incoming_pdgs(spec, external_node_ids)
     for node in spec.nodes:
         if node.id in external_node_ids:
             continue
-        if node.ufo_vertex_id is not None:
+        keep_int_id = (
+            node.ufo_vertex_id is not None
+            and node.ufo_vertex_id in matching_ufo_vertices(incidence_by_node[node.id], model)
+        )
+        if keep_int_id:
             buf.write(f'  {node.id} [int_id="{node.ufo_vertex_id}"];\n')
         else:
             buf.write(f"  {node.id};\n")
@@ -61,29 +71,63 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
         if edge.id in chord_set:
             chord_index_by_edge[edge.id] = len(chord_index_by_edge)
 
-    # Number every external edge's internal-side endpoint with an explicit port
-    # so gammaloop's hedge(N) in the projector lines up with our edge order.
-    # Without these ports, gammaloop reorders edges during import and the
-    # projector references the wrong half-edges.
-    ext_port = 0
+    # Assign globally-sequential port numbers so gammaloop's hedge(N) ids line
+    # up with our edge order. External edges get ports 0..N_ext-1 in their
+    # spec.edges order (matching the projector). Internal edges then get a
+    # port on each endpoint, continuing from N_ext. We write external edges
+    # first so port assignment stays contiguous regardless of edge interleaving.
+    # The `id=N` attribute is also required: gammaloop uses it (despite being
+    # listed as "ignored" in its parser) to keep edge order stable through
+    # import — without it, `loop_momentum_basis.ext_from(hedge(0))` panics
+    # during inspect because external edges get reordered.
+    ext_edges = []
+    int_edges = []
     for edge in spec.edges:
+        if edge.source_node_id in external_node_ids or edge.target_node_id in external_node_ids:
+            ext_edges.append(edge)
+        else:
+            int_edges.append(edge)
+
+    port = 0
+    edge_id_counter = 0
+    for edge in ext_edges:
         src_ext = edge.source_node_id in external_node_ids
-        tgt_ext = edge.target_node_id in external_node_ids
-        attrs = [f'pdg="{edge.particle_pdg_id}"', f'name="{edge_labels[edge.id]}"']
+        attrs = [f'id={edge_id_counter}', f'pdg="{edge.particle_pdg_id}"', f'name="{edge_labels[edge.id]}"']
         if edge.id in chord_set:
             attrs.append(f'lmb_id="{chord_index_by_edge[edge.id]}"')
-        if src_ext and not tgt_ext:
-            line = f"  {edge.source_node_id} -> {edge.target_node_id}:{ext_port} [{', '.join(attrs)}];\n"
-            ext_port += 1
-        elif tgt_ext and not src_ext:
-            line = f"  {edge.source_node_id}:{ext_port} -> {edge.target_node_id} [{', '.join(attrs)}];\n"
-            ext_port += 1
+        if src_ext:
+            line = f"  {edge.source_node_id} -> {edge.target_node_id}:{port} [{', '.join(attrs)}];\n"
         else:
-            line = f"  {edge.source_node_id} -> {edge.target_node_id} [{', '.join(attrs)}];\n"
+            line = f"  {edge.source_node_id}:{port} -> {edge.target_node_id} [{', '.join(attrs)}];\n"
         buf.write(line)
+        port += 1
+        edge_id_counter += 1
+
+    for edge in int_edges:
+        attrs = [f'id={edge_id_counter}', f'pdg="{edge.particle_pdg_id}"', f'name="{edge_labels[edge.id]}"']
+        if edge.id in chord_set:
+            attrs.append(f'lmb_id="{chord_index_by_edge[edge.id]}"')
+        line = f"  {edge.source_node_id}:{port} -> {edge.target_node_id}:{port + 1} [{', '.join(attrs)}];\n"
+        buf.write(line)
+        port += 2
+        edge_id_counter += 1
 
     buf.write("}\n")
     return buf.getvalue()
+
+
+def _all_incoming_pdgs(spec: GraphSpec, external_node_ids: set[str]) -> dict[str, list[int]]:
+    """For each internal vertex, list incident particle PDGs in the all-incoming
+    convention (outgoing edges contribute their antiparticle)."""
+    out: dict[str, list[int]] = {n.id: [] for n in spec.nodes if n.id not in external_node_ids}
+    for edge in spec.edges:
+        if edge.particle_pdg_id is None:
+            continue
+        if edge.source_node_id in out:
+            out[edge.source_node_id].append(-edge.particle_pdg_id)
+        if edge.target_node_id in out:
+            out[edge.target_node_id].append(edge.particle_pdg_id)
+    return out
 
 
 def _polarization_term(particle: Particle, idx: int, kind: str) -> str | None:

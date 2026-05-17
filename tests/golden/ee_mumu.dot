@@ -7,9 +7,9 @@ digraph ee_mumu {
   ext_mu_plus [style=invis];
   v1;
   v2;
-  ext_e_minus -> v1:0 [pdg="11", name="p1"];
-  ext_e_plus -> v1:1 [pdg="-11", name="p2"];
-  v2:2 -> ext_mu_minus [pdg="13", name="p3"];
-  v2:3 -> ext_mu_plus [pdg="-13", name="p4"];
-  v1 -> v2 [pdg="22", name="q1"];
+  ext_e_minus -> v1:0 [id=0, pdg="11", name="p1"];
+  ext_e_plus -> v1:1 [id=1, pdg="-11", name="p2"];
+  v2:2 -> ext_mu_minus [id=2, pdg="13", name="p3"];
+  v2:3 -> ext_mu_plus [id=3, pdg="-13", name="p4"];
+  v1:4 -> v2:5 [id=4, pdg="22", name="q1"];
 }

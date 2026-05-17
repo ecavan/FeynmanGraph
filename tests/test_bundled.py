@@ -125,7 +125,8 @@ def test_override_via_export_dot_api():
     client = TestClient(create_app())
     spec = _photon_se_spec(override=["e2"])
     dot = client.post("/api/export-dot", json=spec).json()["dot"]
-    line = next(l for l in dot.splitlines() if "v1 -> v2" in l)
+    # Internal edges now have port labels (v1:N -> v2:M) for gammaloop hedge id stability
+    line = next(l for l in dot.splitlines() if l.lstrip().startswith("v1:") and "-> v2:" in l)
     assert 'lmb_id="0"' in line
 
 
