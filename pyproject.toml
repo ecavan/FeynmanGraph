@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "feyngraph"
 dynamic = ["version"]
-description = "Interactive Feynman diagram builder that exports gammaloop-compatible .dot files"
+description = "Interactive Feynman diagram builder that exports .dot files"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
