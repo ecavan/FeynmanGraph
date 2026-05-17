@@ -27,11 +27,29 @@ describe("Toolbox", () => {
     expect(useDiagramStore.getState().nodes.map((n) => n.id).sort()).toEqual(["v1", "v2", "v3"]);
   });
 
-  it("disables + Add particle until at least 1 vertex exists", () => {
+  it("disables + Add propagator until at least 1 vertex exists", () => {
     render(<Toolbox />);
-    expect(screen.getByTestId("add-particle")).toBeDisabled();
+    expect(screen.getByTestId("add-propagator")).toBeDisabled();
     fireEvent.click(screen.getByTestId("add-vertex"));
-    expect(screen.getByTestId("add-particle")).not.toBeDisabled();
+    expect(screen.getByTestId("add-propagator")).not.toBeDisabled();
+  });
+
+  it("'+ Add incoming' creates a node + incoming leg and selects the new node", () => {
+    render(<Toolbox />);
+    fireEvent.click(screen.getByTestId("add-incoming-leg"));
+    const s = useDiagramStore.getState();
+    expect(s.nodes).toHaveLength(1);
+    expect(s.externalLegs).toHaveLength(1);
+    expect(s.externalLegs[0]).toMatchObject({ kind: "incoming", label: "p1" });
+    expect(s.selectedKind).toBe("node");
+    expect(s.selectedId).toBe(s.nodes[0].id);
+  });
+
+  it("'+ Add outgoing' creates a node + outgoing leg", () => {
+    render(<Toolbox />);
+    fireEvent.click(screen.getByTestId("add-outgoing-leg"));
+    const s = useDiagramStore.getState();
+    expect(s.externalLegs[0]).toMatchObject({ kind: "outgoing", label: "p1" });
   });
 
   it("undo/redo buttons reflect history state", () => {
