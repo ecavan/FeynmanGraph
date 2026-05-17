@@ -5,7 +5,7 @@ import { serializeGraphSpec } from "./serialize";
 
 const api = new ApiClient();
 
-export function ExportPanel() {
+export function ExportPanel(props: { openTick?: number } = {}) {
   const [dot, setDot] = useState<string>("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function ExportPanel() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [props.openTick]);
 
   function download() {
     const blob = new Blob([dot], { type: "text/plain" });
