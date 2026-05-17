@@ -5,7 +5,7 @@ import {
   particleLabel,
   visualForEdge,
 } from "../canvas/edges/particle-style";
-import { useDiagramStore } from "../state/diagram";
+import { nextVertexId, useDiagramStore } from "../state/diagram";
 import { TheoryPicker } from "./TheoryPicker";
 
 export function Toolbox() {
@@ -17,6 +17,8 @@ export function Toolbox() {
   const setModelId = useDiagramStore((s) => s.setModelId);
   const setTheoryId = useDiagramStore((s) => s.setTheoryId);
   const addVertex = useDiagramStore((s) => s.addVertex);
+  const addIncomingLeg = useDiagramStore((s) => s.addIncomingLeg);
+  const addOutgoingLeg = useDiagramStore((s) => s.addOutgoingLeg);
   const undo = useDiagramStore((s) => s.undo);
   const redo = useDiagramStore((s) => s.redo);
   const canUndo = useDiagramStore((s) => s._past.length > 0);
@@ -90,6 +92,7 @@ export function Toolbox() {
         />
       </div>
 
+      <SectionLabel>Nodes</SectionLabel>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <ToolboxButton
           testId="add-vertex"
@@ -98,8 +101,25 @@ export function Toolbox() {
           variant="primary"
         />
         <ToolboxButton
-          testId="add-particle"
-          label={edgeDraftActive ? "× Cancel particle" : "+ Add particle"}
+          testId="add-incoming-leg"
+          label="+ Add incoming"
+          onClick={() => addIncomingLeg()}
+          variant="primary"
+          title="Add an external leg coming into the diagram"
+        />
+        <ToolboxButton
+          testId="add-outgoing-leg"
+          label="+ Add outgoing"
+          onClick={() => addOutgoingLeg()}
+          variant="primary"
+          title="Add an external leg leaving the diagram"
+        />
+      </div>
+      <SectionLabel>Edges</SectionLabel>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <ToolboxButton
+          testId="add-propagator"
+          label={edgeDraftActive ? "× Cancel propagator" : "+ Add propagator"}
           onClick={toggleEdgeDraft}
           variant={edgeDraftActive ? "danger" : "primary"}
           disabled={!canAddParticle && !edgeDraftActive}
@@ -162,20 +182,22 @@ export function Toolbox() {
   );
 }
 
-function nextId(existing: string[], prefix: string): string {
-  const used = new Set<number>();
-  const re = new RegExp(`^${prefix}(\\d+)$`);
-  for (const id of existing) {
-    const m = id.match(re);
-    if (m) used.add(Number(m[1]));
-  }
-  let n = 1;
-  while (used.has(n)) n++;
-  return `${prefix}${n}`;
-}
-
-function nextVertexId(existing: string[]): string {
-  return nextId(existing, "v");
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+        opacity: 0.55,
+        marginTop: 10,
+        marginBottom: 4,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 function ParticleStrokePreview({ pdgId }: { pdgId: number }) {

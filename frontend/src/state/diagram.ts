@@ -115,7 +115,7 @@ const INITIAL = {
   _future: [] as DiagramSnapshot[],
 };
 
-function nextVertexId(existing: string[]): string {
+export function nextVertexId(existing: string[]): string {
   const used = new Set<number>();
   for (const id of existing) {
     const m = id.match(/^v(\d+)$/);
