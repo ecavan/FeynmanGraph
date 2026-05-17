@@ -3,19 +3,12 @@ import { ApiClient, ApiError } from "../api/client";
 import type { ExampleSpec } from "../api/types";
 import { relayout } from "../canvas/layout";
 import { isGhostOrGoldstone, paletteSortKey, particleLabel, visualForEdge } from "../canvas/edges/particle-style";
-import { loadGraphIntoStore } from "../state/loadGraph";
 import { useDiagramStore } from "../state/diagram";
 import { useGalleryStore } from "../state/gallery";
 
 const api = new ApiClient();
 
-type Result = {
-  diagrams: ExampleSpec[];
-  count: number;
-  truncated: boolean;
-};
-
-export function GeneratePanel(props: { onLoad?: () => void; onSuccess?: () => void }) {
+export function GeneratePanel(props: { onSuccess?: () => void }) {
   const [initialList, setInitialList] = useState<string[]>(["e+", "e-"]);
   const [finalList, setFinalList] = useState<string[]>(["mu+", "mu-"]);
   const [qed, setQed] = useState("2");
@@ -23,14 +16,18 @@ export function GeneratePanel(props: { onLoad?: () => void; onSuccess?: () => vo
   const [loopCount, setLoopCount] = useState("0");
   const [maxDiagrams, setMaxDiagrams] = useState("50");
   const [busy, setBusy] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<Result | null>(null);
+
+  function archiveBaseName(): string {
+    const sane = `${initialList.join("_")}_to_${finalList.join("_")}_L${loopCount}`
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Za-z0-9_+\-~]/g, "");
+    return sane || "diagrams";
+  }
 
   async function submit() {
     setBusy(true);
     setError(null);
-    setResult(null);
     const couplings: Record<string, number> = {};
     if (qed.trim()) couplings.QED = Number(qed);
     if (qcd.trim()) couplings.QCD = Number(qcd);
@@ -42,7 +39,6 @@ export function GeneratePanel(props: { onLoad?: () => void; onSuccess?: () => vo
         loop_count: Number(loopCount),
         max_diagrams: Number(maxDiagrams),
       });
-      setResult(resp);
       useGalleryStore.setState({
         diagrams: resp.diagrams,
         count: resp.count,
@@ -59,41 +55,6 @@ export function GeneratePanel(props: { onLoad?: () => void; onSuccess?: () => vo
       }
     } finally {
       setBusy(false);
-    }
-  }
-
-  function loadIntoCanvas(spec: ExampleSpec) {
-    loadGraphIntoStore(spec);
-    props.onLoad?.();
-  }
-
-  function archiveBaseName(): string {
-    const sane = `${initialList.join("_")}_to_${finalList.join("_")}_L${loopCount}`
-      .replace(/\s+/g, "_")
-      .replace(/[^A-Za-z0-9_+\-~]/g, "");
-    return sane || "diagrams";
-  }
-
-  async function exportAll() {
-    if (!result || result.diagrams.length === 0) return;
-    setExporting(true);
-    setError(null);
-    try {
-      const blob = await api.exportDotBatch(result.diagrams, archiveBaseName());
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${archiveBaseName()}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(`${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`);
-      } else {
-        setError(String(e));
-      }
-    } finally {
-      setExporting(false);
     }
   }
 
@@ -179,53 +140,9 @@ export function GeneratePanel(props: { onLoad?: () => void; onSuccess?: () => vo
         </div>
       )}
 
-      {result && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <p style={{ fontSize: 13, margin: "4px 0" }}>
-              <strong>{result.count}</strong> diagram{result.count === 1 ? "" : "s"}
-              {result.truncated && " (truncated — raise Max diagrams to see more)"}
-            </p>
-            {result.count > 0 && (
-              <button
-                type="button"
-                data-testid="export-all"
-                onClick={exportAll}
-                disabled={exporting}
-                title="Download all diagrams as a .zip of gammaloop .dot files"
-                style={{
-                  padding: "4px 12px",
-                  background: exporting ? "#aaa" : "white",
-                  color: exporting ? "white" : "#0066ff",
-                  border: "1px solid #0066ff",
-                  borderRadius: 4,
-                  cursor: exporting ? "wait" : "pointer",
-                  fontSize: 12,
-                  fontWeight: 500,
-                }}
-              >
-                {exporting ? "Packing…" : `⬇ Export all (.zip)`}
-              </button>
-            )}
-          </div>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {result.diagrams.slice(0, GALLERY_CAP).map((d, i) => (
-              <DiagramRow key={i} spec={d} onLoad={() => loadIntoCanvas(d)} />
-            ))}
-          </ul>
-          {result.diagrams.length > GALLERY_CAP && (
-            <p style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>
-              Showing {GALLERY_CAP} of {result.diagrams.length}; the rest are in
-              the .zip export.
-            </p>
-          )}
-        </div>
-      )}
     </section>
   );
 }
-
-const GALLERY_CAP = 200;
 
 function ParticleSlot(props: {
   label: string;
@@ -381,44 +298,6 @@ function Chip(props: { label: string; onRemove: () => void }) {
         ×
       </button>
     </span>
-  );
-}
-
-function DiagramRow(props: { spec: ExampleSpec; onLoad: () => void }) {
-  const { spec } = props;
-  const internalNodes = spec.nodes.filter((n) => n.ufo_vertex_id);
-  return (
-    <li
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "6px 8px",
-        borderBottom: "1px solid #eee",
-        fontSize: 13,
-      }}
-    >
-      <DiagramThumbnail spec={spec} />
-      <span style={{ flex: 1, fontFamily: "monospace" }}>{spec.process_name}</span>
-      <span style={{ opacity: 0.6 }}>
-        {internalNodes.length} vert · {spec.edges.length} edges
-      </span>
-      <button
-        type="button"
-        onClick={props.onLoad}
-        style={{
-          padding: "3px 10px",
-          background: "white",
-          color: "#0066ff",
-          border: "1px solid #0066ff",
-          borderRadius: 3,
-          cursor: "pointer",
-          fontSize: 12,
-        }}
-      >
-        Load
-      </button>
-    </li>
   );
 }
 

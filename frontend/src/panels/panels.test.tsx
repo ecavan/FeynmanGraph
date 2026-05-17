@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useDiagramStore } from "../state/diagram";
+import { useGalleryStore } from "../state/gallery";
 import { extractDeficits } from "./ConservationSidebar";
 import { ExportPanel } from "./ExportPanel";
 import { GeneratePanel } from "./GeneratePanel";
@@ -160,7 +161,7 @@ describe("GeneratePanel", () => {
     expect(screen.getByTestId("generate-submit")).toBeInTheDocument();
   });
 
-  it("renders the gallery and Load buttons when the API returns diagrams", async () => {
+  it("populates the gallery store on a successful enumerate", async () => {
     globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({
         count: 2, truncated: false,
@@ -178,11 +179,30 @@ describe("GeneratePanel", () => {
         ],
       }), { status: 200 }),
     );
+    useGalleryStore.getState().clear();
     render(<GeneratePanel />);
     fireEvent.click(screen.getByTestId("generate-submit"));
-    await waitFor(() => expect(screen.getByText("GL0")).toBeInTheDocument());
-    expect(screen.getByText("GL1")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /^load$/i })).toHaveLength(2);
+    await waitFor(() =>
+      expect(useGalleryStore.getState().diagrams).toHaveLength(2),
+    );
+    expect(useGalleryStore.getState().diagrams[0].process_name).toBe("GL0");
+    expect(useGalleryStore.getState().diagrams[1].process_name).toBe("GL1");
+  });
+
+  it("fires onSuccess after a successful enumerate", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        count: 1, truncated: false,
+        diagrams: [{
+          process_name: "GL0", model_id: "sm", theory_id: "sm",
+          nodes: [], edges: [], external_legs: [],
+        }],
+      }), { status: 200 }),
+    );
+    const onSuccess = vi.fn();
+    render(<GeneratePanel onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
   it("renders the helpful error message when the API rejects with a known code", async () => {
@@ -199,29 +219,4 @@ describe("GeneratePanel", () => {
     );
   });
 
-  it("clicking Load drops the spec into the diagram store", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        count: 1, truncated: false,
-        diagrams: [{
-          process_name: "GL0", model_id: "sm", theory_id: "sm",
-          nodes: [
-            { id: "ext0", position: [0, 0] },
-            { id: "v1", position: [0, 0], ufo_vertex_id: "V_98" },
-          ],
-          edges: [{
-            id: "e1", source_node_id: "ext0", target_node_id: "v1",
-            particle_pdg_id: 11, direction: "source_to_target",
-          }],
-          external_legs: [{ node_id: "ext0", kind: "incoming", label: "p1" }],
-        }],
-      }), { status: 200 }),
-    );
-    render(<GeneratePanel />);
-    fireEvent.click(screen.getByTestId("generate-submit"));
-    await waitFor(() => expect(screen.getByText("GL0")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /^load$/i }));
-    expect(useDiagramStore.getState().processName).toBe("GL0");
-    expect(useDiagramStore.getState().nodes).toHaveLength(2);
-  });
 });
