@@ -1,37 +1,22 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import App from "./App";
 
-describe("App routing", () => {
-  it("shows the generate view by default", () => {
+describe("App", () => {
+  it("renders the canvas view", () => {
     render(<App />);
-    expect(screen.getByTestId("view-generate")).toBeInTheDocument();
-  });
-
-  it("switches to the canvas view", () => {
-    render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /^canvas$/i }));
     expect(screen.getByTestId("view-canvas")).toBeInTheDocument();
   });
 
-  it("switches to the import view", () => {
+  it("renders the three top-right action triggers", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /^import$/i }));
-    expect(screen.getByTestId("view-import")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^generate ▾$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^import ▾$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^export ▾$/i })).toBeInTheDocument();
   });
 
-  it("switches to the export view", () => {
+  it("no longer shows the old top tab bar", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
-    expect(screen.getByTestId("view-export")).toBeInTheDocument();
-  });
-
-  it("aria-pressed reflects current view", () => {
-    render(<App />);
-    const generateBtn = screen.getByRole("button", { name: /^generate$/i });
-    const canvasBtn = screen.getByRole("button", { name: /^canvas$/i });
-    expect(generateBtn).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(canvasBtn);
-    expect(canvasBtn).toHaveAttribute("aria-pressed", "true");
-    expect(generateBtn).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: /^canvas$/i })).not.toBeInTheDocument();
   });
 });

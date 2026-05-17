@@ -1,19 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ApiClient } from "./api/client";
 import { useDiagramStore } from "./state/diagram";
 import { restoreFromLocalStorage, saveToLocalStorage } from "./state/persistence";
 import { CanvasView } from "./views/CanvasView";
-import { ExportView } from "./views/ExportView";
-import { GenerateView } from "./views/GenerateView";
-import { ImportView } from "./views/ImportView";
-
-type View = "canvas" | "generate" | "import" | "export";
 
 const api = new ApiClient();
 
 export default function App() {
-  const [view, setView] = useState<View>("generate");
-
   useEffect(() => {
     restoreFromLocalStorage();
   }, []);
@@ -63,42 +56,8 @@ export default function App() {
   }, []);
 
   return (
-    <div data-testid="app-root" style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      <nav style={{ display: "flex", gap: 8, padding: 8, borderBottom: "1px solid #ccc", alignItems: "center" }}>
-        <TabButton label="Generate" active={view === "generate"} onClick={() => setView("generate")} />
-        <TabButton label="Canvas" active={view === "canvas"} onClick={() => setView("canvas")} />
-        <TabButton label="Import" active={view === "import"} onClick={() => setView("import")} />
-        <TabButton label="Export" active={view === "export"} onClick={() => setView("export")} />
-      </nav>
-      <main style={{ flex: 1, overflow: "auto" }}>
-        {view === "generate" && <GenerateView onLoad={() => setView("canvas")} />}
-        {view === "canvas" && <CanvasView />}
-        {view === "import" && <ImportView />}
-        {view === "export" && <ExportView />}
-      </main>
+    <div data-testid="app-root" style={{ height: "100vh" }}>
+      <CanvasView />
     </div>
-  );
-}
-
-function TabButton(props: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      aria-pressed={props.active}
-      style={{
-        padding: "6px 14px",
-        background: props.active ? "#0066ff" : "white",
-        color: props.active ? "white" : "#222",
-        border: "1px solid",
-        borderColor: props.active ? "#0066ff" : "#999",
-        borderRadius: 4,
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 500,
-      }}
-    >
-      {props.label}
-    </button>
   );
 }
