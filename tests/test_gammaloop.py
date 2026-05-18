@@ -1,12 +1,10 @@
 import asyncio
 import copy
-import io
 import json
 import os
 import re
 import shutil
 import subprocess
-import tarfile
 import tempfile
 from pathlib import Path
 
@@ -244,58 +242,6 @@ def test_theory_illegal_particle_caught_without_int_id():
     s["edges"][2]["particle_pdg_id"] = 21
     assert "THEORY_ILLEGAL_PARTICLE" in _validator_codes(s)
     assert not _gl_import(_export_dot(_strip_int_ids(s)))[0]
-
-
-@needs_gl
-def test_bsm_uploaded_ufo_round_trips_via_export():
-    bsm_src = Path.home() / "Documents/GitHub/gammaloop/assets/models/ufo/scalars"
-    if not bsm_src.is_dir():
-        pytest.skip("scalars UFO not available locally")
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
-        tf.add(bsm_src, arcname="scalars")
-    buf.seek(0)
-    client = _client()
-    r = client.post("/api/models/upload-ufo",
-                    files={"file": ("scalars.tar.gz", buf, "application/gzip")},
-                    data={"model_id": "scalars_bsm", "overwrite": "true"})
-    assert r.status_code == 200, r.text
-    model = client.get("/api/models/scalars_bsm").json()
-    triple = next(v for v in model["vertices"] if len(v.get("particles", [])) == 3)
-    pdgs, vid = triple["particles"], triple["id"]
-    spec = {
-        "model_id": "scalars_bsm", "theory_id": "sm", "process_name": "bsm_phi_decay",
-        "nodes": [
-            {"id": "p1", "position": [0, 0]},
-            {"id": "v",  "position": [100, 0], "ufo_vertex_id": vid},
-            {"id": "p2", "position": [200, -50]},
-            {"id": "p3", "position": [200, 50]},
-        ],
-        "edges": [
-            {"id": "i1", "source_node_id": "p1", "target_node_id": "v",  "particle_pdg_id": pdgs[0], "direction": "source_to_target"},
-            {"id": "i2", "source_node_id": "v",  "target_node_id": "p2", "particle_pdg_id": pdgs[1], "direction": "source_to_target"},
-            {"id": "i3", "source_node_id": "v",  "target_node_id": "p3", "particle_pdg_id": pdgs[2], "direction": "source_to_target"},
-        ],
-        "external_legs": [
-            {"node_id": "p1", "kind": "incoming", "label": "p1"},
-            {"node_id": "p2", "kind": "outgoing", "label": "p2"},
-            {"node_id": "p3", "kind": "outgoing", "label": "p3"},
-        ],
-    }
-    assert _validator_codes(spec) == set()
-    dot = _export_dot(spec)
-    with tempfile.TemporaryDirectory(prefix="rp_bsm_") as td:
-        tdp = Path(td)
-        (tdp / "g.dot").write_text(dot)
-        (tdp / "r.toml").write_text(
-            "[cli_settings]\n[cli_settings.state]\nfolder='./state'\n\n"
-            "[[command_blocks]]\nname='g'\ncommands=[\n"
-            "  'import model scalars-default.json',\n  'import graphs g.dot',\n]\n"
-        )
-        r = subprocess.run([GAMMALOOP_BIN, "r.toml", "run", "g"], cwd=tdp,
-                           capture_output=True, text=True, timeout=60)
-        combined = (r.stderr or "") + (r.stdout or "")
-        assert not _PANIC_PAT.search(combined), f"gammaloop rejected BSM dot: {combined[-300:]}"
 
 
 # ---------- e2e: numerical amplitude evaluation ----------

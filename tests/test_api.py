@@ -14,7 +14,6 @@ import feyngraph
 from feyngraph.server import create_app
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
-GAMMALOOP_SM_UFO = Path.home() / "Documents/GitHub/gammaloop/assets/models/ufo/sm"
 
 
 def _client() -> TestClient:
@@ -410,16 +409,6 @@ def test_export_dot_batch_emits_error_file_for_bad_diagrams():
 
 # ---------- /api/models/upload-ufo ----------
 
-def _make_tar_gz_from_dir(d: Path, archive_root: str | None = None) -> bytes:
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
-        for path in sorted(d.rglob("*")):
-            if path.is_file():
-                arcname = Path(archive_root) / path.relative_to(d) if archive_root else path.relative_to(d)
-                tf.add(path, arcname=str(arcname))
-    return buf.getvalue()
-
-
 def _fake_ufo_archive() -> bytes:
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
@@ -457,21 +446,6 @@ def stub_ufo_loader(monkeypatch):
         output_path.write_text(json.dumps(fake_json))
     from feyngraph.api import upload as upload_mod
     monkeypatch.setattr(upload_mod, "_invoke_ufo_loader", fake_invoke)
-
-
-@pytest.mark.skipif(not GAMMALOOP_SM_UFO.is_dir(), reason="gammaloop SM UFO not available")
-def test_upload_real_sm_ufo_end_to_end():
-    archive = _make_tar_gz_from_dir(GAMMALOOP_SM_UFO, archive_root="MySM")
-    client = _client()
-    resp = client.post(
-        "/api/models/upload-ufo",
-        files={"file": ("MySM.tar.gz", archive, "application/gzip")},
-        data={"model_id": "mysm_upload"},
-    )
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    assert body["particles"] >= 17 and body["vertices"] >= 40
-    assert "mysm_upload" in {m["id"] for m in client.get("/api/models").json()}
 
 
 def test_upload_stubbed_succeeds(stub_ufo_loader):

@@ -23,8 +23,9 @@ THEORY_QED = Theory("qed", "QED", lambda pdg: pdg in _QED_PDGS)
 THEORY_QCD = Theory("qcd", "QCD", lambda pdg: pdg in _QCD_PDGS)
 THEORY_ELECTROWEAK = Theory("electroweak", "Electroweak", lambda pdg: pdg in _EW_PDGS)
 THEORY_SM = Theory("sm", "Standard Model", lambda _: True)
+THEORY_UFO = Theory("ufo", "UFO", lambda _: True)
 
-_ALL_THEORIES = (THEORY_QED, THEORY_QCD, THEORY_ELECTROWEAK, THEORY_SM)
+_ALL_THEORIES = (THEORY_QED, THEORY_QCD, THEORY_ELECTROWEAK, THEORY_SM, THEORY_UFO)
 
 
 def list_theories() -> list[Theory]:

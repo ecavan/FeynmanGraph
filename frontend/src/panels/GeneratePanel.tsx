@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
-import type { ExampleSpec } from "../api/types";
+import type { ExampleSpec, Model, TheoryMeta } from "../api/types";
 import { relayout } from "../canvas/layout";
 import { isGhostOrGoldstone, paletteSortKey, particleLabel, visualForEdge } from "../canvas/edges/particle-style";
 import { useDiagramStore } from "../state/diagram";
@@ -8,7 +8,28 @@ import { useGalleryStore } from "../state/gallery";
 
 const api = new ApiClient();
 
+function couplingDefaultsFor(theoryId: string): { qed: string; qcd: string } {
+  if (theoryId === "qcd") return { qed: "", qcd: "2" };
+  return { qed: "2", qcd: "" };
+}
+
+function processDefaultsFor(theoryId: string): { initial: string[]; final: string[] } {
+  if (theoryId === "qcd") return { initial: ["g", "g"], final: ["t", "t~"] };
+  return { initial: ["e+", "e-"], final: ["mu+", "mu-"] };
+}
+
+function activeCouplingsFor(theoryId: string): { qed: boolean; qcd: boolean } {
+  if (theoryId === "qcd") return { qed: false, qcd: true };
+  if (theoryId === "qed" || theoryId === "electroweak") return { qed: true, qcd: false };
+  return { qed: true, qcd: true };
+}
+
 export function GeneratePanel(props: { onSuccess?: () => void }) {
+  const modelId = useDiagramStore((s) => s.modelId);
+  const globalTheoryId = useDiagramStore((s) => s.theoryId);
+  const [theoryId, setTheoryId] = useState<string>(globalTheoryId || "sm");
+  const [theories, setTheories] = useState<TheoryMeta[]>([]);
+  const [model, setModel] = useState<Model | null>(null);
   const [initialList, setInitialList] = useState<string[]>(["e+", "e-"]);
   const [finalList, setFinalList] = useState<string[]>(["mu+", "mu-"]);
   const [qed, setQed] = useState("2");
@@ -18,6 +39,39 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    api.listTheories().then(setTheories).catch(() => setTheories([]));
+  }, []);
+
+  const visibleTheories = useMemo(
+    () => (modelId === "sm" ? theories.filter((t) => t.id !== "ufo") : theories),
+    [theories, modelId],
+  );
+  const active = activeCouplingsFor(theoryId);
+
+  useEffect(() => {
+    if (!modelId) {
+      setModel(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getModel(modelId, theoryId)
+      .then((m) => { if (!cancelled) setModel(m); })
+      .catch(() => { if (!cancelled) setModel(null); });
+    return () => { cancelled = true; };
+  }, [modelId, theoryId]);
+
+  function handleTheoryChange(next: string) {
+    setTheoryId(next);
+    const c = couplingDefaultsFor(next);
+    setQed(c.qed);
+    setQcd(c.qcd);
+    const p = processDefaultsFor(next);
+    setInitialList(p.initial);
+    setFinalList(p.final);
+  }
 
   useEffect(() => {
     if (!busy) {
@@ -64,6 +118,8 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         coupling_orders: Object.keys(couplings).length ? couplings : undefined,
         loop_count: Number(loopCount),
         max_diagrams: Number(maxDiagrams),
+        model_id: modelId || undefined,
+        theory_id: theoryId,
       }, controller.signal);
       useGalleryStore.setState({
         diagrams: resp.diagrams,
@@ -92,26 +148,57 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
     <section style={{ padding: 20, maxWidth: 720 }}>
       <h2 style={{ marginTop: 0, marginBottom: 12 }}>Generate diagrams</h2>
 
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <label style={{ fontSize: 13, minWidth: 50 }}>Theory</label>
+        <select
+          data-testid="generate-theory"
+          value={theoryId}
+          onChange={(e) => handleTheoryChange(e.target.value)}
+          style={{ padding: "4px 6px", fontSize: 13, minWidth: 200 }}
+        >
+          {visibleTheories.length === 0 && <option value={theoryId}>{theoryId}</option>}
+          {visibleTheories.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, maxWidth: 600 }}>
-        <ParticleSlot label="Initial" particles={initialList} onChange={setInitialList} />
+        <ParticleSlot label="Initial" particles={initialList} onChange={setInitialList} model={model} />
         <div style={{ fontSize: 20, opacity: 0.5, padding: "6px 4px" }}>→</div>
-        <ParticleSlot label="Final" particles={finalList} onChange={setFinalList} />
+        <ParticleSlot label="Final" particles={finalList} onChange={setFinalList} model={model} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "100px 80px", rowGap: 6, columnGap: 8 }}>
-        <label style={{ fontSize: 13 }}>QED</label>
+        <label style={{ fontSize: 13, opacity: active.qed ? 1 : 0.4 }}>QED</label>
         <input
-          value={qed}
+          data-testid="qed-input"
+          value={active.qed ? qed : ""}
+          disabled={!active.qed}
           onChange={(e) => setQed(e.target.value)}
-          placeholder="—"
-          style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
+          placeholder={active.qed ? "—" : "n/a"}
+          style={{
+            padding: "4px 6px",
+            fontSize: 13,
+            fontFamily: "monospace",
+            background: active.qed ? undefined : "#eee",
+            color: active.qed ? undefined : "#999",
+          }}
         />
-        <label style={{ fontSize: 13 }}>QCD</label>
+        <label style={{ fontSize: 13, opacity: active.qcd ? 1 : 0.4 }}>QCD</label>
         <input
-          value={qcd}
+          data-testid="qcd-input"
+          value={active.qcd ? qcd : ""}
+          disabled={!active.qcd}
           onChange={(e) => setQcd(e.target.value)}
-          placeholder="—"
-          style={{ padding: "4px 6px", fontSize: 13, fontFamily: "monospace" }}
+          placeholder={active.qcd ? "—" : "n/a"}
+          style={{
+            padding: "4px 6px",
+            fontSize: 13,
+            fontFamily: "monospace",
+            background: active.qcd ? undefined : "#eee",
+            color: active.qcd ? undefined : "#999",
+          }}
         />
         <label style={{ fontSize: 13 }}>Loops</label>
         <input
@@ -202,14 +289,14 @@ function ParticleSlot(props: {
   label: string;
   particles: string[];
   onChange: (next: string[]) => void;
+  model: Model | null;
 }) {
   const [picking, setPicking] = useState(false);
-  const cachedModel = useDiagramStore((s) => s.cachedModel);
 
   const options = useMemo(() => {
-    if (!cachedModel) return [];
+    if (!props.model) return [];
     const out: { name: string; pdg: number }[] = [];
-    for (const p of cachedModel.particles) {
+    for (const p of props.model.particles) {
       if (isGhostOrGoldstone(p.pdg_id)) continue;
       out.push({ name: p.name, pdg: p.pdg_id });
       if (p.anti_name && p.anti_name !== p.name) {
@@ -222,7 +309,7 @@ function ParticleSlot(props: {
       if (gA !== gB) return gA - gB;
       return pA - pB;
     });
-  }, [cachedModel]);
+  }, [props.model]);
 
   function add(name: string) {
     props.onChange([...props.particles, name]);

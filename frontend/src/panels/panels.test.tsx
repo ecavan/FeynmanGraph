@@ -181,6 +181,28 @@ describe("extractDeficits", () => {
 describe("GeneratePanel", () => {
   beforeEach(() => useDiagramStore.getState().reset());
 
+  function mockFetch(generateResponse: Response | (() => Response)) {
+    globalThis.fetch = vi.fn((url) => {
+      const u = typeof url === "string" ? url : (url as Request).url;
+      if (u.includes("/api/theories")) {
+        return Promise.resolve(new Response(JSON.stringify([
+          { id: "qed", name: "QED" },
+          { id: "qcd", name: "QCD" },
+          { id: "sm", name: "SM" },
+          { id: "ufo", name: "UFO" },
+        ]), { status: 200 }));
+      }
+      if (u.includes("/api/models/")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "sm", name: "SM", particles: [], vertices: [],
+        }), { status: 200 }));
+      }
+      return Promise.resolve(
+        typeof generateResponse === "function" ? generateResponse() : generateResponse,
+      );
+    }) as unknown as typeof fetch;
+  }
+
   it("renders the form with defaults and a Generate button", () => {
     render(<GeneratePanel />);
     expect(screen.getByText("e+")).toBeInTheDocument();
@@ -191,23 +213,21 @@ describe("GeneratePanel", () => {
   });
 
   it("populates the gallery store on a successful enumerate", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        count: 2, truncated: false,
-        diagrams: [
-          {
-            process_name: "GL0", model_id: "sm", theory_id: "sm",
-            nodes: [{ id: "v1", position: [0, 0], ufo_vertex_id: "V_98" }],
-            edges: [], external_legs: [],
-          },
-          {
-            process_name: "GL1", model_id: "sm", theory_id: "sm",
-            nodes: [{ id: "v1", position: [0, 0], ufo_vertex_id: "V_99" }],
-            edges: [], external_legs: [],
-          },
-        ],
-      }), { status: 200 }),
-    );
+    mockFetch(new Response(JSON.stringify({
+      count: 2, truncated: false,
+      diagrams: [
+        {
+          process_name: "GL0", model_id: "sm", theory_id: "sm",
+          nodes: [{ id: "v1", position: [0, 0], ufo_vertex_id: "V_98" }],
+          edges: [], external_legs: [],
+        },
+        {
+          process_name: "GL1", model_id: "sm", theory_id: "sm",
+          nodes: [{ id: "v1", position: [0, 0], ufo_vertex_id: "V_99" }],
+          edges: [], external_legs: [],
+        },
+      ],
+    }), { status: 200 }));
     useGalleryStore.getState().clear();
     render(<GeneratePanel />);
     fireEvent.click(screen.getByTestId("generate-submit"));
@@ -219,15 +239,13 @@ describe("GeneratePanel", () => {
   });
 
   it("fires onSuccess after a successful enumerate", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        count: 1, truncated: false,
-        diagrams: [{
-          process_name: "GL0", model_id: "sm", theory_id: "sm",
-          nodes: [], edges: [], external_legs: [],
-        }],
-      }), { status: 200 }),
-    );
+    mockFetch(new Response(JSON.stringify({
+      count: 1, truncated: false,
+      diagrams: [{
+        process_name: "GL0", model_id: "sm", theory_id: "sm",
+        nodes: [], edges: [], external_legs: [],
+      }],
+    }), { status: 200 }));
     const onSuccess = vi.fn();
     render(<GeneratePanel onSuccess={onSuccess} />);
     fireEvent.click(screen.getByTestId("generate-submit"));
@@ -246,6 +264,54 @@ describe("GeneratePanel", () => {
     if (!loops) throw new Error("loops input not found");
     fireEvent.change(loops, { target: { value: "1" } });
     expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
+  });
+
+  it("picking QCD clears QED and sets QCD=2", async () => {
+    mockFetch(new Response("{}", { status: 200 }));
+    useDiagramStore.getState().setModelId("sm");
+    render(<GeneratePanel />);
+    await screen.findByRole("option", { name: "QCD" });
+    fireEvent.change(screen.getByTestId("generate-theory"), { target: { value: "qcd" } });
+    const inputs = screen.getAllByRole("textbox") as HTMLInputElement[];
+    const qed = inputs.find((i) => i.previousElementSibling?.textContent === "QED");
+    const qcd = inputs.find((i) => i.previousElementSibling?.textContent === "QCD");
+    expect(qed?.value).toBe("");
+    expect(qcd?.value).toBe("2");
+  });
+
+  it("disables QCD on QED theory and QED on QCD theory", async () => {
+    mockFetch(new Response("{}", { status: 200 }));
+    useDiagramStore.getState().setModelId("sm");
+    render(<GeneratePanel />);
+    await screen.findByRole("option", { name: "QCD" });
+    expect(screen.getByTestId("qcd-input")).toBeDisabled();
+    expect(screen.getByTestId("qed-input")).not.toBeDisabled();
+    fireEvent.change(screen.getByTestId("generate-theory"), { target: { value: "qcd" } });
+    expect(screen.getByTestId("qed-input")).toBeDisabled();
+    expect(screen.getByTestId("qcd-input")).not.toBeDisabled();
+  });
+
+  it("hides UFO option on the default SM model and shows it once a UFO is loaded", async () => {
+    mockFetch(new Response("{}", { status: 200 }));
+    useDiagramStore.getState().setModelId("sm");
+    render(<GeneratePanel />);
+    await screen.findByRole("option", { name: "QCD" });
+    expect(screen.queryByRole("option", { name: "UFO" })).not.toBeInTheDocument();
+    act(() => useDiagramStore.getState().setModelId("my_bsm"));
+    await screen.findByRole("option", { name: "UFO" });
+  });
+
+  it("picking QCD swaps the example process to gg → tt~", async () => {
+    mockFetch(new Response("{}", { status: 200 }));
+    useDiagramStore.getState().setModelId("sm");
+    render(<GeneratePanel />);
+    await screen.findByRole("option", { name: "QCD" });
+    fireEvent.change(screen.getByTestId("generate-theory"), { target: { value: "qcd" } });
+    expect(screen.queryByText("e+")).not.toBeInTheDocument();
+    expect(screen.queryByText("mu+")).not.toBeInTheDocument();
+    expect(screen.getAllByText("g")).toHaveLength(2);
+    expect(screen.getByText("t")).toBeInTheDocument();
+    expect(screen.getByText("t~")).toBeInTheDocument();
   });
 
   it("escalates to the slow tier at 2-loop with 4+ externals", () => {
@@ -279,12 +345,10 @@ describe("GeneratePanel", () => {
   });
 
   it("renders the helpful error message when the API rejects with a known code", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        detail: "Needs a custom projector for colored externals.",
-        code: "GENERATE_NEEDS_PROJECTOR",
-      }), { status: 422 }),
-    );
+    mockFetch(new Response(JSON.stringify({
+      detail: "Needs a custom projector for colored externals.",
+      code: "GENERATE_NEEDS_PROJECTOR",
+    }), { status: 422 }));
     render(<GeneratePanel />);
     fireEvent.click(screen.getByTestId("generate-submit"));
     await waitFor(() =>

@@ -9,6 +9,7 @@ export function UfoUploader(props: { onUploaded?: () => void } = {}) {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const setModelId = useDiagramStore((s) => s.setModelId);
+  const setTheoryId = useDiagramStore((s) => s.setTheoryId);
 
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -21,6 +22,7 @@ export function UfoUploader(props: { onUploaded?: () => void } = {}) {
         `Uploaded ${result.name}: ${result.particles} particles, ${result.vertices} vertices`,
       );
       setModelId(result.id);
+      setTheoryId("ufo");
       props.onUploaded?.();
     } catch (e) {
       if (e instanceof ApiError) {
