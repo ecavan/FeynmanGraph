@@ -10,12 +10,14 @@ class DotParseError(ValueError):
 
 _DIGRAPH_HEAD = re.compile(r"digraph\s+(\w+)\s*\{")
 _INTERNAL_VERTEX = re.compile(r'^\s*([A-Za-z0-9_]+)\s*\[int_id="(V_\d+)"', re.M)
+_BARE_INTERNAL_VERTEX = re.compile(r"^\s*([A-Za-z0-9_]+)\s*;\s*$", re.M)
 _EXTERNAL_NODE = re.compile(r"^\s*(\w+)\s*\[style=invis\]", re.M)
 _EDGE = re.compile(
     r"^\s*([A-Za-z0-9_]+)(?::\d+)?\s*->\s*([A-Za-z0-9_]+)(?::\d+)?\s*\[([^\]]*)\];?",
     re.M,
 )
 _PARTICLE_ATTR = re.compile(r'particle="([^"]+)"')
+_PDG_ATTR = re.compile(r'pdg="?(-?\d+)"?')
 _LMB_ID_ATTR = re.compile(r'lmb_id="?(\d+)"?')
 
 
@@ -42,12 +44,24 @@ def parse_gammaloop_dot(
 
     internal = {m.group(1): m.group(2) for m in _INTERNAL_VERTEX.finditer(text)}
     externals = [m.group(1) for m in _EXTERNAL_NODE.finditer(text)]
+    # The writer drops int_id when it doesn't match incidence, leaving
+    # bare `v1;` lines. Collect those too as internal (id-less) vertices.
+    external_set = set(externals)
+    for m in _BARE_INTERNAL_VERTEX.finditer(text):
+        node_id = m.group(1)
+        if node_id in internal or node_id in external_set:
+            continue
+        internal[node_id] = ""  # empty ufo id
 
     name_map = _name_to_pdg(model)
 
     nodes: list[VertexNode] = []
     for vid, ufo in internal.items():
-        nodes.append(VertexNode(id=vid, position=(0.0, 0.0), ufo_vertex_id=ufo))
+        nodes.append(VertexNode(
+            id=vid,
+            position=(0.0, 0.0),
+            ufo_vertex_id=ufo if ufo else None,
+        ))
     for eid in externals:
         nodes.append(VertexNode(id=eid, position=(0.0, 0.0)))
 
@@ -60,19 +74,32 @@ def parse_gammaloop_dot(
             continue
         if tgt not in internal and tgt not in externals:
             continue
+        # Accept both `particle="<name>"` (gammaloop's own output) and
+        # `pdg="<int>"` (what feyngraph's writer emits). Either is valid.
+        pdg_value: int | None = None
         pm = _PARTICLE_ATTR.search(attrs)
-        if pm is None:
-            continue
-        particle_name = pm.group(1)
-        if particle_name not in name_map:
-            raise DotParseError(
-                f"unknown particle '{particle_name}' (not in model '{model.id}')"
-            )
+        if pm is not None:
+            particle_name = pm.group(1)
+            if particle_name not in name_map:
+                raise DotParseError(
+                    f"unknown particle '{particle_name}' (not in model '{model.id}')"
+                )
+            pdg_value = name_map[particle_name]
+        else:
+            pdg_m = _PDG_ATTR.search(attrs)
+            if pdg_m is None:
+                continue
+            pdg_value = int(pdg_m.group(1))
+            known_pdgs = {p.pdg_id for p in model.particles}
+            if pdg_value not in known_pdgs:
+                raise DotParseError(
+                    f"unknown pdg {pdg_value} (not in model '{model.id}')"
+                )
         eid_counter += 1
         eid = f"e{eid_counter}"
         edges.append(ParticleEdge(
             id=eid, source_node_id=src, target_node_id=tgt,
-            particle_pdg_id=name_map[particle_name],
+            particle_pdg_id=pdg_value,
         ))
         if _LMB_ID_ATTR.search(attrs):
             chord_ids.append(eid)

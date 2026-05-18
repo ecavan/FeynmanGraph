@@ -329,6 +329,20 @@ def test_parser_rejects_unknown_particle(model):
         parse_gammaloop_dot(bad, model)
 
 
+def test_writer_parser_roundtrip(model):
+    # The writer emits `pdg="N"` and may drop `int_id` on vertices whose
+    # incidence doesn't match — the parser must accept both shapes.
+    spec = _ee_mumu_spec()
+    spec.model_id = "sm_minimal"
+    spec.theory_id = "sm"
+    dot = to_gammaloop_dot(spec, model)
+    parsed = parse_gammaloop_dot(dot, model, model_id="sm_minimal")
+    assert len(parsed.edges) == 5
+    assert sorted(e.particle_pdg_id for e in parsed.edges) == [-13, -11, 11, 13, 22]
+    assert len(parsed.external_legs) == 4
+    assert {l.kind for l in parsed.external_legs} == {"incoming", "outgoing"}
+
+
 def test_bundled_sm_file_exists():
     assert (MODELS_DIR / "sm.json").is_file()
 

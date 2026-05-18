@@ -36,18 +36,27 @@ export function UfoUploader(props: { onUploaded?: () => void } = {}) {
 
   return (
     <section>
-      <h3>Import a UFO model (BSM)</h3>
-      <p style={{ fontSize: 13, lineHeight: 1.5, maxWidth: 540 }}>
-        Upload a zip or tar.gz archive containing a UFO model directory
-        (<code>particles.py</code> at the root or one level deep). The server
-        runs the model's Python files in an isolated subprocess and converts
-        it to feyngraph's internal schema.
+      <h3 style={{ margin: "0 0 6px 0" }}>Import a UFO model</h3>
+      <p style={{ fontSize: 12, lineHeight: 1.45, margin: "0 0 6px 0", opacity: 0.85 }}>
+        Accepted: <strong>.zip</strong> or <strong>.tar.gz</strong> with{" "}
+        <code>particles.py</code> at the root or one directory level deep.
       </p>
-      <p style={{ fontSize: 12, color: "#a85b00", maxWidth: 540 }}>
-        Local-only safety: uploads execute Python. Don't expose feyngraph over a
-        public network without sandboxing.
+      <p
+        data-testid="ufo-safety-warning"
+        style={{
+          fontSize: 11,
+          color: "#a85b00",
+          background: "#fff8eb",
+          border: "1px solid #f0d28a",
+          borderRadius: 4,
+          padding: "4px 6px",
+          margin: "0 0 8px 0",
+        }}
+      >
+        ⚠ Uploads execute Python on the server. Local use only — do not expose
+        feyngraph on a public network without sandboxing.
       </p>
-      <div style={{ padding: 10, background: "#f7f7f7", borderRadius: 6, maxWidth: 540 }}>
+      <div style={{ padding: 8, background: "#f7f7f7", borderRadius: 4 }}>
         <input
           ref={fileInputRef}
           type="file"
@@ -55,10 +64,10 @@ export function UfoUploader(props: { onUploaded?: () => void } = {}) {
           onChange={handleUpload}
         />
         {uploadStatus && (
-          <p style={{ fontSize: 12, color: "#0a6e2f", marginTop: 6 }}>{uploadStatus}</p>
+          <p style={{ fontSize: 12, color: "#0a6e2f", margin: "6px 0 0" }}>{uploadStatus}</p>
         )}
         {error && (
-          <p style={{ fontSize: 12, color: "#c00", marginTop: 6 }}>{error}</p>
+          <p style={{ fontSize: 12, color: "#c00", margin: "6px 0 0" }}>{error}</p>
         )}
       </div>
     </section>

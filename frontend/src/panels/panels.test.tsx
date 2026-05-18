@@ -65,7 +65,16 @@ describe("Toolbox", () => {
 describe("ExportPanel", () => {
   beforeEach(() => useDiagramStore.getState().reset());
 
+  it("shows the empty-canvas hint when no nodes exist and skips the API call", () => {
+    const fetchSpy = vi.fn();
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+    render(<ExportPanel />);
+    expect(screen.getByTestId("export-empty")).toHaveTextContent(/Nothing to export yet/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("auto-exports on mount and shows the .dot text", async () => {
+    useDiagramStore.getState().addVertex({ id: "v1", position: [0, 0] });
     globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ dot: "digraph foo {}", warnings: [] }), { status: 200 }),
     );
@@ -76,6 +85,7 @@ describe("ExportPanel", () => {
   });
 
   it("renders warnings returned by the server", async () => {
+    useDiagramStore.getState().addVertex({ id: "v1", position: [0, 0] });
     globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({
         dot: "digraph bar {}",
@@ -91,6 +101,7 @@ describe("ExportPanel", () => {
   });
 
   it("shows the error callout when the API rejects", async () => {
+    useDiagramStore.getState().addVertex({ id: "v1", position: [0, 0] });
     globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ detail: "no legs", code: "NO_EXTERNAL_LEGS" }), { status: 422 }),
     );
@@ -228,14 +239,24 @@ describe("GeneratePanel", () => {
     expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
   });
 
-  it("shows the 1-loop warning copy when loop_count is set to 1", () => {
+  it("stays quiet at 1-loop with ≤4 externals (bench showed ~30s)", () => {
     render(<GeneratePanel />);
-    // Two number inputs exist (loops and max). Loops has min=0/max=4; max has min=1/max=500.
     const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
     const loops = inputs.find((i) => i.min === "0" && i.max === "4");
     if (!loops) throw new Error("loops input not found");
     fireEvent.change(loops, { target: { value: "1" } });
-    expect(screen.getByTestId("slow-process-warning")).toHaveTextContent(/1-loop processes/i);
+    expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
+  });
+
+  it("escalates to the slow tier at 2-loop with 4+ externals", () => {
+    render(<GeneratePanel />);
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    const loops = inputs.find((i) => i.min === "0" && i.max === "4");
+    if (!loops) throw new Error("loops input not found");
+    fireEvent.change(loops, { target: { value: "2" } });
+    const warn = screen.getByTestId("slow-process-warning");
+    expect(warn).toHaveTextContent(/2-loop with 4\+ externals/i);
+    expect(warn).toHaveAttribute("data-tier", "slow");
   });
 
   it("clicking Cancel during a long request aborts the fetch", async () => {

@@ -136,7 +136,10 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         />
       </div>
 
-      <SlowProcessWarning loopCount={loopCount} />
+      <SlowProcessWarning
+        loopCount={loopCount}
+        externals={initialList.length + finalList.length}
+      />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
         <button
@@ -436,30 +439,49 @@ export function DiagramThumbnail({ spec }: { spec: ExampleSpec }) {
   );
 }
 
-function SlowProcessWarning({ loopCount }: { loopCount: string }) {
-  const n = Number(loopCount);
-  if (!Number.isFinite(n) || n < 1) return null;
-  const copy =
-    n === 1
-      ? "1-loop processes can take 30s–2min for 5+ externals."
-      : n === 2
-      ? "2-loop processes typically take 1–5 minutes."
-      : "3+ loop processes can take 5+ minutes. Consider a smaller process first.";
+type Tier = "medium" | "slow";
+
+function classifyProcess(loops: number, externs: number): { tier: Tier; copy: string } | null {
+  if (!Number.isFinite(loops) || !Number.isFinite(externs) || loops < 0 || externs < 1) return null;
+  if (loops === 0) {
+    if (externs <= 6) return null;
+    return { tier: "medium", copy: "Tree-level with 7+ externals can take 3–10 minutes." };
+  }
+  if (loops === 1) {
+    if (externs <= 4) return null;
+    if (externs === 5) return { tier: "medium", copy: "1-loop with 5 externals typically takes 4–10 minutes." };
+    return { tier: "slow", copy: "1-loop with 6+ externals can take 10–30 minutes. Cancel anytime — or switch screens and come back." };
+  }
+  if (loops === 2) {
+    if (externs <= 3) return { tier: "medium", copy: "2-loop processes typically take around 3–5 minutes." };
+    return { tier: "slow", copy: "2-loop with 4+ externals can take 10–30 minutes. Cancel anytime — or switch screens and come back." };
+  }
+  return { tier: "slow", copy: "3+ loop processes can take 20–30+ minutes. Cancel anytime — or switch screens and come back." };
+}
+
+function SlowProcessWarning({ loopCount, externals }: { loopCount: string; externals: number }) {
+  const cls = classifyProcess(Number(loopCount), externals);
+  if (!cls) return null;
+  const palette =
+    cls.tier === "slow"
+      ? { bg: "#ffe4cc", border: "#cc6600", fg: "#7a3a00" }
+      : { bg: "#fff5d6", border: "#c89500", fg: "#5a4400" };
   return (
     <div
       data-testid="slow-process-warning"
+      data-tier={cls.tier}
       style={{
         marginTop: 10,
         padding: "6px 10px",
-        background: "#fff5d6",
-        border: "1px solid #c89500",
-        color: "#5a4400",
+        background: palette.bg,
+        border: `1px solid ${palette.border}`,
+        color: palette.fg,
         borderRadius: 4,
         fontSize: 12,
         maxWidth: 560,
       }}
     >
-      ⚠ {copy}
+      ⚠ {cls.copy}
     </div>
   );
 }
