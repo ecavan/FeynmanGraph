@@ -223,6 +223,21 @@ describe("GeneratePanel", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
+  it("does not show a slow-process warning at loop_count = 0", () => {
+    render(<GeneratePanel />);
+    expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
+  });
+
+  it("shows the 1-loop warning copy when loop_count is set to 1", () => {
+    render(<GeneratePanel />);
+    // Two number inputs exist (loops and max). Loops has min=0/max=4; max has min=1/max=500.
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    const loops = inputs.find((i) => i.min === "0" && i.max === "4");
+    if (!loops) throw new Error("loops input not found");
+    fireEvent.change(loops, { target: { value: "1" } });
+    expect(screen.getByTestId("slow-process-warning")).toHaveTextContent(/1-loop processes/i);
+  });
+
   it("renders the helpful error message when the API rejects with a known code", async () => {
     globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({

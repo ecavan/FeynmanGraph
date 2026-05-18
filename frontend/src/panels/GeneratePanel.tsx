@@ -103,6 +103,8 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         />
       </div>
 
+      <SlowProcessWarning loopCount={loopCount} />
+
       <button
         type="button"
         data-testid="generate-submit"
@@ -379,5 +381,33 @@ export function DiagramThumbnail({ spec }: { spec: ExampleSpec }) {
         );
       })}
     </svg>
+  );
+}
+
+function SlowProcessWarning({ loopCount }: { loopCount: string }) {
+  const n = Number(loopCount);
+  if (!Number.isFinite(n) || n < 1) return null;
+  const copy =
+    n === 1
+      ? "1-loop processes can take 30s–2min for 5+ externals."
+      : n === 2
+      ? "2-loop processes typically take 1–5 minutes."
+      : "3+ loop processes can take 5+ minutes. Consider a smaller process first.";
+  return (
+    <div
+      data-testid="slow-process-warning"
+      style={{
+        marginTop: 10,
+        padding: "6px 10px",
+        background: "#fff5d6",
+        border: "1px solid #c89500",
+        color: "#5a4400",
+        borderRadius: 4,
+        fontSize: 12,
+        maxWidth: 560,
+      }}
+    >
+      ⚠ {copy}
+    </div>
   );
 }
