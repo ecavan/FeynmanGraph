@@ -330,8 +330,6 @@ def test_parser_rejects_unknown_particle(model):
 
 
 def test_writer_parser_roundtrip(model):
-    # The writer emits `pdg="N"` and may drop `int_id` on vertices whose
-    # incidence doesn't match — the parser must accept both shapes.
     spec = _ee_mumu_spec()
     spec.model_id = "sm_minimal"
     spec.theory_id = "sm"

@@ -44,14 +44,12 @@ def parse_gammaloop_dot(
 
     internal = {m.group(1): m.group(2) for m in _INTERNAL_VERTEX.finditer(text)}
     externals = [m.group(1) for m in _EXTERNAL_NODE.finditer(text)]
-    # The writer drops int_id when it doesn't match incidence, leaving
-    # bare `v1;` lines. Collect those too as internal (id-less) vertices.
     external_set = set(externals)
     for m in _BARE_INTERNAL_VERTEX.finditer(text):
         node_id = m.group(1)
         if node_id in internal or node_id in external_set:
             continue
-        internal[node_id] = ""  # empty ufo id
+        internal[node_id] = ""
 
     name_map = _name_to_pdg(model)
 
@@ -74,8 +72,6 @@ def parse_gammaloop_dot(
             continue
         if tgt not in internal and tgt not in externals:
             continue
-        # Accept both `particle="<name>"` (gammaloop's own output) and
-        # `pdg="<int>"` (what feyngraph's writer emits). Either is valid.
         pdg_value: int | None = None
         pm = _PARTICLE_ATTR.search(attrs)
         if pm is not None:

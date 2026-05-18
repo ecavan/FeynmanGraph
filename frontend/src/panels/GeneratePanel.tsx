@@ -54,9 +54,6 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
     setError(null);
     const controller = new AbortController();
     controllerRef.current = controller;
-    // Frontend-only cancel. The gammaloop subprocess keeps running on the
-    // backend until it finishes or hits subprocess.run(timeout=600).
-    // Server-side cancel would need an async job pattern.
     const couplings: Record<string, number> = {};
     if (qed.trim()) couplings.QED = Number(qed);
     if (qcd.trim()) couplings.QCD = Number(qcd);
@@ -79,7 +76,7 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
     } catch (e) {
       const name = (e as Error)?.name;
       if (name === "AbortError") {
-        // user-initiated cancel; no error banner
+        // swallow
       } else if (e instanceof ApiError) {
         setError(`${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`);
       } else {
@@ -450,13 +447,13 @@ function classifyProcess(loops: number, externs: number): { tier: Tier; copy: st
   if (loops === 1) {
     if (externs <= 4) return null;
     if (externs === 5) return { tier: "medium", copy: "1-loop with 5 externals typically takes 4–10 minutes." };
-    return { tier: "slow", copy: "1-loop with 6+ externals can take 10–30 minutes. Cancel anytime — or switch screens and come back." };
+    return { tier: "slow", copy: "1-loop with 6+ externals can take 30 minutes to 3 hours. Cancel anytime — or switch screens and come back." };
   }
   if (loops === 2) {
     if (externs <= 3) return { tier: "medium", copy: "2-loop processes typically take around 3–5 minutes." };
-    return { tier: "slow", copy: "2-loop with 4+ externals can take 10–30 minutes. Cancel anytime — or switch screens and come back." };
+    return { tier: "slow", copy: "2-loop with 4+ externals can take 30 minutes to 3 hours. Cancel anytime — or switch screens and come back." };
   }
-  return { tier: "slow", copy: "3+ loop processes can take 20–30+ minutes. Cancel anytime — or switch screens and come back." };
+  return { tier: "slow", copy: "3+ loop processes can take hours. Cancel anytime — or switch screens and come back." };
 }
 
 function SlowProcessWarning({ loopCount, externals }: { loopCount: string; externals: number }) {

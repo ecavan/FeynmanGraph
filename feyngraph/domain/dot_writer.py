@@ -49,9 +49,7 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
     for leg in spec.external_legs:
         buf.write(f"  {leg.node_id} [style=invis];\n")
 
-    # Drop int_id when it doesn't match incidence — gammaloop trusts the label
-    # blindly, so a stale int_id silently produces wrong physics. Without it,
-    # gammaloop self-heals or rejects cleanly via its own incidence lookup.
+    # Stale int_id silently mis-evaluates; bare vertex lets gammaloop self-heal.
     incidence_by_node = _all_incoming_pdgs(spec, external_node_ids)
     for node in spec.nodes:
         if node.id in external_node_ids:
@@ -70,10 +68,8 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
         if edge.id in chord_set:
             chord_index_by_edge[edge.id] = len(chord_index_by_edge)
 
-    # Externals first (ports 0..N-1, matching the projector's hedge indices),
-    # internals next (two ports each). `id=N` is required despite being marked
-    # "ignored" in gammaloop's parser — without it ext_from(hedge(0)) panics
-    # during inspect.
+    # Externals fill ports 0..N-1 (matching projector hedge indices); internals follow with two ports each.
+    # `id=N` looks ignored but `ext_from(hedge(0))` panics without it.
     ext_edges = []
     int_edges = []
     for edge in spec.edges:

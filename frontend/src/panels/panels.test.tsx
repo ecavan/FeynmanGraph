@@ -239,7 +239,7 @@ describe("GeneratePanel", () => {
     expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
   });
 
-  it("stays quiet at 1-loop with ≤4 externals (bench showed ~30s)", () => {
+  it("stays quiet at 1-loop with ≤4 externals", () => {
     render(<GeneratePanel />);
     const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
     const loops = inputs.find((i) => i.min === "0" && i.max === "4");

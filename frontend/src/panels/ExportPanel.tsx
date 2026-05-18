@@ -15,8 +15,6 @@ export function ExportPanel(props: { openTick?: number } = {}) {
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    // Pre-check: if the canvas is empty, skip the API call entirely and
-    // show a friendly hint instead of triggering NO_EXTERNAL_LEGS.
     if (nodeCount === 0) {
       setDot("");
       setWarnings([]);
