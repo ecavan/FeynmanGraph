@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import type { ExampleSpec } from "../api/types";
 import { relayout } from "../canvas/layout";
@@ -28,6 +28,12 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
     return () => clearInterval(id);
   }, [busy]);
 
+  const controllerRef = useRef<AbortController | null>(null);
+
+  function handleCancel() {
+    controllerRef.current?.abort();
+  }
+
   function archiveBaseName(): string {
     const sane = `${initialList.join("_")}_to_${finalList.join("_")}_L${loopCount}`
       .replace(/\s+/g, "_")
@@ -46,6 +52,11 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
   async function submit() {
     setBusy(true);
     setError(null);
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    // Frontend-only cancel. The gammaloop subprocess keeps running on the
+    // backend until it finishes or hits subprocess.run(timeout=600).
+    // Server-side cancel would need an async job pattern.
     const couplings: Record<string, number> = {};
     if (qed.trim()) couplings.QED = Number(qed);
     if (qcd.trim()) couplings.QCD = Number(qcd);
@@ -56,7 +67,7 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         coupling_orders: Object.keys(couplings).length ? couplings : undefined,
         loop_count: Number(loopCount),
         max_diagrams: Number(maxDiagrams),
-      });
+      }, controller.signal);
       useGalleryStore.setState({
         diagrams: resp.diagrams,
         count: resp.count,
@@ -66,12 +77,16 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
       });
       props.onSuccess?.();
     } catch (e) {
-      if (e instanceof ApiError) {
+      const name = (e as Error)?.name;
+      if (name === "AbortError") {
+        // user-initiated cancel; no error banner
+      } else if (e instanceof ApiError) {
         setError(`${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`);
       } else {
         setError(String(e));
       }
     } finally {
+      controllerRef.current = null;
       setBusy(false);
     }
   }
@@ -123,25 +138,44 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
 
       <SlowProcessWarning loopCount={loopCount} />
 
-      <button
-        type="button"
-        data-testid="generate-submit"
-        onClick={submit}
-        disabled={busy}
-        style={{
-          marginTop: 12,
-          padding: "6px 14px",
-          background: busy ? "#aaa" : "#0066ff",
-          color: "white",
-          border: "none",
-          borderRadius: 4,
-          cursor: busy ? "wait" : "pointer",
-          fontSize: 13,
-          fontWeight: 500,
-        }}
-      >
-        {busyLabel()}
-      </button>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
+        <button
+          type="button"
+          data-testid="generate-submit"
+          onClick={submit}
+          disabled={busy}
+          style={{
+            padding: "6px 14px",
+            background: busy ? "#aaa" : "#0066ff",
+            color: "white",
+            border: "none",
+            borderRadius: 4,
+            cursor: busy ? "wait" : "pointer",
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          {busyLabel()}
+        </button>
+        {busy && (
+          <button
+            type="button"
+            data-testid="generate-cancel"
+            onClick={handleCancel}
+            style={{
+              padding: "6px 12px",
+              background: "white",
+              color: "#444",
+              border: "1px solid #999",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            ✕ Cancel
+          </button>
+        )}
+      </div>
 
       {error && (
         <div

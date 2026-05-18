@@ -238,6 +238,25 @@ describe("GeneratePanel", () => {
     expect(screen.getByTestId("slow-process-warning")).toHaveTextContent(/1-loop processes/i);
   });
 
+  it("clicking Cancel during a long request aborts the fetch", async () => {
+    let abortedSignal: AbortSignal | undefined;
+    globalThis.fetch = vi.fn((_input, init?: RequestInit) => {
+      abortedSignal = init?.signal ?? undefined;
+      return new Promise((_resolve, reject) => {
+        abortedSignal?.addEventListener("abort", () => {
+          reject(new DOMException("aborted", "AbortError"));
+        });
+      });
+    }) as unknown as typeof fetch;
+
+    render(<GeneratePanel />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    const cancelBtn = await screen.findByTestId("generate-cancel");
+    fireEvent.click(cancelBtn);
+    await waitFor(() => expect(abortedSignal?.aborted).toBe(true));
+    expect(screen.queryByText(/AbortError/i)).not.toBeInTheDocument();
+  });
+
   it("renders the helpful error message when the API rejects with a known code", async () => {
     globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({
