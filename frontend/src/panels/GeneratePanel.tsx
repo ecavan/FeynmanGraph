@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import type { ExampleSpec } from "../api/types";
 import { relayout } from "../canvas/layout";
@@ -17,12 +17,30 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
   const [maxDiagrams, setMaxDiagrams] = useState("50");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!busy) {
+      setElapsed(0);
+      return;
+    }
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
 
   function archiveBaseName(): string {
     const sane = `${initialList.join("_")}_to_${finalList.join("_")}_L${loopCount}`
       .replace(/\s+/g, "_")
       .replace(/[^A-Za-z0-9_+\-~]/g, "");
     return sane || "diagrams";
+  }
+
+  function busyLabel(): string {
+    if (!busy) return "Enumerate diagrams";
+    if (elapsed < 5) return "Generating…";
+    const m = Math.floor(elapsed / 60);
+    const s = String(elapsed % 60).padStart(2, "0");
+    return `Generating… ${m}:${s}`;
   }
 
   async function submit() {
@@ -122,7 +140,7 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
           fontWeight: 500,
         }}
       >
-        {busy ? "Generating…" : "Enumerate diagrams"}
+        {busyLabel()}
       </button>
 
       {error && (
