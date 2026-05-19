@@ -4,9 +4,12 @@ import { useDiagramStore } from "./diagram";
 // Bulk-write topology so layout runs once, not per addVertex/addEdge.
 export function loadGraphIntoStore(spec: ExampleSpec): void {
   const before = useDiagramStore.getState();
+  // gammaloop output for "qed" requests can include EW particles in loops; widen
+  // the canvas theory so the issues panel doesn't flag legitimate generated diagrams.
+  const permissiveTheory = spec.model_id === "sm" ? "sm" : "ufo";
   useDiagramStore.setState({
     modelId: spec.model_id,
-    theoryId: spec.theory_id,
+    theoryId: permissiveTheory,
     processName: spec.process_name,
     nodes: spec.nodes.map((n) => ({
       id: n.id,

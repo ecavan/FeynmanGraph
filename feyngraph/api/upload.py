@@ -185,6 +185,11 @@ async def upload_ufo(
         feyngraph_doc = _convert_ufo_to_feyngraph_schema(ufo_json_path, chosen_id)
         target.write_text(json.dumps(feyngraph_doc, indent=2))
 
+        # Persist the raw ufo-model-loader JSON so gammaloop can import it
+        # directly (its JSON loader is pure Rust; the UFO loader needs Python).
+        gloop_json = user_models_dir() / f"{chosen_id}_gammaloop.json"
+        gloop_json.write_bytes(ufo_json_path.read_bytes())
+
     return UploadResult(
         id=chosen_id,
         name=feyngraph_doc["name"],

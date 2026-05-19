@@ -47,7 +47,7 @@ export function styleForPdg(pdg: number | null | undefined): ParticleStyle {
   if (a === 23) return "zboson";
   if (a === 25) return "scalar";
   if (QUARK_PDGS.has(a) || LEPTON_PDGS.has(a)) return "fermion";
-  if (a === 9 || a === 82 || a === 83) return "ghost";
+  if (a === 9 || a === 82 || a === 83 || a >= 9000000) return "ghost";
   return "unknown";
 }
 

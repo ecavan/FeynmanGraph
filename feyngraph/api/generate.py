@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from feyngraph.api.errors import FeyngraphHTTPException
 from feyngraph.domain.dot_parser import DotParseError, parse_gammaloop_dot
 from feyngraph.domain.graph_spec import GraphSpec
-from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError
+from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError, user_models_dir
 from feyngraph.domain.model_schema import Model
 
 router = APIRouter(prefix="/api", tags=["generate"])
@@ -181,13 +181,16 @@ async def generate_amp(req: GenerateAmpRequest) -> GenerateAmpResponse:
 
     projector = _projector_for_externals(req, model)
 
+    gloop_json = user_models_dir() / f"{req.model_id}_gammaloop.json"
+    import_target = str(gloop_json) if gloop_json.is_file() else "sm-default.json"
+
     with tempfile.TemporaryDirectory(prefix="feyngraph-gen-") as tmpdir_str:
         tmpdir = Path(tmpdir_str)
         toml_path = tmpdir / "gen.toml"
         toml_path.write_text(
             f'[cli_settings]\n[cli_settings.state]\nfolder = "./state"\n\n'
             f'[[command_blocks]]\nname = "g"\ncommands = [\n'
-            f'  "import model sm-default.json",\n'
+            f'  "import model {import_target}",\n'
             f'  "{_build_process_command(req, projector)}",\n'
             f'  "save dot",\n]\n'
         )
@@ -232,6 +235,11 @@ async def generate_amp(req: GenerateAmpRequest) -> GenerateAmpResponse:
                     model_id=req.model_id, theory_id=req.theory_id,
                 )
             except DotParseError:
+                continue
+            if any(
+                e.particle_pdg_id is not None and abs(e.particle_pdg_id) >= 9000000
+                for e in spec.edges
+            ):
                 continue
             specs.append(spec)
 

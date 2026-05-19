@@ -37,23 +37,23 @@ export function GalleryStrip() {
     <div
       data-testid="gallery-strip"
       style={{
-        height: 110,
+        maxHeight: 330,
         borderTop: "1px solid #ddd",
         background: "#fafafa",
         display: "flex",
         alignItems: "stretch",
         padding: "6px 10px",
         gap: 10,
-        overflow: "hidden",
       }}
     >
       <div
         style={{
           flex: 1,
           display: "flex",
+          flexWrap: "wrap",
           gap: 8,
-          overflowX: "auto",
-          alignItems: "stretch",
+          overflowY: "auto",
+          alignItems: "flex-start",
         }}
       >
         {diagrams.map((spec) => {

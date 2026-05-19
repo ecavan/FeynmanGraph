@@ -9,7 +9,7 @@ class DotParseError(ValueError):
 
 
 _DIGRAPH_HEAD = re.compile(r"digraph\s+(\w+)\s*\{")
-_INTERNAL_VERTEX = re.compile(r'^\s*([A-Za-z0-9_]+)\s*\[int_id="(V_\d+)"', re.M)
+_INTERNAL_VERTEX = re.compile(r'^\s*([A-Za-z0-9_]+)\s*\[int_id="([^"]+)"', re.M)
 _BARE_INTERNAL_VERTEX = re.compile(r"^\s*([A-Za-z0-9_]+)\s*;\s*$", re.M)
 _EXTERNAL_NODE = re.compile(r"^\s*(\w+)\s*\[style=invis\]", re.M)
 _EDGE = re.compile(
