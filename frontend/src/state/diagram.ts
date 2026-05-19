@@ -99,7 +99,7 @@ function pushHistory(past: DiagramSnapshot[], snap: DiagramSnapshot): DiagramSna
 }
 
 const INITIAL = {
-  modelId: "",
+  modelId: "sm",
   theoryId: "qed",
   processName: "process",
   nodes: [] as VertexNode[],

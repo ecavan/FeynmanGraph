@@ -16,7 +16,7 @@ export function restoreFromLocalStorage(): boolean {
     const payload = JSON.parse(raw);
     const s = useDiagramStore.getState();
     s.reset();
-    s.setModelId(payload.modelId ?? "");
+    s.setModelId(payload.modelId || "sm");
     s.setTheoryId(payload.theoryId ?? "qed");
     s.setProcessName(payload.processName ?? "process");
     for (const n of payload.nodes ?? []) s.addVertex(n);
