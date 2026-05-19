@@ -27,7 +27,7 @@ export function Toolbox() {
   const edgeDraftSource = useDiagramStore((s) => s.edgeDraftSource);
   const startEdgeDraft = useDiagramStore((s) => s.startEdgeDraft);
   const cancelEdgeDraft = useDiagramStore((s) => s.cancelEdgeDraft);
-  const canAddParticle = nodes.length >= 1;
+  const canAddParticle = nodes.length >= 2;
 
   const [showAllParticles, setShowAllParticles] = useState(false);
 
@@ -118,12 +118,12 @@ export function Toolbox() {
       <SectionLabel>Edges</SectionLabel>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <ToolboxButton
-          testId="add-propagator"
-          label={edgeDraftActive ? "× Cancel propagator" : "+ Add propagator"}
+          testId="add-particle"
+          label={edgeDraftActive ? "× Cancel particle" : "+ Add particle"}
           onClick={toggleEdgeDraft}
           variant={edgeDraftActive ? "danger" : "primary"}
           disabled={!canAddParticle && !edgeDraftActive}
-          title={canAddParticle ? "Click two vertices on the canvas" : "Add a vertex first"}
+          title={canAddParticle ? "Click any two nodes (vertices or external legs)" : "Add at least two nodes first"}
         />
       </div>
       {edgeDraftActive && (
@@ -139,8 +139,8 @@ export function Toolbox() {
           }}
         >
           {edgeDraftSource == null
-            ? "Click a vertex to start."
-            : `Start: ${edgeDraftSource}. Click another vertex.`}
+            ? "Click any node (vertex or external leg) to start."
+            : `Start: ${edgeDraftSource}. Click another node.`}
         </div>
       )}
 

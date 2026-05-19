@@ -27,11 +27,20 @@ describe("Toolbox", () => {
     expect(useDiagramStore.getState().nodes.map((n) => n.id).sort()).toEqual(["v1", "v2", "v3"]);
   });
 
-  it("disables + Add propagator until at least 1 vertex exists", () => {
+  it("disables + Add particle until at least two nodes exist", () => {
     render(<Toolbox />);
-    expect(screen.getByTestId("add-propagator")).toBeDisabled();
+    expect(screen.getByTestId("add-particle")).toBeDisabled();
     fireEvent.click(screen.getByTestId("add-vertex"));
-    expect(screen.getByTestId("add-propagator")).not.toBeDisabled();
+    expect(screen.getByTestId("add-particle")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("add-vertex"));
+    expect(screen.getByTestId("add-particle")).not.toBeDisabled();
+  });
+
+  it("+ Add particle enables once you have one vertex + one external leg", () => {
+    render(<Toolbox />);
+    fireEvent.click(screen.getByTestId("add-vertex"));
+    fireEvent.click(screen.getByTestId("add-incoming-leg"));
+    expect(screen.getByTestId("add-particle")).not.toBeDisabled();
   });
 
   it("'+ Add incoming' creates a node + incoming leg and selects the new node", () => {
