@@ -88,6 +88,12 @@ export class ApiClient {
       model_id?: string;
       theory_id?: string;
       max_diagrams?: number;
+      active_particles?: string[];
+      numerator_grouping?:
+        | "no_grouping"
+        | "only_detect_zeroes"
+        | "group_identical_graphs_up_to_sign"
+        | "group_identical_graphs_up_to_scalar_rescaling";
     },
     signal?: AbortSignal,
   ): Promise<{ diagrams: ExampleSpec[]; count: number; truncated: boolean }> {

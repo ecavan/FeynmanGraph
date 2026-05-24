@@ -214,10 +214,12 @@ describe("GeneratePanel", () => {
 
   it("renders the form with defaults and a Generate button", () => {
     render(<GeneratePanel />);
-    expect(screen.getByText("e+")).toBeInTheDocument();
-    expect(screen.getByText("e-")).toBeInTheDocument();
-    expect(screen.getByText("mu+")).toBeInTheDocument();
-    expect(screen.getByText("mu-")).toBeInTheDocument();
+    // Chips for the defaults now appear in both the Initial/Final slots and the
+    // auto-filled "Restrict to" slot, so each particle name is in the DOM twice.
+    expect(screen.getAllByText("e+").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("e-").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("mu+").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("mu-").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("generate-submit")).toBeInTheDocument();
   });
 
@@ -259,20 +261,6 @@ describe("GeneratePanel", () => {
     render(<GeneratePanel onSuccess={onSuccess} />);
     fireEvent.click(screen.getByTestId("generate-submit"));
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-  });
-
-  it("does not show a slow-process warning at loop_count = 0", () => {
-    render(<GeneratePanel />);
-    expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
-  });
-
-  it("stays quiet at 1-loop with ≤4 externals", () => {
-    render(<GeneratePanel />);
-    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
-    const loops = inputs.find((i) => i.min === "0" && i.max === "4");
-    if (!loops) throw new Error("loops input not found");
-    fireEvent.change(loops, { target: { value: "1" } });
-    expect(screen.queryByTestId("slow-process-warning")).not.toBeInTheDocument();
   });
 
   it("picking QCD clears QED and sets QCD=2", async () => {
@@ -318,20 +306,12 @@ describe("GeneratePanel", () => {
     fireEvent.change(screen.getByTestId("generate-theory"), { target: { value: "qcd" } });
     expect(screen.queryByText("e+")).not.toBeInTheDocument();
     expect(screen.queryByText("mu+")).not.toBeInTheDocument();
-    expect(screen.getAllByText("g")).toHaveLength(2);
-    expect(screen.getByText("t")).toBeInTheDocument();
-    expect(screen.getByText("t~")).toBeInTheDocument();
-  });
-
-  it("escalates to the slow tier at 2-loop with 4+ externals", () => {
-    render(<GeneratePanel />);
-    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
-    const loops = inputs.find((i) => i.min === "0" && i.max === "4");
-    if (!loops) throw new Error("loops input not found");
-    fireEvent.change(loops, { target: { value: "2" } });
-    const warn = screen.getByTestId("slow-process-warning");
-    expect(warn).toHaveTextContent(/2-loop with 4\+ externals/i);
-    expect(warn).toHaveAttribute("data-tier", "slow");
+    // After QCD swap each particle appears in its process slot AND the
+    // auto-filled active-particles slot: g shows 3x (2 in initial + 1 in active),
+    // t and t~ each show 2x (1 in final + 1 in active).
+    expect(screen.getAllByText("g")).toHaveLength(3);
+    expect(screen.getAllByText("t")).toHaveLength(2);
+    expect(screen.getAllByText("t~")).toHaveLength(2);
   });
 
   it("clicking Cancel during a long request aborts the fetch", async () => {
@@ -363,6 +343,102 @@ describe("GeneratePanel", () => {
     await waitFor(() =>
       expect(screen.getByText(/GENERATE_NEEDS_PROJECTOR/)).toBeInTheDocument(),
     );
+  });
+
+  // ---------- FineGen knobs ----------
+
+  function mockFetchCapturing(generateResponse: Response): { lastBody: () => unknown } {
+    let lastBody: unknown = null;
+    globalThis.fetch = vi.fn((url, init?: RequestInit) => {
+      const u = typeof url === "string" ? url : (url as Request).url;
+      if (u.includes("/api/theories")) {
+        return Promise.resolve(new Response(JSON.stringify([
+          { id: "qed", name: "QED" },
+          { id: "qcd", name: "QCD" },
+          { id: "sm", name: "SM" },
+        ]), { status: 200 }));
+      }
+      if (u.includes("/api/models/")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "sm", name: "SM", particles: [], vertices: [],
+        }), { status: 200 }));
+      }
+      if (u.includes("/api/generate-amp") && init?.body) {
+        lastBody = JSON.parse(init.body as string);
+      }
+      return Promise.resolve(generateResponse);
+    }) as unknown as typeof fetch;
+    return { lastBody: () => lastBody };
+  }
+
+  it("renders the active-particles slot and the numerator-grouping dropdown", () => {
+    render(<GeneratePanel />);
+    expect(screen.getByTestId("generate-active-particles")).toBeInTheDocument();
+    expect(screen.getByTestId("generate-numerator-grouping")).toBeInTheDocument();
+  });
+
+  it("by default, the request includes numerator_grouping=no_grouping and active_particles auto-filled from externals", async () => {
+    const cap = mockFetchCapturing(new Response(JSON.stringify({
+      count: 0, truncated: false, diagrams: [],
+    }), { status: 200 }));
+    render(<GeneratePanel />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(cap.lastBody()).not.toBeNull());
+    const body = cap.lastBody() as Record<string, unknown>;
+    expect(body.numerator_grouping).toBe("no_grouping");
+    expect(body.active_particles).toEqual(["e+", "e-", "mu+", "mu-"]);
+  });
+
+  it("forwards the selected grouping mode when the user picks a different value", async () => {
+    const cap = mockFetchCapturing(new Response(JSON.stringify({
+      count: 0, truncated: false, diagrams: [],
+    }), { status: 200 }));
+    render(<GeneratePanel />);
+    fireEvent.change(screen.getByTestId("generate-numerator-grouping"), {
+      target: { value: "group_identical_graphs_up_to_scalar_rescaling" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(cap.lastBody()).not.toBeNull());
+    const body = cap.lastBody() as Record<string, unknown>;
+    expect(body.numerator_grouping).toBe("group_identical_graphs_up_to_scalar_rescaling");
+  });
+
+  it("exposes all four gammaloop numerator-grouping modes in the dropdown", () => {
+    render(<GeneratePanel />);
+    const select = screen.getByTestId("generate-numerator-grouping") as HTMLSelectElement;
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).toEqual([
+      "no_grouping",
+      "only_detect_zeroes",
+      "group_identical_graphs_up_to_sign",
+      "group_identical_graphs_up_to_scalar_rescaling",
+    ]);
+  });
+
+  it("re-fills active_particles when the process externals change", async () => {
+    const cap = mockFetchCapturing(new Response(JSON.stringify({
+      count: 0, truncated: false, diagrams: [],
+    }), { status: 200 }));
+    useDiagramStore.getState().setModelId("sm");
+    render(<GeneratePanel />);
+    await screen.findByRole("option", { name: "QCD" });
+    fireEvent.change(screen.getByTestId("generate-theory"), { target: { value: "qcd" } });
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(cap.lastBody()).not.toBeNull());
+    const body = cap.lastBody() as { active_particles?: string[] };
+    // QCD defaults: g g → t t~, deduped → [g, t, t~]
+    expect(body.active_particles).toEqual(["g", "t", "t~"]);
+  });
+
+  it("defaults max_diagrams to 100", async () => {
+    const cap = mockFetchCapturing(new Response(JSON.stringify({
+      count: 0, truncated: false, diagrams: [],
+    }), { status: 200 }));
+    render(<GeneratePanel />);
+    fireEvent.click(screen.getByTestId("generate-submit"));
+    await waitFor(() => expect(cap.lastBody()).not.toBeNull());
+    const body = cap.lastBody() as Record<string, unknown>;
+    expect(body.max_diagrams).toBe(100);
   });
 
 });

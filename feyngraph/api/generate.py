@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -12,6 +13,13 @@ from feyngraph.domain.dot_parser import DotParseError, parse_gammaloop_dot
 from feyngraph.domain.graph_spec import GraphSpec
 from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError, user_models_dir
 from feyngraph.domain.model_schema import Model
+
+NumeratorGroupingMode = Literal[
+    "no_grouping",
+    "only_detect_zeroes",
+    "group_identical_graphs_up_to_sign",
+    "group_identical_graphs_up_to_scalar_rescaling",
+]
 
 router = APIRouter(prefix="/api", tags=["generate"])
 
@@ -38,6 +46,8 @@ class GenerateAmpRequest(BaseModel):
     model_id: str = "sm"
     theory_id: str = "sm"
     max_diagrams: int = 200
+    active_particles: list[str] | None = None
+    numerator_grouping: NumeratorGroupingMode | None = None
 
 
 class GenerateAmpResponse(BaseModel):
@@ -149,7 +159,12 @@ def _build_process_command(req: GenerateAmpRequest, projector: str | None) -> st
     for coupling, order in req.coupling_orders.items():
         spec_parts.append(f"{coupling}={order}")
     block = " ".join(spec_parts)
-    cmd = f"generate amp {initial} > {final} [{block}] -p amp -i amp -o"
+    cmd = f"generate amp {initial} > {final} [{block}]"
+    if req.active_particles:
+        cmd += f" | {' '.join(req.active_particles)}"
+    cmd += " -p amp -i amp -o"
+    if req.numerator_grouping:
+        cmd += f" --numerator-grouping {req.numerator_grouping}"
     if projector:
         cmd += f" --global-prefactor-projector '{projector}'"
     return cmd

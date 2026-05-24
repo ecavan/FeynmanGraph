@@ -8,6 +8,12 @@ import { useGalleryStore } from "../state/gallery";
 
 const api = new ApiClient();
 
+type NumeratorGroupingMode =
+  | "no_grouping"
+  | "only_detect_zeroes"
+  | "group_identical_graphs_up_to_sign"
+  | "group_identical_graphs_up_to_scalar_rescaling";
+
 function couplingDefaultsFor(theoryId: string): { qed: string; qcd: string } {
   if (theoryId === "qcd") return { qed: "", qcd: "2" };
   return { qed: "2", qcd: "" };
@@ -24,6 +30,7 @@ function activeCouplingsFor(theoryId: string): { qed: boolean; qcd: boolean } {
   return { qed: true, qcd: true };
 }
 
+
 export function GeneratePanel(props: { onSuccess?: () => void }) {
   const modelId = useDiagramStore((s) => s.modelId);
   const globalTheoryId = useDiagramStore((s) => s.theoryId);
@@ -35,7 +42,10 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
   const [qed, setQed] = useState("2");
   const [qcd, setQcd] = useState("");
   const [loopCount, setLoopCount] = useState("0");
-  const [maxDiagrams, setMaxDiagrams] = useState("50");
+  const [maxDiagrams, setMaxDiagrams] = useState("100");
+  const [activeParticles, setActiveParticles] = useState<string[]>([]);
+  const [numeratorGrouping, setNumeratorGrouping] =
+    useState<NumeratorGroupingMode>("no_grouping");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -62,6 +72,14 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
       .catch(() => { if (!cancelled) setModel(null); });
     return () => { cancelled = true; };
   }, [modelId, theoryId]);
+
+  // Auto-fill "Restrict to" from the current process externals. The user is
+  // expected to add any internal particles (loop propagators, exchanged
+  // particles) themselves; anything not in this list is filtered out.
+  useEffect(() => {
+    const externals = [...initialList, ...finalList];
+    setActiveParticles(Array.from(new Set(externals)));
+  }, [initialList, finalList]);
 
   function handleTheoryChange(next: string) {
     setTheoryId(next);
@@ -120,6 +138,8 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         max_diagrams: Number(maxDiagrams),
         model_id: modelId || undefined,
         theory_id: theoryId,
+        active_particles: activeParticles.length ? activeParticles : undefined,
+        numerator_grouping: numeratorGrouping,
       }, controller.signal);
       useGalleryStore.setState({
         diagrams: resp.diagrams,
@@ -145,7 +165,7 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
   }
 
   return (
-    <section style={{ padding: 20, maxWidth: 720 }}>
+    <section style={{ padding: 24, maxWidth: 920 }}>
       <h2 style={{ marginTop: 0, marginBottom: 12 }}>Generate diagrams</h2>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -163,7 +183,7 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         </select>
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, maxWidth: 600 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16 }}>
         <ParticleSlot label="Initial" particles={initialList} onChange={setInitialList} model={model} />
         <div style={{ fontSize: 20, opacity: 0.5, padding: "6px 4px" }}>→</div>
         <ParticleSlot label="Final" particles={finalList} onChange={setFinalList} model={model} />
@@ -220,10 +240,65 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         />
       </div>
 
-      <SlowProcessWarning
-        loopCount={loopCount}
-        externals={initialList.length + finalList.length}
-      />
+      <div
+        style={{
+          marginTop: 18,
+          padding: "14px 16px",
+          border: "1px solid #d4d4d4",
+          borderRadius: 6,
+          background: "#fafafa",
+          fontSize: 13,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7, marginBottom: 10 }}>
+          Speed-up options
+        </div>
+        <div data-testid="generate-active-particles" style={{ marginBottom: 6 }}>
+          <ParticleSlot
+            label="Restrict to (auto-filled from externals — add internal/loop particles you expect)"
+            particles={activeParticles}
+            onChange={setActiveParticles}
+            model={model}
+          />
+        </div>
+        <p style={{ margin: "0 0 12px 2px", fontSize: 11, opacity: 0.65, lineHeight: 1.4 }}>
+          Any particle missing here is filtered out — including loop propagators.
+          For example, 1-loop gluon fusion to Higgs needs the top quark added
+          explicitly (it's the loop particle, not an external).
+        </p>
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: 11,
+              opacity: 0.6,
+              marginBottom: 4,
+            }}
+          >
+            Numerator grouping
+          </label>
+          <select
+            data-testid="generate-numerator-grouping"
+            value={numeratorGrouping}
+            onChange={(e) =>
+              setNumeratorGrouping(e.target.value as NumeratorGroupingMode)
+            }
+            style={{
+              width: "100%",
+              padding: "5px 8px",
+              fontSize: 12,
+              border: "1px solid #bbb",
+              borderRadius: 4,
+              background: "white",
+            }}
+          >
+            <option value="no_grouping">No grouping (fastest, may include duplicates)</option>
+            <option value="only_detect_zeroes">Only detect zeros</option>
+            <option value="group_identical_graphs_up_to_sign">Group up to sign</option>
+            <option value="group_identical_graphs_up_to_scalar_rescaling">Group up to scalar rescaling (slowest)</option>
+          </select>
+        </div>
+      </div>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
         <button
@@ -523,49 +598,3 @@ export function DiagramThumbnail({ spec }: { spec: ExampleSpec }) {
   );
 }
 
-type Tier = "medium" | "slow";
-
-function classifyProcess(loops: number, externs: number): { tier: Tier; copy: string } | null {
-  if (!Number.isFinite(loops) || !Number.isFinite(externs) || loops < 0 || externs < 1) return null;
-  if (loops === 0) {
-    if (externs <= 6) return null;
-    return { tier: "medium", copy: "Tree-level with 7+ externals can take 3–10 minutes." };
-  }
-  if (loops === 1) {
-    if (externs <= 4) return null;
-    if (externs === 5) return { tier: "medium", copy: "1-loop with 5 externals typically takes 4–10 minutes." };
-    return { tier: "slow", copy: "1-loop with 6+ externals can take 30 minutes to 3 hours. Cancel anytime — or switch screens and come back." };
-  }
-  if (loops === 2) {
-    if (externs <= 3) return { tier: "medium", copy: "2-loop processes typically take around 3–5 minutes." };
-    return { tier: "slow", copy: "2-loop with 4+ externals can take 30 minutes to 3 hours. Cancel anytime — or switch screens and come back." };
-  }
-  return { tier: "slow", copy: "3+ loop processes can take hours. Cancel anytime — or switch screens and come back." };
-}
-
-function SlowProcessWarning({ loopCount, externals }: { loopCount: string; externals: number }) {
-  const cls = classifyProcess(Number(loopCount), externals);
-  if (!cls) return null;
-  const palette =
-    cls.tier === "slow"
-      ? { bg: "#ffe4cc", border: "#cc6600", fg: "#7a3a00" }
-      : { bg: "#fff5d6", border: "#c89500", fg: "#5a4400" };
-  return (
-    <div
-      data-testid="slow-process-warning"
-      data-tier={cls.tier}
-      style={{
-        marginTop: 10,
-        padding: "6px 10px",
-        background: palette.bg,
-        border: `1px solid ${palette.border}`,
-        color: palette.fg,
-        borderRadius: 4,
-        fontSize: 12,
-        maxWidth: 560,
-      }}
-    >
-      ⚠ {cls.copy}
-    </div>
-  );
-}

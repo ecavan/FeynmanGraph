@@ -610,7 +610,11 @@ def test_generate_amp_multi_gluon_works():
 
 # ---------- projector helper unit tests (no gammaloop needed) ----------
 
-from feyngraph.api.generate import GenerateAmpRequest, _projector_for_externals
+from feyngraph.api.generate import (
+    GenerateAmpRequest,
+    _build_process_command,
+    _projector_for_externals,
+)
 from feyngraph.domain.model_loader import ModelLoader
 
 
@@ -704,6 +708,70 @@ def test_projector_unbalanced_quarks_returns_none():
 def test_projector_one_gluon_no_quark_line_returns_none():
     p = _projector(["H"], ["g"])
     assert p is None
+
+
+# ---------- _build_process_command FineGen knobs ----------
+
+
+def _cmd(**overrides) -> str:
+    base = {
+        "initial_state": ["g", "g"],
+        "final_state": ["H"],
+        "coupling_orders": {"QCD": 2, "QED": 1},
+        "loop_count": 1,
+    }
+    base.update(overrides)
+    return _build_process_command(GenerateAmpRequest(**base), projector=None)
+
+
+def test_build_command_baseline_has_no_finegen_extras():
+    cmd = _cmd()
+    assert " | " not in cmd
+    assert "--numerator-grouping" not in cmd
+
+
+def test_build_command_active_particles_emits_only_filter():
+    cmd = _cmd(active_particles=["g", "H"])
+    # `|` is the spec grammar's "only-these-particles" selector
+    assert " | g H " in cmd or cmd.endswith(" | g H")
+
+
+def test_build_command_active_particles_filter_precedes_flags():
+    cmd = _cmd(active_particles=["g"])
+    only_at = cmd.index("| g")
+    flag_at = cmd.index("-p amp")
+    assert only_at < flag_at, "particle allow-list must come before flags"
+
+
+def test_build_command_active_particles_empty_list_is_noop():
+    cmd = _cmd(active_particles=[])
+    assert " | " not in cmd
+
+
+@pytest.mark.parametrize("mode", [
+    "no_grouping",
+    "only_detect_zeroes",
+    "group_identical_graphs_up_to_sign",
+    "group_identical_graphs_up_to_scalar_rescaling",
+])
+def test_build_command_numerator_grouping_emits_flag(mode):
+    cmd = _cmd(numerator_grouping=mode)
+    assert f"--numerator-grouping {mode}" in cmd
+
+
+def test_build_command_combines_both_finegen_knobs():
+    cmd = _cmd(active_particles=["g"], numerator_grouping="no_grouping")
+    assert "| g" in cmd
+    assert "--numerator-grouping no_grouping" in cmd
+
+
+def test_build_command_rejects_invalid_grouping_mode():
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        GenerateAmpRequest(
+            initial_state=["g", "g"], final_state=["H"],
+            numerator_grouping="bogus_mode",
+        )
 
 
 def test_version_string():

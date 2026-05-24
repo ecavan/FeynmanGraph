@@ -1,6 +1,7 @@
 import { useDiagramStore } from "./diagram";
 
-export const STORAGE_KEY = "feyngraph:diagram:v1";
+export const STORAGE_KEY = "feyngraph:diagram:v2";
+const LEGACY_STORAGE_KEYS = ["feyngraph:diagram:v1"];
 
 export function saveToLocalStorage(): void {
   const { modelId, theoryId, processName, nodes, edges, externalLegs } =
@@ -10,6 +11,11 @@ export function saveToLocalStorage(): void {
 }
 
 export function restoreFromLocalStorage(): boolean {
+  // Drop any stale state from older persistence schemas so it can't be
+  // accidentally read by a future migration or clutter the user's storage.
+  for (const legacy of LEGACY_STORAGE_KEYS) {
+    try { localStorage.removeItem(legacy); } catch {}
+  }
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return false;
   try {
