@@ -52,6 +52,7 @@ export type ExampleSpec = {
     target_node_id: string;
     particle_pdg_id: number | null;
     direction?: "source_to_target" | "target_to_source";
+    cut_label?: string | null;
   }[];
   external_legs: { node_id: string; kind: "incoming" | "outgoing"; label: string }[];
 };

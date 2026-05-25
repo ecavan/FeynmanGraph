@@ -85,6 +85,8 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
         attrs = [f'id={edge_id_counter}', f'pdg="{edge.particle_pdg_id}"', f'name="{edge_labels[edge.id]}"']
         if edge.id in chord_set:
             attrs.append(f'lmb_id="{chord_index_by_edge[edge.id]}"')
+        if edge.cut_label is not None:
+            attrs.append(f'isCut="{edge.cut_label}"')
         if src_ext:
             line = f"  {edge.source_node_id} -> {edge.target_node_id}:{port} [{', '.join(attrs)}];\n"
         else:
@@ -97,6 +99,8 @@ def to_gammaloop_dot(spec: GraphSpec, model: Model) -> str:
         attrs = [f'id={edge_id_counter}', f'pdg="{edge.particle_pdg_id}"', f'name="{edge_labels[edge.id]}"']
         if edge.id in chord_set:
             attrs.append(f'lmb_id="{chord_index_by_edge[edge.id]}"')
+        if edge.cut_label is not None:
+            attrs.append(f'isCut="{edge.cut_label}"')
         line = f"  {edge.source_node_id}:{port} -> {edge.target_node_id}:{port + 1} [{', '.join(attrs)}];\n"
         buf.write(line)
         port += 2

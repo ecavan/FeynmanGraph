@@ -16,6 +16,7 @@ export function serializeGraphSpec(state: DiagramState) {
       target_node_id: e.targetNodeId,
       particle_pdg_id: e.particlePdgId,
       direction: "source_to_target" as const,
+      cut_label: e.cutLabel ?? null,
     })),
     external_legs: state.externalLegs.map((l) => ({
       node_id: l.nodeId,

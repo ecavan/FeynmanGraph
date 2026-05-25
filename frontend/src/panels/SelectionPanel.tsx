@@ -4,6 +4,8 @@ import {
   particleLabel,
   visualForEdge,
 } from "../canvas/edges/particle-style";
+import type { Model, Particle } from "../api/types";
+import type { ExternalLeg, ParticleEdge, VertexNode } from "../state/diagram";
 import { nextLegLabel, useDiagramStore } from "../state/diagram";
 
 export function SelectionPanel() {
@@ -17,11 +19,14 @@ export function SelectionPanel() {
   const removeVertex = useDiagramStore((s) => s.removeVertex);
   const removeEdge = useDiagramStore((s) => s.removeEdge);
   const setEdgeParticle = useDiagramStore((s) => s.setEdgeParticle);
+  const setEdgeCutPair = useDiagramStore((s) => s.setEdgeCutPair);
+  const clearEdgeCutPair = useDiagramStore((s) => s.clearEdgeCutPair);
   const addExternalLeg = useDiagramStore((s) => s.addExternalLeg);
   const removeExternalLeg = useDiagramStore((s) => s.removeExternalLeg);
   const setSelection = useDiagramStore((s) => s.setSelection);
   const addSelfLoop = useDiagramStore((s) => s.addSelfLoop);
   const duplicateEdge = useDiagramStore((s) => s.duplicateEdge);
+  const lmbEdgeIds = useDiagramStore((s) => s.lmbEdgeIds);
 
   if (selectedKind == null || selectedId == null) {
     return (
@@ -78,6 +83,32 @@ export function SelectionPanel() {
         >
           ↻ Add self-loop
         </button>
+        {leg && (
+          <>
+            <hr style={{ margin: "10px 0" }} />
+            <ExternalCutControl
+              externalNodeId={selectedId}
+              allNodes={nodes}
+              allEdges={edges}
+              allLegs={externalLegs}
+              onPair={(otherExternalId) => {
+                const myEdge = edges.find(
+                  (e) => e.sourceNodeId === selectedId || e.targetNodeId === selectedId,
+                );
+                const otherEdge = edges.find(
+                  (e) => e.sourceNodeId === otherExternalId || e.targetNodeId === otherExternalId,
+                );
+                if (myEdge && otherEdge) setEdgeCutPair(myEdge.id, otherEdge.id);
+              }}
+              onClear={() => {
+                const myEdge = edges.find(
+                  (e) => e.sourceNodeId === selectedId || e.targetNodeId === selectedId,
+                );
+                if (myEdge) clearEdgeCutPair(myEdge.id);
+              }}
+            />
+          </>
+        )}
         <hr style={{ margin: "10px 0" }} />
         <button
           type="button"
@@ -89,6 +120,7 @@ export function SelectionPanel() {
         >
           Delete vertex
         </button>
+        <NodeDetails node={node} edges={edges} leg={leg ?? null} />
       </div>
     );
   }
@@ -137,6 +169,13 @@ export function SelectionPanel() {
         ⌇ Add parallel edge
       </button>
       <hr style={{ margin: "10px 0" }} />
+      <CutControl
+        edge={edge}
+        allEdges={edges}
+        onPair={(partnerId) => setEdgeCutPair(selectedId, partnerId)}
+        onClear={() => clearEdgeCutPair(selectedId)}
+      />
+      <hr style={{ margin: "10px 0" }} />
       <button
         type="button"
         onClick={() => {
@@ -147,6 +186,12 @@ export function SelectionPanel() {
       >
         Delete edge
       </button>
+      <EdgeDetails
+        edge={edge}
+        allEdges={edges}
+        model={model}
+        lmbEdgeIds={lmbEdgeIds}
+      />
     </div>
   );
 }
@@ -219,6 +264,265 @@ function EdgeParticleList(props: {
       })}
     </ul>
   );
+}
+
+function CutControl(props: {
+  edge: ParticleEdge;
+  allEdges: ParticleEdge[];
+  onPair: (partnerEdgeId: string) => void;
+  onClear: () => void;
+}) {
+  const { edge, allEdges } = props;
+  const cutLabel = edge.cutLabel ?? null;
+
+  const eligiblePartners = allEdges.filter(
+    (e) =>
+      e.id !== edge.id &&
+      e.sourceNodeId !== e.targetNodeId &&
+      (e.cutLabel == null || e.cutLabel === cutLabel),
+  );
+
+  if (cutLabel != null) {
+    const linked = allEdges.filter((e) => e.cutLabel === cutLabel && e.id !== edge.id);
+    return (
+      <div data-testid="cut-control" style={{ marginTop: 4 }}>
+        <div style={{ fontSize: 12, marginBottom: 4 }}>
+          <strong>Cut:</strong>{" "}
+          {linked.length === 1
+            ? `linked to ${linked[0].id}`
+            : linked.length === 0
+            ? `orphan (no partner)`
+            : `⚠ shared with ${linked.length} other edges`}{" "}
+          <span style={{ opacity: 0.5 }}>(label: {cutLabel})</span>
+        </div>
+        <button
+          type="button"
+          data-testid="cut-unlink"
+          onClick={props.onClear}
+          style={{ padding: "3px 8px", fontSize: 12 }}
+        >
+          Unlink
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="cut-control" style={{ marginTop: 4 }}>
+      <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>
+        Cut (forward-scattering glue):
+      </label>
+      <select
+        data-testid="cut-partner-select"
+        defaultValue=""
+        onChange={(e) => {
+          if (e.target.value) props.onPair(e.target.value);
+        }}
+        style={{
+          width: "100%",
+          padding: "3px 6px",
+          fontSize: 12,
+          border: "1px solid #bbb",
+          borderRadius: 3,
+        }}
+      >
+        <option value="">— select partner edge —</option>
+        {eligiblePartners.map((e) => (
+          <option key={e.id} value={e.id}>
+            {e.id} ({e.sourceNodeId} → {e.targetNodeId}
+            {e.particlePdgId != null ? `, PDG ${e.particlePdgId}` : ""})
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ExternalCutControl(props: {
+  externalNodeId: string;
+  allNodes: VertexNode[];
+  allEdges: ParticleEdge[];
+  allLegs: ExternalLeg[];
+  onPair: (otherExternalId: string) => void;
+  onClear: () => void;
+}) {
+  const externalIds = new Set(props.allLegs.map((l) => l.nodeId));
+  const myEdge = props.allEdges.find(
+    (e) => e.sourceNodeId === props.externalNodeId || e.targetNodeId === props.externalNodeId,
+  );
+  if (!myEdge) {
+    return (
+      <div data-testid="external-cut-control" style={{ fontSize: 12, opacity: 0.6 }}>
+        Cut: (no incident edge yet)
+      </div>
+    );
+  }
+
+  if (myEdge.cutLabel != null) {
+    const partnerEdge = props.allEdges.find(
+      (e) => e.cutLabel === myEdge.cutLabel && e.id !== myEdge.id,
+    );
+    const partnerExternal = partnerEdge
+      ? [partnerEdge.sourceNodeId, partnerEdge.targetNodeId].find((id) => externalIds.has(id))
+      : undefined;
+    return (
+      <div data-testid="external-cut-control" style={{ marginTop: 4 }}>
+        <div style={{ fontSize: 12, marginBottom: 4 }}>
+          <strong>Cut:</strong>{" "}
+          {partnerExternal
+            ? `paired with ${partnerExternal}`
+            : partnerEdge
+            ? `paired with edge ${partnerEdge.id} (no external end)`
+            : `orphan (no partner)`}
+        </div>
+        <button
+          type="button"
+          data-testid="external-cut-unlink"
+          onClick={props.onClear}
+          style={{ padding: "3px 8px", fontSize: 12 }}
+        >
+          Unlink
+        </button>
+      </div>
+    );
+  }
+
+  const candidates = props.allLegs
+    .map((l) => l.nodeId)
+    .filter((id) => id !== props.externalNodeId)
+    .filter((id) => {
+      const e = props.allEdges.find(
+        (edge) => edge.sourceNodeId === id || edge.targetNodeId === id,
+      );
+      return e != null && e.cutLabel == null && e.id !== myEdge.id;
+    });
+
+  return (
+    <div data-testid="external-cut-control" style={{ marginTop: 4 }}>
+      <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>
+        Cut (pair with another external leg):
+      </label>
+      <select
+        data-testid="external-cut-partner-select"
+        defaultValue=""
+        onChange={(e) => {
+          if (e.target.value) props.onPair(e.target.value);
+        }}
+        style={{
+          width: "100%",
+          padding: "3px 6px",
+          fontSize: 12,
+          border: "1px solid #bbb",
+          borderRadius: 3,
+        }}
+      >
+        <option value="">— select partner external —</option>
+        {candidates.map((id) => {
+          const leg = props.allLegs.find((l) => l.nodeId === id);
+          return (
+            <option key={id} value={id}>
+              {id} ({leg?.kind ?? ""} {leg?.label ?? ""})
+            </option>
+          );
+        })}
+      </select>
+    </div>
+  );
+}
+
+function EdgeDetails(props: {
+  edge: ParticleEdge;
+  allEdges: ParticleEdge[];
+  model: Model | null;
+  lmbEdgeIds: string[] | null;
+}) {
+  const { edge, allEdges, model, lmbEdgeIds } = props;
+  const particle =
+    edge.particlePdgId != null
+      ? model?.particles.find(
+          (p) => p.pdg_id === Math.abs(edge.particlePdgId as number),
+        )
+      : undefined;
+  const particleDisplay =
+    edge.particlePdgId == null
+      ? "(unassigned)"
+      : `${displayParticleName(particle, edge.particlePdgId)} (PDG ${edge.particlePdgId})`;
+  const mass = particle?.mass ?? "—";
+  const isChord = lmbEdgeIds?.includes(edge.id) ?? false;
+  const cutPartner = edge.cutLabel
+    ? allEdges.find((e) => e.cutLabel === edge.cutLabel && e.id !== edge.id)
+    : undefined;
+  const cutDisplay = edge.cutLabel
+    ? `${edge.cutLabel}${cutPartner ? ` → ${cutPartner.id}` : ""}`
+    : "—";
+  return (
+    <DetailsBlock
+      rows={[
+        ["edge id", edge.id],
+        ["particle", particleDisplay],
+        ["mass", mass],
+        ["flow", `${edge.sourceNodeId} → ${edge.targetNodeId}`],
+        ["LMB chord", isChord ? "yes" : "no"],
+        ["cut label", cutDisplay],
+        ["half-port IDs", "computed at export"],
+      ]}
+    />
+  );
+}
+
+function NodeDetails(props: {
+  node: VertexNode;
+  edges: ParticleEdge[];
+  leg: ExternalLeg | null;
+}) {
+  const { node, edges, leg } = props;
+  const incident = edges
+    .filter((e) => e.sourceNodeId === node.id || e.targetNodeId === node.id)
+    .map((e) => e.id);
+  const role = leg ? leg.kind : "internal";
+  const ufo = node.ufoVertexId ?? "(auto-detect)";
+  return (
+    <DetailsBlock
+      rows={[
+        ["vertex id", node.id],
+        ["position", `(${Math.round(node.position[0])}, ${Math.round(node.position[1])})`],
+        ["UFO vertex rule", ufo],
+        ["external role", role],
+        ["incident edges", incident.length ? incident.join(", ") : "—"],
+      ]}
+    />
+  );
+}
+
+function DetailsBlock(props: { rows: [string, string][] }) {
+  return (
+    <div
+      data-testid="selection-details"
+      style={{
+        marginTop: 12,
+        padding: "8px 10px",
+        border: "1px solid #e0e0e0",
+        background: "#f7f7f7",
+        borderRadius: 4,
+        fontSize: 11,
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        lineHeight: 1.55,
+      }}
+    >
+      {props.rows.map(([k, v]) => (
+        <div key={k} style={{ display: "flex" }}>
+          <span style={{ width: 110, opacity: 0.55, flexShrink: 0 }}>{k}</span>
+          <span style={{ flex: 1, wordBreak: "break-word" }}>{v}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function displayParticleName(particle: Particle | undefined, pdg: number): string {
+  if (!particle) return `pdg ${pdg}`;
+  if (pdg < 0 && particle.anti_name !== particle.name) return particle.anti_name;
+  return particle.name;
 }
 
 function EdgeStrokePreview({ pdgId }: { pdgId: number }) {

@@ -11,7 +11,8 @@ class DotParseError(ValueError):
 _DIGRAPH_HEAD = re.compile(r"digraph\s+(\w+)\s*\{")
 _INTERNAL_VERTEX = re.compile(r'^\s*([A-Za-z0-9_]+)\s*\[int_id="([^"]+)"', re.M)
 _BARE_INTERNAL_VERTEX = re.compile(r"^\s*([A-Za-z0-9_]+)\s*;\s*$", re.M)
-_EXTERNAL_NODE = re.compile(r"^\s*(\w+)\s*\[style=invis\]", re.M)
+_EXTERNAL_NODE = re.compile(r"^\s*(\w+)\s*\[[^\]]*style=invis", re.M)
+_NODE_ISCUT = re.compile(r'^\s*([A-Za-z0-9_]+)\s*\[[^\]]*isCut="([^"]*)"', re.M)
 _EDGE = re.compile(
     r"^\s*([A-Za-z0-9_]+)(?::\d+)?\s*->\s*([A-Za-z0-9_]+)(?::\d+)?\s*\[([^\]]*)\];?",
     re.M,
@@ -19,6 +20,7 @@ _EDGE = re.compile(
 _PARTICLE_ATTR = re.compile(r'particle="([^"]+)"')
 _PDG_ATTR = re.compile(r'pdg="?(-?\d+)"?')
 _LMB_ID_ATTR = re.compile(r'lmb_id="?(\d+)"?')
+_ISCUT_ATTR = re.compile(r'isCut="([^"]*)"')
 
 
 def _name_to_pdg(model: Model) -> dict[str, int]:
@@ -93,12 +95,25 @@ def parse_gammaloop_dot(
                 )
         eid_counter += 1
         eid = f"e{eid_counter}"
+        cut_m = _ISCUT_ATTR.search(attrs)
         edges.append(ParticleEdge(
             id=eid, source_node_id=src, target_node_id=tgt,
             particle_pdg_id=pdg_value,
+            cut_label=cut_m.group(1) if cut_m else None,
         ))
         if _LMB_ID_ATTR.search(attrs):
             chord_ids.append(eid)
+
+    # Linnet shorthand: node-level isCut propagates to incident half-edges;
+    # an edge's own isCut wins if both are present.
+    node_cuts = {m.group(1): m.group(2) for m in _NODE_ISCUT.finditer(text)}
+    if node_cuts:
+        for edge in edges:
+            if edge.cut_label is not None:
+                continue
+            node_label = node_cuts.get(edge.source_node_id) or node_cuts.get(edge.target_node_id)
+            if node_label is not None:
+                edge.cut_label = node_label
 
     legs: list[ExternalLeg] = []
     p_counter = 0

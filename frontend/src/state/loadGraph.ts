@@ -21,6 +21,7 @@ export function loadGraphIntoStore(spec: ExampleSpec): void {
       sourceNodeId: e.source_node_id,
       targetNodeId: e.target_node_id,
       particlePdgId: e.particle_pdg_id,
+      cutLabel: e.cut_label ?? null,
     })),
     externalLegs: spec.external_legs.map((leg) => ({
       nodeId: leg.node_id,

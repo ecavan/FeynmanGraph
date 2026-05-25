@@ -341,6 +341,76 @@ def test_writer_parser_roundtrip(model):
     assert {l.kind for l in parsed.external_legs} == {"incoming", "outgoing"}
 
 
+# ---------- isCut (forward-scattering glue) ----------
+
+
+def test_writer_emits_iscut_when_set(model):
+    spec = _ee_mumu_spec()
+    spec.edges[0].cut_label = "e1"
+    spec.edges[3].cut_label = "e1"
+    dot = to_gammaloop_dot(spec, model)
+    assert dot.count('isCut="e1"') == 2
+
+
+def test_writer_omits_iscut_by_default(model):
+    spec = _ee_mumu_spec()
+    dot = to_gammaloop_dot(spec, model)
+    assert "isCut" not in dot
+
+
+def test_parser_reads_iscut(model):
+    dot_with_cut = _GLOOP_DOT_SAMPLE.replace(
+        '[id=0 particle="e-"]',
+        '[id=0 particle="e-" isCut="x1"]',
+    ).replace(
+        '[id=3 dir=back particle="mu+"]',
+        '[id=3 dir=back particle="mu+" isCut="x1"]',
+    )
+    spec = parse_gammaloop_dot(dot_with_cut, model)
+    with_cut = [e for e in spec.edges if e.cut_label == "x1"]
+    assert len(with_cut) == 2
+
+
+def test_iscut_round_trip(model):
+    spec = _ee_mumu_spec()
+    spec.model_id = "sm_minimal"
+    spec.edges[0].cut_label = "forward1"
+    spec.edges[3].cut_label = "forward1"
+    dot = to_gammaloop_dot(spec, model)
+    parsed = parse_gammaloop_dot(dot, model, model_id="sm_minimal")
+    cut_edges = [e for e in parsed.edges if e.cut_label == "forward1"]
+    assert len(cut_edges) == 2
+
+
+def test_parser_propagates_node_iscut_to_incident_edges(model):
+    dot = _GLOOP_DOT_SAMPLE.replace(
+        'exte0   [style=invis];',
+        'exte0   [style=invis, isCut="x1"];',
+    ).replace(
+        'exte3   [style=invis];',
+        'exte3   [style=invis, isCut="x1"];',
+    )
+    spec = parse_gammaloop_dot(dot, model)
+    cut_edges = [e for e in spec.edges if e.cut_label == "x1"]
+    assert len(cut_edges) == 2
+    cut_endpoints = {(e.source_node_id, e.target_node_id) for e in cut_edges}
+    assert ("exte0", "0") in cut_endpoints
+    assert ("1", "exte3") in cut_endpoints
+
+
+def test_parser_edge_iscut_wins_over_node_propagation(model):
+    dot = _GLOOP_DOT_SAMPLE.replace(
+        'exte0   [style=invis];',
+        'exte0   [style=invis, isCut="from_node"];',
+    ).replace(
+        '[id=0 particle="e-"]',
+        '[id=0 particle="e-" isCut="from_edge"]',
+    )
+    spec = parse_gammaloop_dot(dot, model)
+    edge0 = next(e for e in spec.edges if e.source_node_id == "exte0")
+    assert edge0.cut_label == "from_edge"
+
+
 def test_bundled_sm_file_exists():
     assert (MODELS_DIR / "sm.json").is_file()
 

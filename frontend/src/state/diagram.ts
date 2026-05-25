@@ -13,6 +13,7 @@ export type ParticleEdge = {
   sourceNodeId: string;
   targetNodeId: string;
   particlePdgId: number | null;
+  cutLabel?: string | null;
 };
 
 export type ExternalLeg = {
@@ -64,6 +65,8 @@ export type DiagramState = {
   addEdge: (e: Omit<ParticleEdge, "particlePdgId"> & { particlePdgId?: number | null }) => void;
   removeEdge: (id: string) => void;
   setEdgeParticle: (id: string, pdgId: number | null) => void;
+  setEdgeCutPair: (edgeAId: string, edgeBId: string) => void;
+  clearEdgeCutPair: (edgeId: string) => void;
   addExternalLeg: (leg: ExternalLeg) => void;
   addIncomingLeg: () => string;
   addOutgoingLeg: () => string;
@@ -238,6 +241,34 @@ export const useDiagramStore = create<DiagramState>((set) => ({
       _past: pushHistory(s._past, snapshot(s)),
       _future: [],
     })),
+  setEdgeCutPair: (edgeAId, edgeBId) =>
+    set((s) => {
+      if (edgeAId === edgeBId) return {};
+      const edgeA = s.edges.find((e) => e.id === edgeAId);
+      const edgeB = s.edges.find((e) => e.id === edgeBId);
+      if (!edgeA || !edgeB) return {};
+      const past = pushHistory(s._past, snapshot(s));
+      const label = edgeAId < edgeBId ? edgeAId : edgeBId;
+      const edges = s.edges.map((e) => {
+        if (e.id === edgeAId || e.id === edgeBId) {
+          return { ...e, cutLabel: label };
+        }
+        if (e.cutLabel === label) return { ...e, cutLabel: null };
+        return e;
+      });
+      return { edges, _past: past, _future: [] };
+    }),
+  clearEdgeCutPair: (edgeId) =>
+    set((s) => {
+      const target = s.edges.find((e) => e.id === edgeId);
+      if (!target || target.cutLabel == null) return {};
+      const label = target.cutLabel;
+      const past = pushHistory(s._past, snapshot(s));
+      const edges = s.edges.map((e) =>
+        e.cutLabel === label ? { ...e, cutLabel: null } : e,
+      );
+      return { edges, _past: past, _future: [] };
+    }),
   addExternalLeg: (leg) =>
     set((s) => {
       const past = pushHistory(s._past, snapshot(s));

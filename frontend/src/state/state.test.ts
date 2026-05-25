@@ -36,6 +36,62 @@ describe("diagram store", () => {
     expect(useDiagramStore.getState().edges[0].particlePdgId).toBe(22);
   });
 
+  describe("isCut pairing", () => {
+    function setupTwoEdges() {
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v1", position: [0, 0] });
+      s.addVertex({ id: "v2", position: [100, 0] });
+      s.addVertex({ id: "v3", position: [0, 100] });
+      s.addVertex({ id: "v4", position: [100, 100] });
+      s.addEdge({ id: "e1", sourceNodeId: "v1", targetNodeId: "v2" });
+      s.addEdge({ id: "e2", sourceNodeId: "v3", targetNodeId: "v4" });
+    }
+
+    it("setEdgeCutPair labels both edges with the same shared cutLabel", () => {
+      setupTwoEdges();
+      useDiagramStore.getState().setEdgeCutPair("e1", "e2");
+      const edges = useDiagramStore.getState().edges;
+      expect(edges.find((e) => e.id === "e1")?.cutLabel).toBe("e1");
+      expect(edges.find((e) => e.id === "e2")?.cutLabel).toBe("e1");
+    });
+
+    it("setEdgeCutPair uses the alphabetically-first edge id regardless of click order", () => {
+      setupTwoEdges();
+      useDiagramStore.getState().setEdgeCutPair("e2", "e1");
+      expect(useDiagramStore.getState().edges.find((e) => e.id === "e1")?.cutLabel).toBe("e1");
+    });
+
+    it("clearEdgeCutPair removes the label from both edges", () => {
+      setupTwoEdges();
+      const s = useDiagramStore.getState();
+      s.setEdgeCutPair("e1", "e2");
+      s.clearEdgeCutPair("e1");
+      const edges = useDiagramStore.getState().edges;
+      expect(edges.find((e) => e.id === "e1")?.cutLabel).toBeNull();
+      expect(edges.find((e) => e.id === "e2")?.cutLabel).toBeNull();
+    });
+
+    it("re-pairing strips the label from a third orphan edge so cuts stay 2-way", () => {
+      setupTwoEdges();
+      const s = useDiagramStore.getState();
+      s.addVertex({ id: "v5", position: [200, 0] });
+      s.addVertex({ id: "v6", position: [200, 100] });
+      s.addEdge({ id: "e3", sourceNodeId: "v5", targetNodeId: "v6" });
+      s.setEdgeCutPair("e1", "e2");
+      s.setEdgeCutPair("e1", "e3");
+      const edges = useDiagramStore.getState().edges;
+      expect(edges.find((e) => e.id === "e1")?.cutLabel).toBe("e1");
+      expect(edges.find((e) => e.id === "e3")?.cutLabel).toBe("e1");
+      expect(edges.find((e) => e.id === "e2")?.cutLabel).toBeNull();
+    });
+
+    it("setEdgeCutPair is a no-op if you try to pair an edge with itself", () => {
+      setupTwoEdges();
+      useDiagramStore.getState().setEdgeCutPair("e1", "e1");
+      expect(useDiagramStore.getState().edges.find((e) => e.id === "e1")?.cutLabel ?? null).toBeNull();
+    });
+  });
+
   it("removing a vertex also removes its incident edges and external legs", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });

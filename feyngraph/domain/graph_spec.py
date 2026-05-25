@@ -21,6 +21,7 @@ class ParticleEdge(BaseModel):
     target_node_id: str
     particle_pdg_id: int | None = None
     direction: EdgeDirection = EdgeDirection.SOURCE_TO_TARGET
+    cut_label: str | None = None
 
 
 class ExternalLeg(BaseModel):
