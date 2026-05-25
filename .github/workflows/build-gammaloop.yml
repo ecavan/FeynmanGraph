@@ -1,0 +1,66 @@
+name: Build gammaloop binary
+
+on:
+  workflow_dispatch:
+    inputs:
+      gammaloop_ref:
+        description: "gammaloop git ref (branch, tag, or SHA)"
+        default: "main"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.92-bookworm
+
+    steps:
+      - name: Install prerequisites
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libssl-dev pkg-config git ca-certificates
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Clone gammaloop
+        run: |
+          git clone https://github.com/alphal00p/gammaloop.git /tmp/gammaloop
+          cd /tmp/gammaloop
+          git checkout ${{ github.event.inputs.gammaloop_ref || 'main' }}
+          echo "GAMMALOOP_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build gammaloop (dev-optim)
+        env:
+          CARGO_INCREMENTAL: "0"
+        run: |
+          cd /tmp/gammaloop
+          cargo build -j 2 -p gammaloop-api --bin gammaloop --features ufo_support --profile dev-optim
+          ls -lh target/dev-optim/gammaloop
+          strip target/dev-optim/gammaloop
+          ls -lh target/dev-optim/gammaloop
+
+      - name: Sanity-check the binary
+        run: /tmp/gammaloop/target/dev-optim/gammaloop --version
+
+      - name: Stage binary for upload
+        run: |
+          mkdir -p staging
+          cp /tmp/gammaloop/target/dev-optim/gammaloop staging/gammaloop-linux-x86_64
+
+      - name: Publish to GitHub Release (gammaloop-bin)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: gammaloop-bin
+          name: "gammaloop binary (dev-optim, debian-bookworm, x86_64)"
+          body: |
+            Pre-built gammaloop binary for HF Spaces / Docker consumption.
+            - Source: https://github.com/alphal00p/gammaloop @ ${{ env.GAMMALOOP_SHA }}
+            - Profile: dev-optim, features = ufo_support
+            - Built in `rust:1.92-bookworm` (glibc-compatible with python:3.13-slim)
+            - Stripped
+          files: staging/gammaloop-linux-x86_64
+          fail_on_unmatched_files: true
+          make_latest: false
