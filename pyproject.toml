@@ -3,13 +3,42 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "feyngraph"
+name = "feynmangraph"
 dynamic = ["version"]
-description = "Interactive Feynman diagram builder that exports .dot files"
+description = "Web frontend for building Feynman diagrams and exporting gammaloop-compatible .dot files"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{ name = "Elijah Cavan" }]
+license-files = ["LICENSE"]
+authors = [{ name = "Elijah Cavan", email = "eli_cavan@live.ca" }]
+maintainers = [{ name = "Elijah Cavan", email = "eli_cavan@live.ca" }]
+keywords = [
+    "particle physics",
+    "feynman diagrams",
+    "quantum field theory",
+    "QFT",
+    "gammaloop",
+    "linnet",
+    "UFO",
+    "BSM",
+    "forward scattering",
+    "fastapi",
+    "reactflow",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Framework :: FastAPI",
+]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
@@ -18,6 +47,11 @@ dependencies = [
     "ufo-model-loader>=0.1",
     "python-multipart>=0.0.9",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ecavan/FeynmanGraph"
+Repository = "https://github.com/ecavan/FeynmanGraph"
+Issues = "https://github.com/ecavan/FeynmanGraph/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -30,7 +64,7 @@ dev = [
 ]
 
 [project.scripts]
-feyngraph = "feyngraph.__main__:main"
+feynmangraph = "feyngraph.__main__:main"
 
 [tool.hatch.version]
 path = "feyngraph/version.py"
