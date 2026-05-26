@@ -128,7 +128,7 @@ export function TypstMath({ source }: { source: string }) {
       data-testid="typst-svg"
       style={{
         padding: "12px 16px", background: "white", border: "1px solid #e0e0e0",
-        borderRadius: 4, overflow: "auto", textAlign: "center",
+        borderRadius: 4, overflow: "auto", textAlign: "center", maxHeight: 260,
       }}
       dangerouslySetInnerHTML={{ __html: state.svg }}
     />

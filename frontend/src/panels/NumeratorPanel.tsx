@@ -85,6 +85,16 @@ export function NumeratorPanel() {
                 ✕ Cancel
               </button>
             )}
+            {!busy && raw && (
+              <button
+                type="button"
+                data-testid="numerator-clear"
+                onClick={() => { setRaw(null); setError(null); setShowSource(false); }}
+                style={{ padding: "3px 8px", fontSize: 12 }}
+              >
+                ✕ Clear
+              </button>
+            )}
           </div>
           {error && (
             <div
