@@ -17,7 +17,7 @@ RUN curl -fsSL "$GAMMALOOP_URL" -o /usr/local/bin/gammaloop \
     && test -x /usr/local/bin/gammaloop \
     && ls -lh /usr/local/bin/gammaloop
 
-RUN pip install --no-cache-dir feynmangraph==0.1.5
+RUN pip install --no-cache-dir feynmangraph==0.1.6
 
 EXPOSE 8000
 
