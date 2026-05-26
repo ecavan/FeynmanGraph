@@ -73,13 +73,6 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
     return () => { cancelled = true; };
   }, [modelId, theoryId]);
 
-  // Auto-fill "Restrict to" from the current process externals. The user is
-  // expected to add any internal particles (loop propagators, exchanged
-  // particles) themselves; anything not in this list is filtered out.
-  useEffect(() => {
-    const externals = [...initialList, ...finalList];
-    setActiveParticles(Array.from(new Set(externals)));
-  }, [initialList, finalList]);
 
   function handleTheoryChange(next: string) {
     setTheoryId(next);
@@ -255,16 +248,16 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         </div>
         <div data-testid="generate-active-particles" style={{ marginBottom: 6 }}>
           <ParticleSlot
-            label="Restrict to (auto-filled from externals — add internal/loop particles you expect)"
+            label="Restrict to (empty = all particles in the loaded model)"
             particles={activeParticles}
             onChange={setActiveParticles}
             model={model}
           />
         </div>
         <p style={{ margin: "0 0 12px 2px", fontSize: 11, opacity: 0.65, lineHeight: 1.4 }}>
-          Any particle missing here is filtered out — including loop propagators.
-          For example, 1-loop gluon fusion to Higgs needs the top quark added
-          explicitly (it's the loop particle, not an external).
+          Optional speed-up: list the particles allowed in any diagram
+          (externals + internal propagators). Anything you pick excludes
+          everything else. Leave empty for full enumeration.
         </p>
         <div>
           <label
