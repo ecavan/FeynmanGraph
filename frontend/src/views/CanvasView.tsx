@@ -18,9 +18,23 @@ export function CanvasView() {
         <aside style={{ borderRight: "1px solid #ccc", padding: 12, overflow: "auto" }}>
           <Toolbox />
         </aside>
-        <div style={{ position: "relative", minHeight: 0 }}>
-          <DiagramCanvas />
-          <CanvasActions />
+        <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+            <DiagramCanvas />
+            <CanvasActions />
+          </div>
+          <div
+            style={{
+              borderTop: "1px solid #ccc",
+              background: "#fafafa",
+              padding: 12,
+              maxHeight: "38vh",
+              overflow: "auto",
+              flexShrink: 0,
+            }}
+          >
+            <NumeratorPanel />
+          </div>
         </div>
         <aside
           style={{
@@ -30,8 +44,6 @@ export function CanvasView() {
           }}
         >
           <SelectionPanel />
-          <hr />
-          <NumeratorPanel />
           <hr />
           <ConservationSidebar />
           <hr />

@@ -230,18 +230,11 @@ async def generate_amp(req: GenerateAmpRequest) -> GenerateAmpResponse:
                 detail=f"gammaloop generate failed: {stderr.strip()[-500:]}",
                 code="GENERATE_FAILED",
             )
-        # Glob broadly: gammaloop's output path varies by version + integrand
-        # name choice. We accept any .dot under processes/amplitudes/.
         dot_files = sorted((tmpdir / "state" / "processes" / "amplitudes").glob("**/*.dot"))
         if not dot_files:
-            tail = stderr.strip()[-700:] if stderr.strip() else "(empty)"
-            stdout_tail = proc.stdout.strip()[-300:] if proc.stdout.strip() else "(empty)"
             raise FeyngraphHTTPException(
                 status_code=422,
-                detail=(
-                    f"gammaloop produced no diagrams. "
-                    f"stderr: {tail} | stdout: {stdout_tail}"
-                ),
+                detail=f"gammaloop produced no diagrams. stderr: {stderr.strip()[-700:] or '(empty)'}",
                 code="NO_DIAGRAMS",
             )
 

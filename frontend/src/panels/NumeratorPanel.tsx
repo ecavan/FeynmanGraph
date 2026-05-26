@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
 import { serializeGraphSpec } from "./serialize";
+import { TypstMath } from "./TypstMath";
 
 const api = new ApiClient();
 
@@ -11,10 +12,10 @@ export function NumeratorPanel() {
   const [raw, setRaw] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [showSource, setShowSource] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
 
-  const nNodes = state.nodes.length;
-  const empty = nNodes === 0;
+  const empty = state.nodes.length === 0;
 
   async function load() {
     setBusy(true);
@@ -102,27 +103,45 @@ export function NumeratorPanel() {
           )}
           {raw && (
             <>
-              <p style={{ margin: "0 0 4px", fontSize: 11, opacity: 0.6 }}>
-                Format: Typst-Symbolica (gammaloop default). Copy-paste into Typst to render.
-              </p>
-              <pre
-                data-testid="numerator-text"
-                style={{
-                  margin: 0,
-                  padding: "8px 10px",
-                  background: "#f7f7f7",
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 3,
-                  fontSize: 11,
-                  lineHeight: 1.4,
-                  maxHeight: 320,
-                  overflow: "auto",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {raw}
-              </pre>
+              <TypstMath source={raw} />
+              <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  data-testid="numerator-toggle-source"
+                  onClick={() => setShowSource((s) => !s)}
+                  style={{
+                    padding: "2px 8px",
+                    fontSize: 11,
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: 3,
+                    cursor: "pointer",
+                    opacity: 0.7,
+                  }}
+                >
+                  {showSource ? "Hide source" : "Show source (Typst)"}
+                </button>
+              </div>
+              {showSource && (
+                <pre
+                  data-testid="numerator-text"
+                  style={{
+                    margin: "6px 0 0",
+                    padding: "8px 10px",
+                    background: "#f7f7f7",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: 3,
+                    fontSize: 11,
+                    lineHeight: 1.4,
+                    maxHeight: 240,
+                    overflow: "auto",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {raw}
+                </pre>
+              )}
             </>
           )}
         </>

@@ -13,7 +13,7 @@ Web frontend for building Feynman diagrams. Hand-draw them on a canvas with live
 
 ```bash
 pip install feynmangraph
-feynmangraph setup     # builds gammaloop (~15 min, one-time, needs Rust)
+feynmangraph setup     # builds gammaloop
 feynmangraph serve     # http://localhost:8000
 ```
 
@@ -29,9 +29,6 @@ The Canvas, Import, and Export tabs work without `gammaloop`; only the Generate 
 
 Built on [gammaloop](https://github.com/alphal00p/gammaloop) (diagram enumeration + `.dot` dialect), [FastAPI](https://fastapi.tiangolo.com/), [React](https://react.dev/) + [reactflow](https://reactflow.dev/).
 
-## Out of scope
-
-This is the editor and the front door to gammaloop. Amplitude evaluation, cross-sections, decay widths — all gammaloop's job. See <https://github.com/alphal00p/gammaloop>.
 
 ## License
 
