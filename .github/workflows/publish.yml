@@ -33,7 +33,10 @@ jobs:
       - name: Build release distributions
         run: |
           python -m pip install build
-          python -m build
+          # Build wheel directly; default `python -m build` goes sdist→wheel,
+          # but our sdist target doesn't list the frontend bundle as an artifact,
+          # so the wheel built from it would be missing feyngraph/data/frontend/.
+          python -m build --wheel
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
