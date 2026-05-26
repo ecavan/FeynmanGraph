@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl -fsSL "$GAMMALOOP_URL" -o /usr/local/bin/gammaloop \
     && chmod +x /usr/local/bin/gammaloop \
-    && file /usr/local/bin/gammaloop
+    && test -x /usr/local/bin/gammaloop \
+    && ls -lh /usr/local/bin/gammaloop
 
 RUN pip install --no-cache-dir feynmangraph
 

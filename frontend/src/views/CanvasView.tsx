@@ -4,6 +4,7 @@ import { ConservationSidebar } from "../panels/ConservationSidebar";
 import { GalleryStrip } from "../panels/GalleryStrip";
 import { IssuesPanel } from "../panels/IssuesPanel";
 import { LoopRoutingPanel } from "../panels/LoopRoutingPanel";
+import { NumeratorPanel } from "../panels/NumeratorPanel";
 import { SelectionPanel } from "../panels/SelectionPanel";
 import { Toolbox } from "../panels/Toolbox";
 
@@ -29,6 +30,8 @@ export function CanvasView() {
           }}
         >
           <SelectionPanel />
+          <hr />
+          <NumeratorPanel />
           <hr />
           <ConservationSidebar />
           <hr />

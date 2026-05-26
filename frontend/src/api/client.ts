@@ -105,6 +105,18 @@ export class ApiClient {
     });
   }
 
+  getNumerator(
+    spec: ExampleSpec,
+    signal?: AbortSignal,
+  ): Promise<{ raw: string; format: string; warnings: string[] }> {
+    return this.request("/api/numerator", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(spec),
+      signal,
+    });
+  }
+
   async exportDotBatch(diagrams: ExampleSpec[], archiveName: string): Promise<Blob> {
     const resp = await fetch(`${this.base}/api/export-dot-batch`, {
       method: "POST",
