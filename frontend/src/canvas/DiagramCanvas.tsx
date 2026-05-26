@@ -77,8 +77,12 @@ function DiagramCanvasInner() {
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       for (const change of changes) {
-        if (change.type === "position" && change.position && change.dragging === false) {
-          updateVertexPosition(change.id, [change.position.x, change.position.y]);
+        if (change.type === "position" && change.position) {
+          updateVertexPosition(
+            change.id,
+            [change.position.x, change.position.y],
+            change.dragging !== true,
+          );
         }
       }
     },

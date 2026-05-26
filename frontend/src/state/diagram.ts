@@ -61,7 +61,7 @@ export type DiagramState = {
   setSelection: (id: string | null, kind: SelectionKind) => void;
   addVertex: (v: VertexNode) => void;
   removeVertex: (id: string) => void;
-  updateVertexPosition: (id: string, position: [number, number]) => void;
+  updateVertexPosition: (id: string, position: [number, number], commit?: boolean) => void;
   addEdge: (e: Omit<ParticleEdge, "particlePdgId"> & { particlePdgId?: number | null }) => void;
   removeEdge: (id: string) => void;
   setEdgeParticle: (id: string, pdgId: number | null) => void;
@@ -201,12 +201,12 @@ export const useDiagramStore = create<DiagramState>((set) => ({
         _future: [],
       };
     }),
-  updateVertexPosition: (id, position) =>
-    set((s) => ({
-      nodes: s.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
-      _past: pushHistory(s._past, snapshot(s)),
-      _future: [],
-    })),
+  updateVertexPosition: (id, position, commit = true) =>
+    set((s) => {
+      const nodes = s.nodes.map((n) => (n.id === id ? { ...n, position } : n));
+      if (!commit) return { nodes };
+      return { nodes, _past: pushHistory(s._past, snapshot(s)), _future: [] };
+    }),
   addEdge: (e) =>
     set((s) => {
       const past = pushHistory(s._past, snapshot(s));
