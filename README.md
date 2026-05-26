@@ -6,6 +6,8 @@
 
 Web frontend for building Feynman diagrams. Hand-draw them on a canvas with live conservation/legality checks, or type a process like `e+ e- → mu+ mu-` and have [gammaloop](https://github.com/alphal00p/gammaloop) enumerate the diagrams for you. Forward-scattering cuts, UFO models, and round-trip `.dot` export included.
 
+**Live demo:** <https://huggingface.co/spaces/ecavan/feynmangraph>
+
 ![feynmangraph](examples/frontend.png)
 *1-loop electron self-energy with forward-scattering glue between the incoming and outgoing legs.*
 
