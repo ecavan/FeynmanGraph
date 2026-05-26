@@ -519,6 +519,82 @@ def test_upload_rejects_unsafe_zip_path():
     assert resp.json()["code"] == "UNSAFE_ARCHIVE_PATH"
 
 
+_DOT_FIXTURE = """digraph imported_ee_mumu{
+  exte0 [style=invis];
+  exte1 [style=invis];
+  exte2 [style=invis];
+  exte3 [style=invis];
+  v1 [int_id="V_98"];
+  v2 [int_id="V_99"];
+  exte0 -> v1:0  [id=0 particle="e-"];
+  exte1 -> v1:1  [id=1 dir=back particle="e+"];
+  v2:2 -> exte2  [id=2 particle="mu-"];
+  v2:3 -> exte3  [id=3 dir=back particle="mu+"];
+  v1:4 -> v2:5   [id=4 lmb_id="0" particle="a"];
+}"""
+
+
+def test_import_dot_round_trips_to_graph_spec():
+    resp = _client().post(
+        "/api/import-dot",
+        files={"file": ("ee_mumu.dot", _DOT_FIXTURE, "text/plain")},
+        data={"model_id": "sm"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["process_name"] == "imported_ee_mumu"
+    assert len(body["edges"]) == 5
+    pdgs = sorted(e["particle_pdg_id"] for e in body["edges"])
+    assert pdgs == [-13, -11, 11, 13, 22]
+
+
+def test_import_dot_rejects_non_digraph():
+    resp = _client().post(
+        "/api/import-dot",
+        files={"file": ("bad.dot", "this is not a graph", "text/plain")},
+        data={"model_id": "sm"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "DOT_PARSE_FAILED"
+
+
+_DOT_WITH_GLUON = """digraph qcd_test{
+  exte0 [style=invis];
+  exte1 [style=invis];
+  exte2 [style=invis];
+  exte3 [style=invis];
+  v1;
+  v2;
+  exte0 -> v1:0 [id=0 particle="g"];
+  exte1 -> v1:1 [id=1 particle="g"];
+  v2:2  -> exte2 [id=2 particle="g"];
+  v2:3  -> exte3 [id=3 particle="g"];
+  v1:4  -> v2:5  [id=4 particle="g"];
+}"""
+
+
+def test_import_dot_falls_back_to_auto_detected_model():
+    resp = _client().post(
+        "/api/import-dot",
+        files={"file": ("qcd.dot", _DOT_WITH_GLUON, "text/plain")},
+        data={"model_id": "sm_minimal"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["model_id"] == "sm", f"expected auto-detect to land on sm, got {body['model_id']}"
+    assert len(body["edges"]) == 5
+
+
+def test_import_dot_rejects_unknown_model():
+    resp = _client().post(
+        "/api/import-dot",
+        files={"file": ("ee_mumu.dot", _DOT_FIXTURE, "text/plain")},
+        data={"model_id": "no_such_model"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "MODEL_NOT_FOUND"
+
+
 def test_upload_surfaces_subprocess_failure(monkeypatch):
     def fake_invoke(*, ufo_root, output_path, restriction_name):
         from feyngraph.api.errors import FeyngraphHTTPException

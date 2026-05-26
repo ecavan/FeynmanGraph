@@ -1,4 +1,5 @@
 import { forwardRef, useRef, useState } from "react";
+import { DotUploader } from "./DotUploader";
 import { ExportPanel } from "./ExportPanel";
 import { GeneratePanel } from "./GeneratePanel";
 import { Popover } from "./Popover";
@@ -49,6 +50,8 @@ export function CanvasActions() {
       </Popover>
       <Popover anchorRef={impRef} open={open === "import"} onClose={close} width={340}>
         <UfoUploader onUploaded={handleImportSuccess} />
+        <hr style={{ margin: "14px 0" }} />
+        <DotUploader onImported={handleImportSuccess} />
       </Popover>
       <Popover anchorRef={expRef} open={open === "export"} onClose={close} width={520}>
         <ExportPanel openTick={exportTick} />

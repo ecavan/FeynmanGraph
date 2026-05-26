@@ -132,6 +132,22 @@ export class ApiClient {
     return resp.blob();
   }
 
+  async importDot(file: File, modelId: string, theoryId: string): Promise<ExampleSpec> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("model_id", modelId);
+    form.append("theory_id", theoryId);
+    const resp = await fetch(`${this.base}/api/import-dot`, { method: "POST", body: form });
+    if (!resp.ok) {
+      const body = (await resp.json().catch(() => ({
+        detail: resp.statusText,
+        code: "HTTP_ERROR",
+      }))) as APIError;
+      throw new ApiError(body);
+    }
+    return resp.json();
+  }
+
   async uploadUfo(
     file: File,
     options: { modelId?: string; restrictionName?: string; overwrite?: boolean } = {},
