@@ -1,12 +1,12 @@
 import os
 import re
-import subprocess
 import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from feyngraph.api._gammaloop_runner import DEFAULT_TIMEOUT_S, run_gammaloop
 from feyngraph.api.errors import FeyngraphHTTPException
 from feyngraph.api.generate import _gammaloop_bin
 from feyngraph.domain.dot_writer import (
@@ -76,9 +76,9 @@ async def numerator(spec: GraphSpec) -> NumeratorResponse:
             f'  "import graphs {dot_path} -p amp",\n'
             f'  "save dot --output-full-numerator",\n]\n'
         )
-        proc = subprocess.run(
+        proc = await run_gammaloop(
             [gammaloop, str(toml_path), "run", "g"],
-            cwd=tmpdir, capture_output=True, text=True, timeout=600,
+            cwd=tmpdir, timeout=DEFAULT_TIMEOUT_S,
         )
         if proc.returncode != 0:
             raise FeyngraphHTTPException(

@@ -1,0 +1,1141 @@
+{
+  "version": 1,
+  "thresholds_gb": {
+    "green": 6.0,
+    "yellow": 10.0
+  },
+  "theories": {
+    "sm": {
+      "points": [
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.18,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.034,
+          "runtime_s": 0.28,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.049,
+          "runtime_s": 1.5,
+          "diagrams": 96,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.247,
+          "runtime_s": 42.48,
+          "diagrams": 86,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 2,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 1.625,
+          "runtime_s": 182.81,
+          "diagrams": 9783,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 2,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 1.439,
+          "runtime_s": 1500.12,
+          "diagrams": 0,
+          "notes": "timeout"
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.17,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.2,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.057,
+          "runtime_s": 2.28,
+          "diagrams": 163,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.398,
+          "runtime_s": 45.58,
+          "diagrams": 132,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.19,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.2,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.055,
+          "runtime_s": 2.34,
+          "diagrams": 147,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.145,
+          "runtime_s": 32.27,
+          "diagrams": 79,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=3",
+          "ram_gb": 0.035,
+          "runtime_s": 0.39,
+          "diagrams": 16,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=3",
+          "ram_gb": 0.038,
+          "runtime_s": 0.8,
+          "diagrams": 12,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.17,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.21,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.035,
+          "runtime_s": 0.18,
+          "diagrams": 4,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.036,
+          "runtime_s": 0.25,
+          "diagrams": 4,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.2,
+          "diagrams": 6,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.035,
+          "runtime_s": 0.29,
+          "diagrams": 5,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.074,
+          "runtime_s": 2.95,
+          "diagrams": 213,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.351,
+          "runtime_s": 42.18,
+          "diagrams": 137,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.069,
+          "runtime_s": 2.84,
+          "diagrams": 203,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.345,
+          "runtime_s": 62.34,
+          "diagrams": 159,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.084,
+          "runtime_s": 4.35,
+          "diagrams": 308,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.347,
+          "runtime_s": 100.75,
+          "diagrams": 208,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.17,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.18,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.16,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.19,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.08,
+          "runtime_s": 3.38,
+          "diagrams": 260,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.266,
+          "runtime_s": 65.24,
+          "diagrams": 172,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.053,
+          "runtime_s": 1.59,
+          "diagrams": 123,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.377,
+          "runtime_s": 77.45,
+          "diagrams": 79,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=4",
+          "ram_gb": 0.038,
+          "runtime_s": 0.18,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=4",
+          "ram_gb": 0.032,
+          "runtime_s": 0.21,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=4",
+          "ram_gb": 0.034,
+          "runtime_s": 0.18,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=4",
+          "ram_gb": 0.032,
+          "runtime_s": 0.21,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=4",
+          "ram_gb": 0.049,
+          "runtime_s": 1.41,
+          "diagrams": 96,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=4",
+          "ram_gb": 0.261,
+          "runtime_s": 38.57,
+          "diagrams": 86,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=4",
+          "ram_gb": 0.057,
+          "runtime_s": 2.43,
+          "diagrams": 147,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=4",
+          "ram_gb": 0.141,
+          "runtime_s": 33.0,
+          "diagrams": 79,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.18,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.2,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.058,
+          "runtime_s": 2.4,
+          "diagrams": 147,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.144,
+          "runtime_s": 33.0,
+          "diagrams": 79,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.17,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.2,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.066,
+          "runtime_s": 2.3,
+          "diagrams": 163,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2,QED=2",
+          "ram_gb": 0.289,
+          "runtime_s": 49.52,
+          "diagrams": 132,
+          "notes": ""
+        }
+      ]
+    },
+    "qed": {
+      "points": [
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.036,
+          "runtime_s": 0.23,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.037,
+          "runtime_s": 0.22,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.05,
+          "runtime_s": 1.46,
+          "diagrams": 96,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.223,
+          "runtime_s": 41.59,
+          "diagrams": 86,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 2,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 1.86,
+          "runtime_s": 173.39,
+          "diagrams": 9783,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 2,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 1.056,
+          "runtime_s": 1500.1,
+          "diagrams": 0,
+          "notes": "timeout"
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=4",
+          "ram_gb": 0.068,
+          "runtime_s": 2.62,
+          "diagrams": 216,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=4",
+          "ram_gb": 0.19,
+          "runtime_s": 51.04,
+          "diagrams": 108,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=4",
+          "ram_gb": 0.0,
+          "runtime_s": 0.07,
+          "diagrams": 0,
+          "notes": "empty:[35m627\u001b[0m\n\nBacktrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.\nRun with RUST_BACKTRACE=full to include source snippets."
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=4",
+          "ram_gb": 0.0,
+          "runtime_s": 0.07,
+          "diagrams": 0,
+          "notes": "empty:[35m627\u001b[0m\n\nBacktrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.\nRun with RUST_BACKTRACE=full to include source snippets."
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=4",
+          "ram_gb": 0.017,
+          "runtime_s": 0.17,
+          "diagrams": 0,
+          "notes": "empty:[35m627\u001b[0m\n\nBacktrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.\nRun with RUST_BACKTRACE=full to include source snippets."
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=4",
+          "ram_gb": 0.0,
+          "runtime_s": 0.06,
+          "diagrams": 0,
+          "notes": "empty:[35m627\u001b[0m\n\nBacktrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.\nRun with RUST_BACKTRACE=full to include source snippets."
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.17,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.18,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.17,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.19,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.051,
+          "runtime_s": 1.52,
+          "diagrams": 123,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.217,
+          "runtime_s": 51.7,
+          "diagrams": 75,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QED=2",
+          "ram_gb": 0.054,
+          "runtime_s": 1.62,
+          "diagrams": 123,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=2",
+          "ram_gb": 0.315,
+          "runtime_s": 78.27,
+          "diagrams": 79,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QED=3",
+          "ram_gb": 0.037,
+          "runtime_s": 0.22,
+          "diagrams": 6,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QED=3",
+          "ram_gb": 0.037,
+          "runtime_s": 0.61,
+          "diagrams": 6,
+          "notes": ""
+        }
+      ]
+    },
+    "qcd": {
+      "points": [
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.033,
+          "runtime_s": 0.23,
+          "diagrams": 4,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.33,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.069,
+          "runtime_s": 8.39,
+          "diagrams": 186,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.117,
+          "runtime_s": 37.66,
+          "diagrams": 102,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=3",
+          "ram_gb": 0.036,
+          "runtime_s": 1.31,
+          "diagrams": 25,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=3",
+          "ram_gb": 0.044,
+          "runtime_s": 2.87,
+          "diagrams": 20,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=3",
+          "ram_gb": 0.44,
+          "runtime_s": 288.25,
+          "diagrams": 2075,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=3",
+          "ram_gb": 0.168,
+          "runtime_s": 1500.05,
+          "diagrams": 0,
+          "notes": "timeout"
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.037,
+          "runtime_s": 0.69,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.042,
+          "runtime_s": 0.69,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.061,
+          "runtime_s": 8.47,
+          "diagrams": 147,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.077,
+          "runtime_s": 110.98,
+          "diagrams": 79,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=3",
+          "ram_gb": 0.034,
+          "runtime_s": 0.42,
+          "diagrams": 16,
+          "notes": ""
+        },
+        {
+          "n_legs": 5,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=3",
+          "ram_gb": 0.037,
+          "runtime_s": 0.78,
+          "diagrams": 12,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.037,
+          "runtime_s": 0.21,
+          "diagrams": 6,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.038,
+          "runtime_s": 0.3,
+          "diagrams": 5,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.17,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.035,
+          "runtime_s": 0.21,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.036,
+          "runtime_s": 0.17,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.19,
+          "diagrams": 2,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.19,
+          "diagrams": 6,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.035,
+          "runtime_s": 0.29,
+          "diagrams": 5,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.031,
+          "runtime_s": 0.2,
+          "diagrams": 6,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.034,
+          "runtime_s": 0.29,
+          "diagrams": 5,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.032,
+          "runtime_s": 0.18,
+          "diagrams": 4,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 0,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.038,
+          "runtime_s": 0.25,
+          "diagrams": 3,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.087,
+          "runtime_s": 4.55,
+          "diagrams": 308,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.432,
+          "runtime_s": 98.09,
+          "diagrams": 208,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.069,
+          "runtime_s": 3.04,
+          "diagrams": 213,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.361,
+          "runtime_s": 43.2,
+          "diagrams": 137,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.054,
+          "runtime_s": 1.78,
+          "diagrams": 108,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.114,
+          "runtime_s": 31.86,
+          "diagrams": 51,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.082,
+          "runtime_s": 4.36,
+          "diagrams": 308,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.405,
+          "runtime_s": 99.56,
+          "diagrams": 208,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.083,
+          "runtime_s": 4.34,
+          "diagrams": 308,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.409,
+          "runtime_s": 95.84,
+          "diagrams": 208,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "no_grouping",
+          "couplings": "QCD=2",
+          "ram_gb": 0.067,
+          "runtime_s": 2.86,
+          "diagrams": 203,
+          "notes": ""
+        },
+        {
+          "n_legs": 4,
+          "loops": 1,
+          "grouping": "group_identical_graphs_up_to_sign",
+          "couplings": "QCD=2",
+          "ram_gb": 0.269,
+          "runtime_s": 56.63,
+          "diagrams": 141,
+          "notes": ""
+        }
+      ]
+    }
+  }
+}

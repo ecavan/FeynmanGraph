@@ -803,7 +803,7 @@ def _cmd(**overrides) -> str:
 def test_build_command_baseline_has_no_finegen_extras():
     cmd = _cmd()
     assert " | " not in cmd
-    assert "--numerator-grouping" not in cmd
+    assert "--numerator-grouping no_grouping" in cmd
 
 
 def test_build_command_active_particles_emits_only_filter():
@@ -867,3 +867,65 @@ def test_cli_doctor():
                        capture_output=True, text=True, check=False)
     assert r.returncode in (0, 1)
     assert "Python" in r.stdout
+
+
+def test_estimate_endpoint_returns_shape():
+    client = TestClient(create_app())
+    resp = client.post("/api/estimate", json={
+        "initial_state": ["e+", "e-"],
+        "final_state": ["mu+", "mu-"],
+        "coupling_orders": {"QED": 2},
+        "loop_count": 0,
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+    assert set(body.keys()) == {
+        "estimated_ram_gb", "estimated_runtime_s",
+        "severity", "confidence", "source",
+    }
+    assert body["severity"] in ("green", "yellow", "red")
+    assert body["confidence"] in ("high", "low")
+
+
+def test_estimate_severity_thresholds_with_synthetic_calibration(monkeypatch):
+    import feyngraph.api.estimate as est
+    monkeypatch.setattr(est, "_CALIBRATION", {
+        "version": 1,
+        "thresholds_gb": {"green": 6.0, "yellow": 10.0},
+        "theories": {"sm": {"points": [
+            {"n_legs": 4, "loops": 1, "grouping": "no_grouping",
+             "ram_gb": 12.0, "runtime_s": 600.0},
+        ]}},
+    })
+    client = TestClient(create_app())
+    resp = client.post("/api/estimate", json={
+        "initial_state": ["e+", "e-"], "final_state": ["mu+", "mu-"],
+        "loop_count": 1,
+    })
+    body = resp.json()
+    assert body["severity"] == "red"
+    assert body["source"] == "calibrated"
+    assert body["confidence"] == "high"
+
+
+def test_estimate_runtime_over_timeout_is_red(monkeypatch):
+    """A run predicted to exceed the server timeout is red even when RAM is low
+    — catches heavy extrapolated cases whose RAM the model underestimates."""
+    import feyngraph.api.estimate as est
+    from feyngraph.api._gammaloop_runner import DEFAULT_TIMEOUT_S
+    monkeypatch.setattr(est, "_CALIBRATION", {
+        "version": 1,
+        "thresholds_gb": {"green": 6.0, "yellow": 10.0},
+        "theories": {"sm": {"points": [
+            {"n_legs": 4, "loops": 1, "grouping": "no_grouping",
+             "ram_gb": 0.5, "runtime_s": DEFAULT_TIMEOUT_S + 500.0},
+        ]}},
+    })
+    client = TestClient(create_app())
+    resp = client.post("/api/estimate", json={
+        "initial_state": ["e+", "e-"], "final_state": ["mu+", "mu-"],
+        "loop_count": 1,
+    })
+    body = resp.json()
+    assert body["severity"] == "red"
+    assert body["estimated_ram_gb"] < 6.0

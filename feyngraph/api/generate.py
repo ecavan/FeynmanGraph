@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Literal
@@ -8,6 +7,7 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from feyngraph.api._gammaloop_runner import DEFAULT_TIMEOUT_S, run_gammaloop
 from feyngraph.api.errors import FeyngraphHTTPException
 from feyngraph.domain.dot_parser import DotParseError, parse_gammaloop_dot
 from feyngraph.domain.graph_spec import GraphSpec
@@ -47,7 +47,7 @@ class GenerateAmpRequest(BaseModel):
     theory_id: str = "sm"
     max_diagrams: int = 200
     active_particles: list[str] | None = None
-    numerator_grouping: NumeratorGroupingMode | None = None
+    numerator_grouping: NumeratorGroupingMode | None = "no_grouping"
 
 
 class GenerateAmpResponse(BaseModel):
@@ -209,9 +209,9 @@ async def generate_amp(req: GenerateAmpRequest) -> GenerateAmpResponse:
             f'  "{_build_process_command(req, projector)}",\n'
             f'  "save dot",\n]\n'
         )
-        proc = subprocess.run(
+        proc = await run_gammaloop(
             [gammaloop, str(toml_path), "run", "g"],
-            cwd=tmpdir, capture_output=True, text=True, timeout=10800,
+            cwd=tmpdir, timeout=DEFAULT_TIMEOUT_S,
         )
         stderr = proc.stderr
         if "dangling tensor indices" in stderr or "Failed to validate full numerator" in stderr:

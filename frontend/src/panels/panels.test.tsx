@@ -330,6 +330,24 @@ describe("GeneratePanel", () => {
     expect(screen.queryByText(/AbortError/i)).not.toBeInTheDocument();
   });
 
+  it("shows a slow-run hint only after 60s of generating", () => {
+    vi.useFakeTimers();
+    try {
+      // Pending fetch keeps the panel in the busy state indefinitely.
+      globalThis.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
+      render(<GeneratePanel />);
+      fireEvent.click(screen.getByTestId("generate-submit"));
+
+      act(() => { vi.advanceTimersByTime(30000); });
+      expect(screen.queryByTestId("generate-slow-hint")).not.toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(31000); });
+      expect(screen.getByTestId("generate-slow-hint")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("renders the helpful error message when the API rejects with a known code", async () => {
     mockFetch(new Response(JSON.stringify({
       detail: "Needs a custom projector for colored externals.",
@@ -386,11 +404,13 @@ describe("GeneratePanel", () => {
     expect(body.active_particles).toBeUndefined();
   });
 
-  it("forwards the selected grouping mode when the user picks a different value", async () => {
+  it("forwards the selected grouping mode when the user enables grouping and picks a value", async () => {
     const cap = mockFetchCapturing(new Response(JSON.stringify({
       count: 0, truncated: false, diagrams: [],
     }), { status: 200 }));
     render(<GeneratePanel />);
+    const checkbox = screen.getByTestId("generate-grouping-toggle").querySelector("input")!;
+    fireEvent.click(checkbox);
     fireEvent.change(screen.getByTestId("generate-numerator-grouping"), {
       target: { value: "group_identical_graphs_up_to_scalar_rescaling" },
     });
@@ -400,16 +420,21 @@ describe("GeneratePanel", () => {
     expect(body.numerator_grouping).toBe("group_identical_graphs_up_to_scalar_rescaling");
   });
 
-  it("exposes all four gammaloop numerator-grouping modes in the dropdown", () => {
+  it("defaults to a disabled 'None' selection; grouping modes sit behind the opt-in", () => {
     render(<GeneratePanel />);
     const select = screen.getByTestId("generate-numerator-grouping") as HTMLSelectElement;
     const values = Array.from(select.options).map((o) => o.value);
     expect(values).toEqual([
-      "no_grouping",
-      "only_detect_zeroes",
+      "none",
       "group_identical_graphs_up_to_sign",
+      "only_detect_zeroes",
       "group_identical_graphs_up_to_scalar_rescaling",
     ]);
+    // Off by default: select disabled, showing the display-only "None" placeholder.
+    expect(select.disabled).toBe(true);
+    expect(select.value).toBe("none");
+    const noneOpt = Array.from(select.options).find((o) => o.value === "none")!;
+    expect(noneOpt.disabled).toBe(true);
   });
 
   it("forwards user-picked active_particles when the slot has chips", async () => {

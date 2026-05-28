@@ -44,11 +44,37 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
   const [loopCount, setLoopCount] = useState("0");
   const [maxDiagrams, setMaxDiagrams] = useState("100");
   const [activeParticles, setActiveParticles] = useState<string[]>([]);
+  const [groupingEnabled, setGroupingEnabled] = useState(false);
   const [numeratorGrouping, setNumeratorGrouping] =
-    useState<NumeratorGroupingMode>("no_grouping");
+    useState<NumeratorGroupingMode>("group_identical_graphs_up_to_sign");
+  const [estimate, setEstimate] = useState<Awaited<ReturnType<typeof api.estimate>> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+
+  const effectiveGrouping: NumeratorGroupingMode =
+    groupingEnabled ? numeratorGrouping : "no_grouping";
+
+  useEffect(() => {
+    const couplings: Record<string, number> = {};
+    if (qed.trim()) couplings.QED = Number(qed);
+    if (qcd.trim()) couplings.QCD = Number(qcd);
+    const handle = setTimeout(() => {
+      api.estimate({
+        initial_state: initialList,
+        final_state: finalList,
+        coupling_orders: Object.keys(couplings).length ? couplings : undefined,
+        loop_count: Number(loopCount),
+        model_id: modelId || undefined,
+        theory_id: theoryId,
+        numerator_grouping: effectiveGrouping,
+      }).then(setEstimate).catch(() => setEstimate(null));
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [
+    initialList, finalList, qed, qcd, loopCount, theoryId, modelId,
+    groupingEnabled, numeratorGrouping,
+  ]);
 
   useEffect(() => {
     api.listTheories().then(setTheories).catch(() => setTheories([]));
@@ -132,7 +158,7 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         model_id: modelId || undefined,
         theory_id: theoryId,
         active_particles: activeParticles.length ? activeParticles : undefined,
-        numerator_grouping: numeratorGrouping,
+        numerator_grouping: effectiveGrouping,
       }, controller.signal);
       useGalleryStore.setState({
         diagrams: resp.diagrams,
@@ -261,18 +287,20 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         </p>
         <div>
           <label
-            style={{
-              display: "block",
-              fontSize: 11,
-              opacity: 0.6,
-              marginBottom: 4,
-            }}
+            data-testid="generate-grouping-toggle"
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginBottom: 6 }}
           >
-            Numerator grouping
+            <input
+              type="checkbox"
+              checked={groupingEnabled}
+              onChange={(e) => setGroupingEnabled(e.target.checked)}
+            />
+            <span>Group identical numerators (slower, more RAM)</span>
           </label>
           <select
             data-testid="generate-numerator-grouping"
-            value={numeratorGrouping}
+            value={groupingEnabled ? numeratorGrouping : "none"}
+            disabled={!groupingEnabled}
             onChange={(e) =>
               setNumeratorGrouping(e.target.value as NumeratorGroupingMode)
             }
@@ -282,14 +310,18 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
               fontSize: 12,
               border: "1px solid #bbb",
               borderRadius: 4,
-              background: "white",
+              background: groupingEnabled ? "white" : "#eee",
+              color: groupingEnabled ? undefined : "#999",
             }}
           >
-            <option value="no_grouping">No grouping (fastest, may include duplicates)</option>
-            <option value="only_detect_zeroes">Only detect zeros</option>
+            <option value="none" disabled>None — grouping off</option>
             <option value="group_identical_graphs_up_to_sign">Group up to sign</option>
+            <option value="only_detect_zeroes">Only detect zeros</option>
             <option value="group_identical_graphs_up_to_scalar_rescaling">Group up to scalar rescaling (slowest)</option>
           </select>
+          <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>
+            Unticked = no grouping (the fast default). Tick the box to choose a grouping mode.
+          </div>
         </div>
       </div>
 
@@ -332,6 +364,27 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
         )}
       </div>
 
+      <EstimateBanner estimate={estimate} />
+
+      {busy && elapsed >= 60 && (
+        <div
+          data-testid="generate-slow-hint"
+          style={{
+            marginTop: 10,
+            padding: "8px 10px",
+            background: "#eef4ff",
+            border: "1px solid #88aabb",
+            color: "#2a4a66",
+            borderRadius: 4,
+            fontSize: 12,
+            maxWidth: 560,
+          }}
+        >
+          Still running — heavy processes can take a while. You can Cancel and reduce
+          the loop count or turn off numerator grouping.
+        </div>
+      )}
+
       {error && (
         <div
           style={{
@@ -350,6 +403,59 @@ export function GeneratePanel(props: { onSuccess?: () => void }) {
       )}
 
     </section>
+  );
+}
+
+function formatTime(s: number): string {
+  if (s < 60) return `${Math.round(s)}s`;
+  if (s < 3600) return `${(s / 60).toFixed(1)} min`;
+  return `${(s / 3600).toFixed(1)} h`;
+}
+
+type Estimate = Awaited<ReturnType<typeof api.estimate>>;
+
+function EstimateBanner({ estimate }: { estimate: Estimate | null }) {
+  if (!estimate || estimate.source === "no_data") return null;
+  const { severity, confidence, estimated_ram_gb, estimated_runtime_s, source } = estimate;
+  if (severity === "green" && confidence === "high") return null;
+
+  const palette =
+    severity === "red"
+      ? { bg: "#fde2e1", border: "#c0392b", color: "#7a1c12" }
+      : severity === "yellow"
+      ? { bg: "#fff4e0", border: "#d68a00", color: "#664400" }
+      : { bg: "#eef4ff", border: "#88aabb", color: "#2a4a66" };
+
+  const cost = `~${estimated_ram_gb.toFixed(1)} GB / ~${formatTime(estimated_runtime_s)}`;
+  let message: string;
+  if (severity === "red") {
+    message = `${cost} — likely to run out of memory or exceed the time limit. Try unchecking grouping, dropping a loop, or running this on a cluster.`;
+  } else if (severity === "yellow") {
+    message = `${cost} — heavy run; expect a long wait.`;
+  } else {
+    message = `Estimate uncertain (${source === "nearest_theory" ? "no calibration for this theory" : "extrapolated beyond measured cases"}).`;
+  }
+  const hedge =
+    confidence === "low" && severity !== "green"
+      ? " Confidence is low — actual cost may differ."
+      : "";
+
+  return (
+    <div
+      data-testid="generate-estimate-banner"
+      style={{
+        marginTop: 12,
+        padding: "8px 10px",
+        background: palette.bg,
+        border: `1px solid ${palette.border}`,
+        color: palette.color,
+        borderRadius: 4,
+        fontSize: 12,
+        maxWidth: 560,
+      }}
+    >
+      {message}{hedge}
+    </div>
   );
 }
 

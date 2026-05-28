@@ -117,6 +117,36 @@ export class ApiClient {
     });
   }
 
+  estimate(
+    req: {
+      initial_state: string[];
+      final_state: string[];
+      coupling_orders?: Record<string, number>;
+      loop_count?: number;
+      model_id?: string;
+      theory_id?: string;
+      numerator_grouping?:
+        | "no_grouping"
+        | "only_detect_zeroes"
+        | "group_identical_graphs_up_to_sign"
+        | "group_identical_graphs_up_to_scalar_rescaling";
+    },
+    signal?: AbortSignal,
+  ): Promise<{
+    estimated_ram_gb: number;
+    estimated_runtime_s: number;
+    severity: "green" | "yellow" | "red";
+    confidence: "high" | "low";
+    source: "calibrated" | "interpolated" | "extrapolated" | "nearest_theory" | "no_data";
+  }> {
+    return this.request("/api/estimate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(req),
+      signal,
+    });
+  }
+
   async exportDotBatch(diagrams: ExampleSpec[], archiveName: string): Promise<Blob> {
     const resp = await fetch(`${this.base}/api/export-dot-batch`, {
       method: "POST",
