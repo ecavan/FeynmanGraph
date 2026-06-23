@@ -21,11 +21,28 @@ export class ApiError extends Error {
   }
 }
 
+const APP_BASE_URL = import.meta.env.BASE_URL || "/";
+const normalizedAppBase = APP_BASE_URL.endsWith("/") ? APP_BASE_URL : `${APP_BASE_URL}/`;
+const DEFAULT_API_BASE = `${normalizedAppBase}api`;
+
 export class ApiClient {
-  constructor(private base: string = "") {}
+  constructor(private base: string = DEFAULT_API_BASE) {}
+
+  private url(path: string): string {
+    if (this.base === "") {
+      return path;
+    }
+    if (/^https?:\/\//.test(this.base)) {
+      return `${this.base}${path}`;
+    }
+    if (path.startsWith("/api/") || path === "/api") {
+      return `${this.base}${path.slice("/api".length)}`;
+    }
+    return `${this.base}${path.startsWith("/") ? path : `/${path}`}`;
+  }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const resp = await fetch(`${this.base}${path}`, init);
+    const resp = await fetch(this.url(path), init);
     if (!resp.ok) {
       const body = (await resp.json().catch(() => ({
         detail: resp.statusText,
@@ -148,7 +165,7 @@ export class ApiClient {
   }
 
   async exportDotBatch(diagrams: ExampleSpec[], archiveName: string): Promise<Blob> {
-    const resp = await fetch(`${this.base}/api/export-dot-batch`, {
+    const resp = await fetch(this.url("/api/export-dot-batch"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ diagrams, archive_name: archiveName }),
@@ -167,7 +184,7 @@ export class ApiClient {
     form.append("file", file);
     form.append("model_id", modelId);
     form.append("theory_id", theoryId);
-    const resp = await fetch(`${this.base}/api/import-dot`, { method: "POST", body: form });
+    const resp = await fetch(this.url("/api/import-dot"), { method: "POST", body: form });
     if (!resp.ok) {
       const body = (await resp.json().catch(() => ({
         detail: resp.statusText,
@@ -188,7 +205,7 @@ export class ApiClient {
     if (options.restrictionName) form.append("restriction_name", options.restrictionName);
     if (options.overwrite) form.append("overwrite", "true");
 
-    const resp = await fetch(`${this.base}/api/models/upload-ufo`, {
+    const resp = await fetch(this.url("/api/models/upload-ufo"), {
       method: "POST",
       body: form,
     });

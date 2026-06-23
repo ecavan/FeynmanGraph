@@ -25,6 +25,11 @@ router = APIRouter(prefix="/api", tags=["generate"])
 
 
 def _gammaloop_bin() -> str | None:
+    configured = os.environ.get("FEYNGRAPH_GAMMALOOP_BIN")
+    if configured:
+        path = Path(configured).expanduser()
+        if path.is_file():
+            return str(path)
     on_path = shutil.which("gammaloop")
     if on_path:
         return on_path

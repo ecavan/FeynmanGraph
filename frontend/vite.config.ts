@@ -1,7 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const normalizeBase = (value: string | undefined) => {
+  const raw = value && value.trim() ? value.trim() : "/";
+  if (raw === "." || raw === "./") return "./";
+  const withLeadingSlash = raw.startsWith("/") ? raw : `/${raw}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash : `${withLeadingSlash}/`;
+};
+
 export default defineConfig({
+  base: normalizeBase(process.env.FEYNGRAPH_FRONTEND_BASE),
   plugins: [react()],
   server: {
     proxy: {
