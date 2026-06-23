@@ -45,4 +45,17 @@ describe("ApiClient", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("reset POSTs to /api/reset", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ status: "ok", removed: 2 }), { status: 200 }),
+    );
+    const client = new ApiClient("");
+    const out = await client.reset();
+    expect(out).toEqual({ status: "ok", removed: 2 });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/reset",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

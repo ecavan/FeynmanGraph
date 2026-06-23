@@ -66,6 +66,10 @@ export class ApiClient {
     return this.request("/api/theories");
   }
 
+  reset(): Promise<{ status: string; removed: number }> {
+    return this.request("/api/reset", { method: "POST" });
+  }
+
   validateVertex(req: {
     model_id: string;
     theory_id: string;

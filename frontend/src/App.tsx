@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { ApiClient } from "./api/client";
+import { ResetButton } from "./panels/ResetButton";
 import { useDiagramStore } from "./state/diagram";
 import { restoreFromLocalStorage, saveToLocalStorage } from "./state/persistence";
 import { CanvasView } from "./views/CanvasView";
@@ -57,6 +58,9 @@ export default function App() {
 
   return (
     <div data-testid="app-root" style={{ height: "100vh" }}>
+      <div style={{ position: "fixed", top: 8, right: 8, zIndex: 1000 }}>
+        <ResetButton onReset={() => window.location.reload()} />
+      </div>
       <CanvasView />
     </div>
   );

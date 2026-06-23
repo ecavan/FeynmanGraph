@@ -20,6 +20,7 @@ def create_app() -> FastAPI:
     from feyngraph.api.import_dot import router as import_dot_router
     from feyngraph.api.models import router as models_router
     from feyngraph.api.numerator import router as numerator_router
+    from feyngraph.api.reset import router as reset_router
     from feyngraph.api.theories import router as theories_router
     from feyngraph.api.upload import router as upload_router
     from feyngraph.api.validate import router as validate_router
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(numerator_router)
     app.include_router(import_dot_router)
     app.include_router(estimate_router)
+    app.include_router(reset_router)
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:

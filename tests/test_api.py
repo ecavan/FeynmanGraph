@@ -460,6 +460,30 @@ def test_upload_stubbed_succeeds(stub_ufo_loader):
     assert body["vertices"] == 1
 
 
+# ---------- /api/reset ----------
+
+def test_reset_clears_uploaded_models_but_keeps_others(stub_ufo_loader):
+    client = _client()
+    up = client.post(
+        "/api/models/upload-ufo",
+        files={"file": ("Mock.tar.gz", _fake_ufo_archive(), "application/gzip")},
+        data={"model_id": "mocksm"},
+    )
+    assert up.status_code == 200, up.text
+
+    ids_before = {m["id"] for m in client.get("/api/models").json()}
+    assert "mocksm" in ids_before
+    assert "sm_minimal" in ids_before  # non-user model present before reset
+
+    resp = client.post("/api/reset")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["removed"] >= 1
+
+    ids_after = {m["id"] for m in client.get("/api/models").json()}
+    assert "mocksm" not in ids_after  # uploaded user model is cleared
+    assert "sm_minimal" in ids_after  # bundled / fixture models survive
+
+
 def test_upload_rejects_non_archive():
     resp = _client().post(
         "/api/models/upload-ufo",
