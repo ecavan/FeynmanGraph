@@ -1,8 +1,13 @@
 import { useRef, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
-import { serializeGraphSpec } from "./serialize";
 import { TypstMath } from "./TypstMath";
+import {
+  buildIntegrandTypst,
+  lmbRepToTypst,
+  propagatorsFromState,
+} from "./integrand";
+import { serializeGraphSpec } from "./serialize";
 
 const api = new ApiClient();
 
@@ -13,6 +18,10 @@ export function NumeratorPanel() {
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showSource, setShowSource] = useState(false);
+  const [view, setView] = useState<"numerator" | "integrand">("numerator");
+  const [propagators, setPropagators] = useState<
+    { momentum: string; particle: string }[]
+  >([]);
   const controllerRef = useRef<AbortController | null>(null);
 
   const empty = state.nodes.length === 0;
@@ -21,14 +30,18 @@ export function NumeratorPanel() {
     setBusy(true);
     setError(null);
     setRaw(null);
+    setPropagators([]);
     setElapsed(0);
     const tick = setInterval(() => setElapsed((e) => e + 1), 1000);
     const controller = new AbortController();
     controllerRef.current = controller;
     try {
-      const spec = serializeGraphSpec(state) as unknown as Parameters<typeof api.getNumerator>[0];
+      const spec = serializeGraphSpec(state) as unknown as Parameters<
+        typeof api.getNumerator
+      >[0];
       const resp = await api.getNumerator(spec, controller.signal);
       setRaw(resp.raw);
+      setPropagators(resp.propagators ?? []);
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;
       if (e instanceof ApiError) {
@@ -47,14 +60,46 @@ export function NumeratorPanel() {
     controllerRef.current?.abort();
   }
 
+  // Prefer the real per-propagator momenta gammaloop returns (lmb_rep), resolving
+  // each mass from the model by particle name; fall back to schematic q_i momenta.
+  const integrandProps =
+    propagators.length > 0
+      ? propagators.map((p) => ({
+          momentum: lmbRepToTypst(p.momentum),
+          mass:
+            state.cachedModel?.particles.find((pp) => pp.name === p.particle)
+              ?.mass ?? "ZERO",
+        }))
+      : propagatorsFromState(
+          state.edges,
+          state.externalLegs,
+          state.cachedModel,
+        );
+
+  const displaySource =
+    raw == null
+      ? null
+      : view === "integrand"
+        ? buildIntegrandTypst(raw, integrandProps)
+        : raw;
+
   return (
     <div data-testid="numerator-panel">
       <h4 style={{ margin: "0 0 6px" }}>Numerator</h4>
       {empty ? (
-        <p style={{ fontSize: 12, opacity: 0.55 }}>Build or load a diagram first.</p>
+        <p style={{ fontSize: 12, opacity: 0.55 }}>
+          Build or load a diagram first.
+        </p>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
             <button
               type="button"
               data-testid="numerator-load"
@@ -73,8 +118,8 @@ export function NumeratorPanel() {
               {busy
                 ? `Computing… ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`
                 : raw
-                ? "Recompute"
-                : "Load numerator"}
+                  ? "Recompute"
+                  : "Load numerator"}
             </button>
             {busy && (
               <button
@@ -89,7 +134,12 @@ export function NumeratorPanel() {
               <button
                 type="button"
                 data-testid="numerator-clear"
-                onClick={() => { setRaw(null); setError(null); setShowSource(false); }}
+                onClick={() => {
+                  setRaw(null);
+                  setPropagators([]);
+                  setError(null);
+                  setShowSource(false);
+                }}
                 style={{ padding: "3px 8px", fontSize: 12 }}
               >
                 ✕ Clear
@@ -111,10 +161,31 @@ export function NumeratorPanel() {
               {error}
             </div>
           )}
-          {raw && (
+          {displaySource && (
             <>
-              <TypstMath source={raw} />
-              <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end" }}>
+              <div
+                data-testid="numerator-view-toggle"
+                style={{ display: "flex", gap: 6, marginBottom: 6 }}
+              >
+                <ViewButton
+                  active={view === "numerator"}
+                  label="Numerator"
+                  onClick={() => setView("numerator")}
+                />
+                <ViewButton
+                  active={view === "integrand"}
+                  label="Full integral"
+                  onClick={() => setView("integrand")}
+                />
+              </div>
+              <TypstMath source={displaySource} />
+              <div
+                style={{
+                  marginTop: 6,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
                 <button
                   type="button"
                   data-testid="numerator-toggle-source"
@@ -149,7 +220,7 @@ export function NumeratorPanel() {
                     wordBreak: "break-word",
                   }}
                 >
-                  {raw}
+                  {displaySource}
                 </pre>
               )}
             </>
@@ -157,5 +228,29 @@ export function NumeratorPanel() {
         </>
       )}
     </div>
+  );
+}
+
+function ViewButton(props: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      style={{
+        padding: "3px 10px",
+        fontSize: 12,
+        background: props.active ? "#0066ff" : "white",
+        color: props.active ? "white" : "#222",
+        border: "1px solid #888",
+        borderRadius: 3,
+        cursor: "pointer",
+      }}
+    >
+      {props.label}
+    </button>
   );
 }

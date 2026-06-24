@@ -20,12 +20,40 @@ from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError, user_
 router = APIRouter(prefix="/api", tags=["numerator"])
 
 _FULL_NUM = re.compile(r'full_num\s*=\s*"((?:[^"\\]|\\.)*)"', re.S)
+_EDGE = re.compile(r"^\s*(\S+)\s*->\s*(\S+)\s+\[([^\]]*)\];", re.M)
+_LMB_REP = re.compile(r'lmb_rep="([^"]*)"')
+_PARTICLE = re.compile(r'particle="([^"]*)"')
+
+
+class Propagator(BaseModel):
+    momentum: str
+    particle: str
 
 
 class NumeratorResponse(BaseModel):
     raw: str
     format: str = "typst-symbolica"
     warnings: list[str] = []
+    propagators: list[Propagator] = []
+
+
+def _parse_propagators(emitted: str) -> list[Propagator]:
+    """Extract internal-edge propagators (the loop denominators) from a gammaloop
+    emitted dot. Each internal edge carries `lmb_rep` (its momentum as a
+    combination of loop/external momenta) and `particle`; external legs touch an
+    `extN` node and are skipped."""
+    props: list[Propagator] = []
+    for src, tgt, attrs in _EDGE.findall(emitted):
+        if src.startswith("ext") or tgt.startswith("ext"):
+            continue
+        mom = _LMB_REP.search(attrs)
+        if mom is None:
+            continue
+        particle = _PARTICLE.search(attrs)
+        props.append(
+            Propagator(momentum=mom.group(1), particle=particle.group(1) if particle else "")
+        )
+    return props
 
 
 @router.post("/numerator", response_model=NumeratorResponse)
@@ -111,4 +139,6 @@ async def numerator(spec: GraphSpec) -> NumeratorResponse:
         warnings.append(
             f"gammaloop emitted {len(dot_files)} diagrams; showing numerator of the first only"
         )
-    return NumeratorResponse(raw=raw, warnings=warnings)
+    return NumeratorResponse(
+        raw=raw, warnings=warnings, propagators=_parse_propagators(emitted)
+    )

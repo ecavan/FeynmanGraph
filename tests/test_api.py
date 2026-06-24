@@ -484,6 +484,23 @@ def test_reset_clears_uploaded_models_but_keeps_others(stub_ufo_loader):
     assert "sm_minimal" in ids_after  # bundled / fixture models survive
 
 
+# ---------- numerator propagator parsing ----------
+
+def test_parse_propagators_keeps_internal_edges_with_momentum():
+    from feyngraph.api.numerator import _parse_propagators
+
+    emitted = (
+        '  ext0\t-> 3:0\t [id=0 dir=none lmb_rep="P(0,a___)" name="e0" particle="ghG"];\n'
+        '  2:1\t-> ext1\t [id=1 dir=none lmb_rep="P(0,a___)" name="e1" particle="ghG"];\n'
+        '  1:2\t-> 0:3\t [id=2 dir=none lmb_id="0" lmb_rep="K(0,a___)" name="e2" particle="ghG"];\n'
+        '  0:6\t-> 3:7\t [id=4 dir=none lmb_rep="-1*K(1,a___)+K(0,a___)" name="e4" particle="g"];\n'
+    )
+    props = _parse_propagators(emitted)
+    # external legs (ext0 / ext1 endpoints) are excluded; internal propagators kept in order
+    assert [p.momentum for p in props] == ["K(0,a___)", "-1*K(1,a___)+K(0,a___)"]
+    assert [p.particle for p in props] == ["ghG", "g"]
+
+
 def test_upload_rejects_non_archive():
     resp = _client().post(
         "/api/models/upload-ufo",

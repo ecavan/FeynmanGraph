@@ -22,7 +22,9 @@ export class ApiError extends Error {
 }
 
 const APP_BASE_URL = import.meta.env.BASE_URL || "/";
-const normalizedAppBase = APP_BASE_URL.endsWith("/") ? APP_BASE_URL : `${APP_BASE_URL}/`;
+const normalizedAppBase = APP_BASE_URL.endsWith("/")
+  ? APP_BASE_URL
+  : `${APP_BASE_URL}/`;
 const DEFAULT_API_BASE = `${normalizedAppBase}api`;
 
 export class ApiClient {
@@ -82,9 +84,11 @@ export class ApiClient {
     });
   }
 
-  validateGraph(
-    spec: unknown,
-  ): Promise<{ issues: GraphIssue[]; chord_edge_ids: string[]; loop_count: number }> {
+  validateGraph(spec: unknown): Promise<{
+    issues: GraphIssue[];
+    chord_edge_ids: string[];
+    loop_count: number;
+  }> {
     return this.request("/api/validate-graph", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -129,7 +133,12 @@ export class ApiClient {
   getNumerator(
     spec: ExampleSpec,
     signal?: AbortSignal,
-  ): Promise<{ raw: string; format: string; warnings: string[] }> {
+  ): Promise<{
+    raw: string;
+    format: string;
+    warnings: string[];
+    propagators: { momentum: string; particle: string }[];
+  }> {
     return this.request("/api/numerator", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -158,7 +167,12 @@ export class ApiClient {
     estimated_runtime_s: number;
     severity: "green" | "yellow" | "red";
     confidence: "high" | "low";
-    source: "calibrated" | "interpolated" | "extrapolated" | "nearest_theory" | "no_data";
+    source:
+      | "calibrated"
+      | "interpolated"
+      | "extrapolated"
+      | "nearest_theory"
+      | "no_data";
   }> {
     return this.request("/api/estimate", {
       method: "POST",
@@ -168,7 +182,10 @@ export class ApiClient {
     });
   }
 
-  async exportDotBatch(diagrams: ExampleSpec[], archiveName: string): Promise<Blob> {
+  async exportDotBatch(
+    diagrams: ExampleSpec[],
+    archiveName: string,
+  ): Promise<Blob> {
     const resp = await fetch(this.url("/api/export-dot-batch"), {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -177,18 +194,27 @@ export class ApiClient {
     if (!resp.ok) {
       const text = await resp.text();
       let payload: APIError = { detail: text, code: "REQUEST_FAILED" };
-      try { payload = JSON.parse(text); } catch {}
+      try {
+        payload = JSON.parse(text);
+      } catch {}
       throw new ApiError(payload);
     }
     return resp.blob();
   }
 
-  async importDot(file: File, modelId: string, theoryId: string): Promise<ExampleSpec> {
+  async importDot(
+    file: File,
+    modelId: string,
+    theoryId: string,
+  ): Promise<ExampleSpec> {
     const form = new FormData();
     form.append("file", file);
     form.append("model_id", modelId);
     form.append("theory_id", theoryId);
-    const resp = await fetch(this.url("/api/import-dot"), { method: "POST", body: form });
+    const resp = await fetch(this.url("/api/import-dot"), {
+      method: "POST",
+      body: form,
+    });
     if (!resp.ok) {
       const body = (await resp.json().catch(() => ({
         detail: resp.statusText,
@@ -201,12 +227,22 @@ export class ApiClient {
 
   async uploadUfo(
     file: File,
-    options: { modelId?: string; restrictionName?: string; overwrite?: boolean } = {},
-  ): Promise<{ id: string; name: string; particles: number; vertices: number }> {
+    options: {
+      modelId?: string;
+      restrictionName?: string;
+      overwrite?: boolean;
+    } = {},
+  ): Promise<{
+    id: string;
+    name: string;
+    particles: number;
+    vertices: number;
+  }> {
     const form = new FormData();
     form.append("file", file);
     if (options.modelId) form.append("model_id", options.modelId);
-    if (options.restrictionName) form.append("restriction_name", options.restrictionName);
+    if (options.restrictionName)
+      form.append("restriction_name", options.restrictionName);
     if (options.overwrite) form.append("overwrite", "true");
 
     const resp = await fetch(this.url("/api/models/upload-ufo"), {
