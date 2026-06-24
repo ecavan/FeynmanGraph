@@ -13,8 +13,17 @@ describe("buildIntegrandTypst", () => {
     ]);
     expect(out).toContain("integral"); // loop measure
     expect(out).toContain("(NUM)"); // numerator embedded
-    expect(out).toContain("(q_1^2 - Me^2)"); // massive propagator
+    expect(out).toContain('(q_1^2 - "Me"^2)'); // massive propagator
     expect(out).toContain("(q_2^2)"); // massless propagator: ZERO -> just q^2
+  });
+
+  it("parenthesizes multi-term and negative momenta before squaring", () => {
+    const out = buildIntegrandTypst("N", [
+      { momentum: "-p_(0) + k", mass: "MZ" },
+      { momentum: "-k", mass: "ZERO" },
+    ]);
+    expect(out).toContain('((-p_(0) + k)^2 - "MZ"^2)');
+    expect(out).toContain("((-k)^2)");
   });
 
   it("drops the denominator when there are no propagators", () => {

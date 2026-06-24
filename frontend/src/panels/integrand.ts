@@ -2,6 +2,10 @@ export type Propagator = { momentum: string; mass: string };
 
 const MASSLESS = new Set(["ZERO", "0", ""]);
 
+function sq(mom: string): string {
+  return /^[A-Za-z]+(_(\d+|\(\d+\)))?$/.test(mom) ? `${mom}^2` : `(${mom})^2`;
+}
+
 export function buildIntegrandTypst(
   numerator: string,
   propagators: Propagator[],
@@ -13,8 +17,8 @@ export function buildIntegrandTypst(
   const denom = propagators
     .map((p) =>
       MASSLESS.has(p.mass)
-        ? `(${p.momentum}^2)`
-        : `(${p.momentum}^2 - ${p.mass}^2)`,
+        ? `(${sq(p.momentum)})`
+        : `(${sq(p.momentum)} - "${p.mass}"^2)`,
     )
     .join(" ");
   return `${measure} (${numerator})/(${denom})`;
