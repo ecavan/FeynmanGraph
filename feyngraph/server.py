@@ -1,7 +1,8 @@
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
 from feyngraph.api.errors import register_exception_handlers
@@ -10,9 +11,30 @@ from feyngraph.version import __version__
 _FRONTEND_DIR = Path(__file__).resolve().parent / "data" / "frontend"
 
 
+def _cache_control_for(content_type: str, path: str) -> str | None:
+    """SPA cache policy that self-heals across redeploys: never cache index.html
+    (so browsers always pick up the current hashed-chunk names), but cache the
+    content-hashed assets hard."""
+    if content_type.startswith("text/html"):
+        return "no-cache"
+    if "/assets/" in path:
+        return "public, max-age=31536000, immutable"
+    return None
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="feyngraph", version=__version__)
     register_exception_handlers(app)
+
+    @app.middleware("http")
+    async def _set_cache_headers(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response = await call_next(request)
+        cc = _cache_control_for(response.headers.get("content-type", ""), request.url.path)
+        if cc is not None:
+            response.headers["Cache-Control"] = cc
+        return response
 
     from feyngraph.api.estimate import router as estimate_router
     from feyngraph.api.export import router as export_router

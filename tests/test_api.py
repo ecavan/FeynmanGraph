@@ -501,6 +501,22 @@ def test_parse_propagators_keeps_internal_edges_with_momentum():
     assert [p.particle for p in props] == ["ghG", "g"]
 
 
+# ---------- cache-control (avoid stale chunk loads after a redeploy) ----------
+
+def test_cache_control_policy():
+    from feyngraph.server import _cache_control_for
+
+    # index.html must revalidate so browsers pick up new hashed-chunk names
+    assert _cache_control_for("text/html; charset=utf-8", "/") == "no-cache"
+    # content-hashed assets are immutable -> cache hard
+    assert (
+        _cache_control_for("application/javascript", "/assets/index-abc123.js")
+        == "public, max-age=31536000, immutable"
+    )
+    # API responses are untouched
+    assert _cache_control_for("application/json", "/api/health") is None
+
+
 def test_upload_rejects_non_archive():
     resp = _client().post(
         "/api/models/upload-ufo",
