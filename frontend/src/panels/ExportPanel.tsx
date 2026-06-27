@@ -1,10 +1,22 @@
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
+import { exportDiagramImage } from "./exportImage";
 import { serializeGraphSpec } from "./serialize";
 import { toTikz } from "./tikz";
 
 const api = new ApiClient();
+
+const downloadBtnStyle: CSSProperties = {
+  padding: "6px 14px",
+  background: "#444",
+  color: "white",
+  border: "none",
+  borderRadius: 4,
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 500,
+};
 
 export function ExportPanel(props: { openTick?: number } = {}) {
   const [dot, setDot] = useState<string>("");
@@ -63,6 +75,14 @@ export function ExportPanel(props: { openTick?: number } = {}) {
     URL.revokeObjectURL(url);
   }
 
+  async function downloadImage(format: "png" | "svg") {
+    try {
+      await exportDiagramImage(format, useDiagramStore.getState().nodes, processName);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   return (
     <div data-testid="export-panel" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {nodeCount === 0 && !error && (
@@ -82,23 +102,15 @@ export function ExportPanel(props: { openTick?: number } = {}) {
       )}
 
       {nodeCount > 0 && (
-        <div>
-          <button
-            type="button"
-            data-testid="export-tikz"
-            onClick={downloadTikz}
-            style={{
-              padding: "6px 14px",
-              background: "#444",
-              color: "white",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 500,
-            }}
-          >
-            Download {processName}.tex (TikZ)
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button type="button" data-testid="export-png" onClick={() => downloadImage("png")} style={downloadBtnStyle}>
+            Download .png
+          </button>
+          <button type="button" data-testid="export-svg" onClick={() => downloadImage("svg")} style={downloadBtnStyle}>
+            Download .svg
+          </button>
+          <button type="button" data-testid="export-tikz" onClick={downloadTikz} style={downloadBtnStyle}>
+            Download .tex (TikZ)
           </button>
         </div>
       )}

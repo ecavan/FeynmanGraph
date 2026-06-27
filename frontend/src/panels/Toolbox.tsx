@@ -86,7 +86,7 @@ export function Toolbox() {
         <IconButton
           testId="clear-diagram"
           label="Clear"
-          title="Clear the diagram"
+          title="Remove all nodes & edges from this diagram (does not affect server state — see Reset)"
           onClick={clearDiagram}
           variant="danger"
         />
