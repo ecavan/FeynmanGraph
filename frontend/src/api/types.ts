@@ -25,6 +25,8 @@ export type TheoryMeta = { id: string; name: string };
 
 export type CompletionOption = { pdg_id: number; ufo_vertex_id: string };
 
+export type ModelCommandResponse = { output: string };
+
 export type GraphIssue = {
   code: string;
   detail: string;
@@ -45,7 +47,11 @@ export type ExampleSpec = {
   model_id: string;
   theory_id: string;
   process_name: string;
-  nodes: { id: string; position: [number, number]; ufo_vertex_id?: string | null }[];
+  nodes: {
+    id: string;
+    position: [number, number];
+    ufo_vertex_id?: string | null;
+  }[];
   edges: {
     id: string;
     source_node_id: string;
@@ -54,5 +60,9 @@ export type ExampleSpec = {
     direction?: "source_to_target" | "target_to_source";
     cut_label?: string | null;
   }[];
-  external_legs: { node_id: string; kind: "incoming" | "outgoing"; label: string }[];
+  external_legs: {
+    node_id: string;
+    kind: "incoming" | "outgoing";
+    label: string;
+  }[];
 };

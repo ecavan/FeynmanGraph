@@ -5,6 +5,7 @@ import type {
   ExportResponse,
   GraphIssue,
   Model,
+  ModelCommandResponse,
   ModelMeta,
   TheoryMeta,
 } from "./types";
@@ -62,6 +63,17 @@ export class ApiClient {
   getModel(id: string, theoryId?: string): Promise<Model> {
     const q = theoryId ? `?theory=${encodeURIComponent(theoryId)}` : "";
     return this.request(`/api/models/${encodeURIComponent(id)}${q}`);
+  }
+
+  runModelCommand(
+    modelId: string,
+    command: string,
+  ): Promise<ModelCommandResponse> {
+    return this.request("/api/model-command", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model_id: modelId, command }),
+    });
   }
 
   listTheories(): Promise<TheoryMeta[]> {

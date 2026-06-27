@@ -3,19 +3,22 @@ import { useDiagramStore } from "../state/diagram";
 import { DotUploader } from "./DotUploader";
 import { ExportPanel } from "./ExportPanel";
 import { GeneratePanel } from "./GeneratePanel";
+import { ModelViewer } from "./ModelViewer";
 import { Popover } from "./Popover";
 import { ShortcutsHelp } from "./ShortcutsHelp";
 import { UfoUploader } from "./UfoUploader";
 
-type OpenKind = "generate" | "import" | "export" | "help" | null;
+type OpenKind = "generate" | "import" | "export" | "help" | "model" | null;
 
 export function CanvasActions() {
   const [open, setOpen] = useState<OpenKind>(null);
   const [exportTick, setExportTick] = useState(0);
+  const [cliExpanded, setCliExpanded] = useState(false);
   const genRef = useRef<HTMLButtonElement>(null);
   const impRef = useRef<HTMLButtonElement>(null);
   const expRef = useRef<HTMLButtonElement>(null);
   const helpRef = useRef<HTMLButtonElement>(null);
+  const modelRef = useRef<HTMLButtonElement>(null);
   const runLayout = useDiagramStore((s) => s.runLayout);
 
   function toggle(kind: Exclude<OpenKind, null>) {
@@ -45,35 +48,95 @@ export function CanvasActions() {
         zIndex: 5,
       }}
     >
-      <ActionButton ref={genRef} label="Generate ▾" active={open === "generate"} onClick={() => toggle("generate")} />
-      <ActionButton ref={impRef} label="Import ▾" active={open === "import"} onClick={() => toggle("import")} />
-      <ActionButton ref={expRef} label="Export ▾" active={open === "export"} onClick={() => toggle("export")} />
+      <ActionButton
+        ref={genRef}
+        label="Generate ▾"
+        active={open === "generate"}
+        onClick={() => toggle("generate")}
+      />
+      <ActionButton
+        ref={impRef}
+        label="Import ▾"
+        active={open === "import"}
+        onClick={() => toggle("import")}
+      />
+      <ActionButton
+        ref={expRef}
+        label="Export ▾"
+        active={open === "export"}
+        onClick={() => toggle("export")}
+      />
+      <ActionButton
+        ref={modelRef}
+        label="CLI ▾"
+        active={open === "model"}
+        onClick={() => toggle("model")}
+      />
       <ActionButton label="Auto-layout" active={false} onClick={runLayout} />
-      <ActionButton ref={helpRef} label="?" active={open === "help"} onClick={() => toggle("help")} />
+      <ActionButton
+        ref={helpRef}
+        label="?"
+        active={open === "help"}
+        onClick={() => toggle("help")}
+      />
 
-      <Popover anchorRef={genRef} open={open === "generate"} onClose={close} width={340}>
+      <Popover
+        anchorRef={genRef}
+        open={open === "generate"}
+        onClose={close}
+        width={340}
+      >
         <GeneratePanel onSuccess={close} />
       </Popover>
-      <Popover anchorRef={impRef} open={open === "import"} onClose={close} width={340}>
+      <Popover
+        anchorRef={impRef}
+        open={open === "import"}
+        onClose={close}
+        width={340}
+      >
         <UfoUploader onUploaded={handleImportSuccess} />
         <hr style={{ margin: "14px 0" }} />
         <DotUploader onImported={handleImportSuccess} />
       </Popover>
-      <Popover anchorRef={expRef} open={open === "export"} onClose={close} width={520}>
+      <Popover
+        anchorRef={expRef}
+        open={open === "export"}
+        onClose={close}
+        width={520}
+      >
         <ExportPanel openTick={exportTick} />
       </Popover>
-      <Popover anchorRef={helpRef} open={open === "help"} onClose={close} width={300}>
+      <Popover
+        anchorRef={modelRef}
+        open={open === "model"}
+        onClose={close}
+        width={cliExpanded ? 760 : 380}
+      >
+        <ModelViewer
+          expanded={cliExpanded}
+          onToggleExpand={() => setCliExpanded((v) => !v)}
+        />
+      </Popover>
+      <Popover
+        anchorRef={helpRef}
+        open={open === "help"}
+        onClose={close}
+        width={300}
+      >
         <ShortcutsHelp />
       </Popover>
     </div>
   );
 }
 
-const ActionButton = forwardRef<HTMLButtonElement, {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}>(function ActionButton(props, ref) {
+const ActionButton = forwardRef<
+  HTMLButtonElement,
+  {
+    label: string;
+    active: boolean;
+    onClick: () => void;
+  }
+>(function ActionButton(props, ref) {
   return (
     <button
       ref={ref}

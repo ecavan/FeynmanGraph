@@ -986,3 +986,83 @@ def test_estimate_runtime_over_timeout_is_red(monkeypatch):
     body = resp.json()
     assert body["severity"] == "red"
     assert body["estimated_ram_gb"] < 6.0
+
+
+# ---------- BSM UFO import verification (Task 3) ----------
+
+
+def _symbolica_has_evaluate_complex() -> bool:
+    try:
+        from symbolica import Expression
+
+        return hasattr(Expression, "evaluate_complex")
+    except Exception:
+        return False
+
+
+@pytest.mark.skipif(
+    not _symbolica_has_evaluate_complex(),
+    reason="ufo_model_loader needs symbolica.Expression.evaluate_complex, removed in "
+    "symbolica 2.x. Run on Python <3.14 with `pip install 'symbolica<2'` for BSM UFO "
+    "upload to work (the symbolica 2.x evaluate() port is upstream in Valentin's package).",
+)
+def test_bsm_scalar_gravity_upload_loads_graviton():
+    fixture = FIXTURE_DIR / "bsm" / "scalar_gravity"
+    if not fixture.is_dir():
+        pytest.skip("BSM fixture not present (gitignored — kept local only; see .gitignore)")
+    client = _client()
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        tf.add(fixture, arcname="scalar_gravity")
+    resp = client.post(
+        "/api/models/upload-ufo",
+        files={"file": ("scalar_gravity.tar.gz", buf.getvalue(), "application/gzip")},
+        data={"model_id": "scalar_gravity_test", "overwrite": "true"},
+    )
+    assert resp.status_code == 200, resp.text
+    got = client.get("/api/models/scalar_gravity_test")
+    assert got.status_code == 200, got.text
+    names = [p["name"] for p in got.json()["particles"]]
+    assert "graviton" in names
+
+
+# ---------- model-command allowlist (Task 4) ----------
+
+def test_allowlist_accepts_display_and_inspect():
+    from feyngraph.api.model_command import is_allowed_command
+    assert is_allowed_command("display model")
+    assert is_allowed_command("display processes")
+    assert is_allowed_command("inspect amp")
+
+
+def test_allowlist_rejects_unsafe_commands():
+    from feyngraph.api.model_command import is_allowed_command
+    assert not is_allowed_command("integrate xs")
+    assert not is_allowed_command("generate amp")
+    assert not is_allowed_command("import /etc/passwd")
+    assert not is_allowed_command('display"; rm -rf /')
+    assert not is_allowed_command("display\nintegrate")
+    assert not is_allowed_command("")
+
+
+def test_model_command_endpoint_rejects_disallowed():
+    client = _client()
+    resp = client.post("/api/model-command", json={"model_id": "sm", "command": "integrate xs"})
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "COMMAND_NOT_ALLOWED"
+
+
+def test_model_command_endpoint_passes_allowed_command_past_the_gate():
+    client = _client()
+    resp = client.post("/api/model-command", json={"model_id": "sm", "command": "display model"})
+    assert resp.status_code in (200, 503)
+
+
+def test_format_command_output_combines_streams_and_strips_ansi():
+    from feyngraph.api.model_command import format_command_output
+
+    # gammaloop logs `display` content to stderr with ANSI color codes; stdout is empty
+    out = format_command_output("", "Model name : \x1b[32msm\x1b[39m\n119 vertices\n")
+    assert "Model name : sm" in out
+    assert "119 vertices" in out
+    assert "\x1b[" not in out
