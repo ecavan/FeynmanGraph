@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
 import { serializeGraphSpec } from "./serialize";
+import { toTikz } from "./tikz";
 
 const api = new ApiClient();
 
@@ -51,6 +52,17 @@ export function ExportPanel(props: { openTick?: number } = {}) {
     URL.revokeObjectURL(url);
   }
 
+  function downloadTikz() {
+    const tex = toTikz(useDiagramStore.getState());
+    const blob = new Blob([tex], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${processName}.tex`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div data-testid="export-panel" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {nodeCount === 0 && !error && (
@@ -66,6 +78,28 @@ export function ExportPanel(props: { openTick?: number } = {}) {
           }}
         >
           Nothing to export yet — add a vertex and a propagator first.
+        </div>
+      )}
+
+      {nodeCount > 0 && (
+        <div>
+          <button
+            type="button"
+            data-testid="export-tikz"
+            onClick={downloadTikz}
+            style={{
+              padding: "6px 14px",
+              background: "#444",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            Download {processName}.tex (TikZ)
+          </button>
         </div>
       )}
 

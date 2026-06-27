@@ -27,6 +27,7 @@ export function VertexNode(props: NodeProps<VertexNodeData>) {
         border,
         boxShadow: shadow,
         position: "relative",
+        cursor: "grab",
       }}
     >
       <Handle
@@ -42,6 +43,7 @@ export function VertexNode(props: NodeProps<VertexNodeData>) {
           background: "transparent",
           border: "none",
           opacity: 0,
+          pointerEvents: "none",
         }}
       />
       <Handle
@@ -57,6 +59,7 @@ export function VertexNode(props: NodeProps<VertexNodeData>) {
           background: "transparent",
           border: "none",
           opacity: 0,
+          pointerEvents: "none",
         }}
       />
     </div>

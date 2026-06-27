@@ -127,9 +127,11 @@ function DiagramCanvasInner() {
         }}
         deleteKeyCode={["Backspace", "Delete"]}
         nodesConnectable={false}
+        snapToGrid
+        snapGrid={[20, 20]}
         fitView
       >
-        <Background />
+        <Background gap={20} />
         <Controls />
       </ReactFlow>
     </div>

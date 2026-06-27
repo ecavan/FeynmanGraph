@@ -56,7 +56,7 @@ describe("relayout", () => {
       { id: "e2", sourceNodeId: "v2", targetNodeId: "v3", particlePdgId: null },
       { id: "e3", sourceNodeId: "v3", targetNodeId: "v1", particlePdgId: null },
     ];
-    const positions = relayout(nodes, edges, []).nodes.map((n) => n.position);
+    const positions = relayout(nodes, edges, [], { reset: true }).nodes.map((n) => n.position);
     expect(positions[0]).not.toEqual(positions[1]);
     expect(positions[1]).not.toEqual(positions[2]);
   });
@@ -66,7 +66,7 @@ describe("relayout", () => {
       { id: "v1", position: [0, 0] as [number, number] },
       { id: "v2", position: [0, 0] as [number, number] },
     ];
-    for (const n of relayout(nodes, [], []).nodes) {
+    for (const n of relayout(nodes, [], [], { reset: true }).nodes) {
       expect(Math.hypot(n.position[0], n.position[1])).toBeLessThan(250);
     }
   });

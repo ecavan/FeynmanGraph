@@ -163,7 +163,7 @@ export const useDiagramStore = create<DiagramState>((set) => ({
   setCachedModel: (m) => set({ cachedModel: m }),
   runLayout: () =>
     set((s) => {
-      const out = relayout(s.nodes, s.edges, s.externalLegs);
+      const out = relayout(s.nodes, s.edges, s.externalLegs, { reset: true });
       return { nodes: out.nodes, externalLegs: out.externalLegs };
     }),
   addVertex: (v) =>

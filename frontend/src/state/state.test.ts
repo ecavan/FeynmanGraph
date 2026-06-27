@@ -19,6 +19,32 @@ describe("diagram store", () => {
     expect(useDiagramStore.getState().nodes).toHaveLength(1);
   });
 
+  it("preserves manually-positioned vertices across structural edits", () => {
+    const s = useDiagramStore.getState();
+    s.addVertex({ id: "v1", position: [10, 20] });
+    s.addVertex({ id: "v2", position: [30, 40] });
+    s.updateVertexPosition("v1", [111, 222]);
+    s.updateVertexPosition("v2", [333, 444]);
+    s.addEdge({ id: "e1", sourceNodeId: "v1", targetNodeId: "v2", particlePdgId: 22 });
+    const pos = (id: string) =>
+      useDiagramStore.getState().nodes.find((n) => n.id === id)?.position;
+    expect(pos("v1")).toEqual([111, 222]);
+    expect(pos("v2")).toEqual([333, 444]);
+  });
+
+  it("Auto-layout (runLayout) re-runs the force layout and separates overlaps", () => {
+    const s = useDiagramStore.getState();
+    s.addVertex({ id: "v1", position: [0, 0] });
+    s.addVertex({ id: "v2", position: [0, 0] });
+    s.addEdge({ id: "e1", sourceNodeId: "v1", targetNodeId: "v2", particlePdgId: 22 });
+    s.updateVertexPosition("v1", [50, 50]);
+    s.updateVertexPosition("v2", [50, 50]);
+    s.runLayout();
+    const pos = (id: string) =>
+      useDiagramStore.getState().nodes.find((n) => n.id === id)?.position;
+    expect(pos("v1")).not.toEqual(pos("v2"));
+  });
+
   it("connects two vertices with an edge", () => {
     const s = useDiagramStore.getState();
     s.addVertex({ id: "v1", position: [0, 0] });

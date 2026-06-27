@@ -1,4 +1,5 @@
 import { forwardRef, useRef, useState } from "react";
+import { useDiagramStore } from "../state/diagram";
 import { DotUploader } from "./DotUploader";
 import { ExportPanel } from "./ExportPanel";
 import { GeneratePanel } from "./GeneratePanel";
@@ -13,6 +14,7 @@ export function CanvasActions() {
   const genRef = useRef<HTMLButtonElement>(null);
   const impRef = useRef<HTMLButtonElement>(null);
   const expRef = useRef<HTMLButtonElement>(null);
+  const runLayout = useDiagramStore((s) => s.runLayout);
 
   function toggle(kind: Exclude<OpenKind, null>) {
     setOpen((prev) => {
@@ -44,6 +46,7 @@ export function CanvasActions() {
       <ActionButton ref={genRef} label="Generate ▾" active={open === "generate"} onClick={() => toggle("generate")} />
       <ActionButton ref={impRef} label="Import ▾" active={open === "import"} onClick={() => toggle("import")} />
       <ActionButton ref={expRef} label="Export ▾" active={open === "export"} onClick={() => toggle("export")} />
+      <ActionButton label="Auto-layout" active={false} onClick={runLayout} />
 
       <Popover anchorRef={genRef} open={open === "generate"} onClose={close} width={340}>
         <GeneratePanel onSuccess={close} />

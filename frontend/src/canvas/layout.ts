@@ -15,17 +15,18 @@ type Layout = {
   externalLegs: ExternalLeg[];
 };
 
+type RelayoutOptions = { reset?: boolean };
+
 export function relayout(
   nodes: VertexNode[],
   edges: ParticleEdge[],
   externalLegs: ExternalLeg[],
+  opts: RelayoutOptions = {},
 ): Layout {
   if (nodes.length === 0) return { nodes, externalLegs };
 
   const incoming = externalLegs.filter((l) => l.kind === "incoming").map((l) => l.nodeId);
   const outgoing = externalLegs.filter((l) => l.kind === "outgoing").map((l) => l.nodeId);
-  const externalSet = new Set([...incoming, ...outgoing]);
-  const internal = nodes.filter((n) => !externalSet.has(n.id)).map((n) => n.id);
 
   const positions = new Map<string, [number, number]>();
   incoming.forEach((id, i) => {
@@ -36,6 +37,19 @@ export function relayout(
     const y = (i - (outgoing.length - 1) / 2) * LEG_VERTICAL_SPACING;
     positions.set(id, [LEG_RIGHT_X, y]);
   });
+
+  if (!opts.reset) {
+    return {
+      nodes: nodes.map((n) => {
+        const p = positions.get(n.id);
+        return p ? { ...n, position: p } : n;
+      }),
+      externalLegs,
+    };
+  }
+
+  const externalSet = new Set([...incoming, ...outgoing]);
+  const internal = nodes.filter((n) => !externalSet.has(n.id)).map((n) => n.id);
   internal.forEach((id, i) => {
     const t = internal.length <= 1 ? 0 : i / (internal.length - 1) - 0.5;
     positions.set(id, [t * 120, 0]);
