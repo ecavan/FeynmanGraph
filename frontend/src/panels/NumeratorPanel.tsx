@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
+import { ResizableBox } from "./ResizableBox";
 import { TypstMath } from "./TypstMath";
+import { downloadText } from "./download";
 import {
   buildIntegrandTypst,
   lmbRepToTypst,
@@ -284,14 +286,35 @@ export function NumeratorPanel() {
                   onClick={() => setView("integrand")}
                 />
               </div>
-              <TypstMath source={displaySource} />
+              <TypstMath
+                source={displaySource}
+                storageKey="fg-numerator-math"
+              />
               <div
                 style={{
                   marginTop: 6,
                   display: "flex",
                   justifyContent: "flex-end",
+                  gap: 6,
                 }}
               >
+                <button
+                  type="button"
+                  data-testid="numerator-download"
+                  onClick={() => downloadText("numerator.txt", displaySource)}
+                  title="Download the full numerator as a .txt file"
+                  style={{
+                    padding: "2px 8px",
+                    fontSize: 11,
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: 3,
+                    cursor: "pointer",
+                    opacity: 0.7,
+                  }}
+                >
+                  ⬇ Download .txt
+                </button>
                 <button
                   type="button"
                   data-testid="numerator-toggle-source"
@@ -310,24 +333,27 @@ export function NumeratorPanel() {
                 </button>
               </div>
               {showSource && (
-                <pre
-                  data-testid="numerator-text"
-                  style={{
-                    margin: "6px 0 0",
-                    padding: "8px 10px",
-                    background: "#f7f7f7",
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 3,
-                    fontSize: 11,
-                    lineHeight: 1.4,
-                    maxHeight: 240,
-                    overflow: "auto",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {clampForDisplay(displaySource)}
-                </pre>
+                <div style={{ marginTop: 6 }}>
+                  <ResizableBox
+                    storageKey="fg-numerator-src"
+                    initialHeight={240}
+                  >
+                    <pre
+                      data-testid="numerator-text"
+                      style={{
+                        margin: 0,
+                        padding: "8px 10px",
+                        background: "#f7f7f7",
+                        fontSize: 11,
+                        lineHeight: 1.4,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {clampForDisplay(displaySource)}
+                    </pre>
+                  </ResizableBox>
+                </div>
               )}
             </>
           )}
@@ -340,7 +366,9 @@ export function NumeratorPanel() {
                 paddingTop: 10,
               }}
             >
-              <h4 style={{ margin: "0 0 6px" }}>Reduction — master integrals</h4>
+              <h4 style={{ margin: "0 0 6px" }}>
+                Reduction — master integrals
+              </h4>
               {reduceWarning && (
                 <div
                   data-testid="reduce-warning"
@@ -372,25 +400,56 @@ export function NumeratorPanel() {
               )}
               {reduced && (
                 <>
-                  <TypstMath source={sanitizeReducedTypst(reduced)} />
-                  <pre
-                    data-testid="reduce-text"
+                  <TypstMath
+                    source={sanitizeReducedTypst(reduced)}
+                    storageKey="fg-reduce-math"
+                  />
+                  <div
                     style={{
-                      margin: "6px 0 0",
-                      padding: "8px 10px",
-                      background: "#f7f7f7",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: 3,
-                      fontSize: 11,
-                      lineHeight: 1.4,
-                      maxHeight: 240,
-                      overflow: "auto",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
+                      marginTop: 6,
+                      display: "flex",
+                      justifyContent: "flex-end",
                     }}
                   >
-                    {clampForDisplay(reduced)}
-                  </pre>
+                    <button
+                      type="button"
+                      data-testid="reduce-download"
+                      onClick={() => downloadText("reduction.txt", reduced)}
+                      title="Download the full reduced expression as a .txt file"
+                      style={{
+                        padding: "2px 8px",
+                        fontSize: 11,
+                        background: "white",
+                        border: "1px solid #ccc",
+                        borderRadius: 3,
+                        cursor: "pointer",
+                        opacity: 0.7,
+                      }}
+                    >
+                      ⬇ Download .txt
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 6 }}>
+                    <ResizableBox
+                      storageKey="fg-reduce-src"
+                      initialHeight={240}
+                    >
+                      <pre
+                        data-testid="reduce-text"
+                        style={{
+                          margin: 0,
+                          padding: "8px 10px",
+                          background: "#f7f7f7",
+                          fontSize: 11,
+                          lineHeight: 1.4,
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {clampForDisplay(reduced)}
+                      </pre>
+                    </ResizableBox>
+                  </div>
                 </>
               )}
             </div>
