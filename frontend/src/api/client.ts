@@ -159,6 +159,22 @@ export class ApiClient {
     });
   }
 
+  getReduce(
+    spec: ExampleSpec,
+    signal?: AbortSignal,
+  ): Promise<{
+    raw: string;
+    format: string;
+    warnings: string[];
+  }> {
+    return this.request("/api/reduce", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(spec),
+      signal,
+    });
+  }
+
   estimate(
     req: {
       initial_state: string[];

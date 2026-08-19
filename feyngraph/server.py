@@ -43,6 +43,7 @@ def create_app() -> FastAPI:
     from feyngraph.api.model_command import router as model_command_router
     from feyngraph.api.models import router as models_router
     from feyngraph.api.numerator import router as numerator_router
+    from feyngraph.api.reduce import router as reduce_router
     from feyngraph.api.reset import router as reset_router
     from feyngraph.api.theories import router as theories_router
     from feyngraph.api.upload import router as upload_router
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(upload_router)
     app.include_router(generate_router)
     app.include_router(numerator_router)
+    app.include_router(reduce_router)
     app.include_router(import_dot_router)
     app.include_router(estimate_router)
     app.include_router(reset_router)

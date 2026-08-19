@@ -23,6 +23,11 @@ export function NumeratorPanel() {
     { momentum: string; particle: string }[]
   >([]);
   const controllerRef = useRef<AbortController | null>(null);
+  const [reduced, setReduced] = useState<string | null>(null);
+  const [reducing, setReducing] = useState(false);
+  const [reduceError, setReduceError] = useState<string | null>(null);
+  const [reduceElapsed, setReduceElapsed] = useState(0);
+  const reduceControllerRef = useRef<AbortController | null>(null);
 
   const empty = state.nodes.length === 0;
 
@@ -58,6 +63,36 @@ export function NumeratorPanel() {
 
   function cancel() {
     controllerRef.current?.abort();
+  }
+
+  async function reduce() {
+    setReducing(true);
+    setReduceError(null);
+    setReduced(null);
+    setReduceElapsed(0);
+    const tick = setInterval(() => setReduceElapsed((e) => e + 1), 1000);
+    const controller = new AbortController();
+    reduceControllerRef.current = controller;
+    try {
+      const spec = serializeGraphSpec(state) as unknown as Parameters<
+        typeof api.getReduce
+      >[0];
+      const resp = await api.getReduce(spec, controller.signal);
+      setReduced(resp.raw);
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") return;
+      if (e instanceof ApiError) {
+        setReduceError(
+          `${e.code}: ${e.message}${e.hint ? ` — ${e.hint}` : ""}`,
+        );
+      } else {
+        setReduceError(String(e));
+      }
+    } finally {
+      clearInterval(tick);
+      reduceControllerRef.current = null;
+      setReducing(false);
+    }
   }
 
   // Prefer the real per-propagator momenta gammaloop returns (lmb_rep), resolving
@@ -139,10 +174,43 @@ export function NumeratorPanel() {
                   setPropagators([]);
                   setError(null);
                   setShowSource(false);
+                  setReduced(null);
+                  setReduceError(null);
                 }}
                 style={{ padding: "3px 8px", fontSize: 12 }}
               >
                 ✕ Clear
+              </button>
+            )}
+            <button
+              type="button"
+              data-testid="reduce-load"
+              onClick={reduce}
+              disabled={reducing}
+              title="Reduce the one-loop numerator to scalar master integrals (A0/B0/C0/D0)"
+              style={{
+                padding: "4px 10px",
+                fontSize: 12,
+                background: reducing ? "#aaa" : "#7a3cff",
+                color: "white",
+                border: "none",
+                borderRadius: 3,
+                cursor: reducing ? "wait" : "pointer",
+              }}
+            >
+              {reducing
+                ? `Reducing… ${Math.floor(reduceElapsed / 60)}:${String(reduceElapsed % 60).padStart(2, "0")}`
+                : reduced
+                  ? "Re-reduce"
+                  : "Reduce to masters"}
+            </button>
+            {reducing && (
+              <button
+                type="button"
+                onClick={() => reduceControllerRef.current?.abort()}
+                style={{ padding: "3px 8px", fontSize: 12 }}
+              >
+                ✕ Cancel
               </button>
             )}
           </div>
@@ -224,6 +292,55 @@ export function NumeratorPanel() {
                 </pre>
               )}
             </>
+          )}
+          {(reduceError || reduced) && (
+            <div
+              data-testid="reduce-result"
+              style={{
+                marginTop: 12,
+                borderTop: "1px solid #e0e0e0",
+                paddingTop: 10,
+              }}
+            >
+              <h4 style={{ margin: "0 0 6px" }}>Reduction — master integrals</h4>
+              {reduceError && (
+                <div
+                  style={{
+                    padding: "6px 8px",
+                    background: "#fde2e1",
+                    border: "1px solid #c0392b",
+                    color: "#7a1c12",
+                    borderRadius: 3,
+                    fontSize: 12,
+                  }}
+                >
+                  {reduceError}
+                </div>
+              )}
+              {reduced && (
+                <>
+                  <TypstMath source={reduced} />
+                  <pre
+                    data-testid="reduce-text"
+                    style={{
+                      margin: "6px 0 0",
+                      padding: "8px 10px",
+                      background: "#f7f7f7",
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 3,
+                      fontSize: 11,
+                      lineHeight: 1.4,
+                      maxHeight: 240,
+                      overflow: "auto",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {reduced}
+                  </pre>
+                </>
+              )}
+            </div>
           )}
         </>
       )}
