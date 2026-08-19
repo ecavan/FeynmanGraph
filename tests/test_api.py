@@ -40,6 +40,24 @@ def test_unknown_route_has_error_shape():
     assert "detail" in resp.json()
 
 
+def test_large_responses_are_gzipped():
+    # nginx does not gzip proxied JSON on the server (gzip_proxied/gzip_types are
+    # left at defaults), so a multi-MB reduction would otherwise ship the full
+    # payload uncompressed. The app must compress large bodies itself: anything
+    # over GZipMiddleware's 500-byte floor comes back Content-Encoding: gzip when
+    # the client accepts it.
+    resp = _client().get("/api/models/sm_minimal", headers={"Accept-Encoding": "gzip"})
+    assert resp.status_code == 200
+    assert resp.headers.get("content-encoding") == "gzip"
+
+
+def test_small_responses_are_not_gzipped():
+    # Tiny responses stay uncompressed (below the size floor) — no wasted CPU.
+    resp = _client().get("/api/health", headers={"Accept-Encoding": "gzip"})
+    assert resp.status_code == 200
+    assert resp.headers.get("content-encoding") != "gzip"
+
+
 # ---------- /api/theories ----------
 
 def test_list_theories():

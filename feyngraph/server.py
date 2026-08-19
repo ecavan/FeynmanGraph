@@ -3,6 +3,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from feyngraph.api.errors import register_exception_handlers
@@ -24,6 +25,13 @@ def _cache_control_for(content_type: str, path: str) -> str | None:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="feyngraph", version=__version__)
+    # Compress large responses at the app layer: nginx on the server is left at
+    # its gzip defaults (gzip_proxied off, gzip_types text/html only), so it does
+    # NOT compress our proxied JSON. Without this, a multi-MB reduction ships the
+    # full payload uncompressed. gzip sets Content-Encoding: gzip, which nginx
+    # passes through untouched — no nginx changes needed. 500-byte floor skips
+    # tiny responses (health, etc.) so we don't waste CPU on them.
+    app.add_middleware(GZipMiddleware, minimum_size=500)
     register_exception_handlers(app)
 
     @app.middleware("http")
