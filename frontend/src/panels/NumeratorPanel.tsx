@@ -7,6 +7,7 @@ import {
   lmbRepToTypst,
   propagatorsFromState,
 } from "./integrand";
+import { reduceLoopGuard, reduceReasonMessage } from "./reduceGuard";
 import { serializeGraphSpec } from "./serialize";
 
 const api = new ApiClient();
@@ -26,6 +27,7 @@ export function NumeratorPanel() {
   const [reduced, setReduced] = useState<string | null>(null);
   const [reducing, setReducing] = useState(false);
   const [reduceError, setReduceError] = useState<string | null>(null);
+  const [reduceWarning, setReduceWarning] = useState<string | null>(null);
   const [reduceElapsed, setReduceElapsed] = useState(0);
   const reduceControllerRef = useRef<AbortController | null>(null);
 
@@ -66,9 +68,10 @@ export function NumeratorPanel() {
   }
 
   async function reduce() {
-    setReducing(true);
     setReduceError(null);
     setReduced(null);
+    setReduceWarning(null);
+    setReducing(true);
     setReduceElapsed(0);
     const tick = setInterval(() => setReduceElapsed((e) => e + 1), 1000);
     const controller = new AbortController();
@@ -77,8 +80,23 @@ export function NumeratorPanel() {
       const spec = serializeGraphSpec(state) as unknown as Parameters<
         typeof api.getReduce
       >[0];
+      // The one-loop reducer only handles single-loop diagrams — check the loop
+      // count up front and warn, instead of round-tripping to a backend error.
+      const { loop_count } = await api.validateGraph(spec);
+      const guard = reduceLoopGuard(loop_count);
+      if (guard) {
+        setReduceWarning(guard);
+        return;
+      }
       const resp = await api.getReduce(spec, controller.signal);
-      setReduced(resp.raw);
+      // A one-loop diagram may still not reduce (e.g. its numerator vanishes);
+      // the backend flags that with a status we surface as a warning, not an error.
+      const reasonMsg = reduceReasonMessage(resp.reason);
+      if (reasonMsg) {
+        setReduceWarning(reasonMsg);
+      } else {
+        setReduced(resp.raw);
+      }
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;
       if (e instanceof ApiError) {
@@ -176,6 +194,7 @@ export function NumeratorPanel() {
                   setShowSource(false);
                   setReduced(null);
                   setReduceError(null);
+                  setReduceWarning(null);
                 }}
                 style={{ padding: "3px 8px", fontSize: 12 }}
               >
@@ -293,7 +312,7 @@ export function NumeratorPanel() {
               )}
             </>
           )}
-          {(reduceError || reduced) && (
+          {(reduceError || reduceWarning || reduced) && (
             <div
               data-testid="reduce-result"
               style={{
@@ -303,6 +322,21 @@ export function NumeratorPanel() {
               }}
             >
               <h4 style={{ margin: "0 0 6px" }}>Reduction — master integrals</h4>
+              {reduceWarning && (
+                <div
+                  data-testid="reduce-warning"
+                  style={{
+                    padding: "6px 8px",
+                    background: "#fff3cd",
+                    border: "1px solid #d9a400",
+                    color: "#7a5d00",
+                    borderRadius: 3,
+                    fontSize: 12,
+                  }}
+                >
+                  {reduceWarning}
+                </div>
+              )}
               {reduceError && (
                 <div
                   style={{

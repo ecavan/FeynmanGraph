@@ -20,12 +20,26 @@ from feyngraph.domain.model_loader import ModelLoader, ModelNotFoundError, user_
 router = APIRouter(prefix="/api", tags=["reduce"])
 
 _REDUCED_NUM = re.compile(r'reduced_num\s*=\s*"((?:[^"\\]|\\.)*)"', re.S)
+_REDUCE_STATUS = re.compile(r'reduce_status\s*=\s*"([^"]*)"')
+
+# Friendly, user-facing messages for the typed reasons the reducer glue emits
+# (reduce_status="...") when it produces no reduced_num. These are warnings, not
+# errors — the request succeeded, the diagram just doesn't reduce to masters.
+_REDUCE_REASON_MESSAGES = {
+    "not_one_loop": "Reduce to masters only works for one-loop diagrams.",
+    "zero_numerator": (
+        "This diagram vanishes identically — its numerator is zero, so there is "
+        "nothing to reduce."
+    ),
+    "unsupported": "This one-loop diagram isn't supported by the reducer yet.",
+}
 
 
 class ReduceResponse(BaseModel):
     raw: str
     format: str = "typst-symbolica"
     warnings: list[str] = []
+    reason: str | None = None
 
 
 @router.post("/reduce", response_model=ReduceResponse)
@@ -101,11 +115,19 @@ async def reduce(spec: GraphSpec) -> ReduceResponse:
         emitted = dot_files[0].read_text()
         m = _REDUCED_NUM.search(emitted)
         if not m:
+            # No reduction — but the glue tells us *why* via reduce_status, so we
+            # return a friendly warning (200) instead of an error for the expected
+            # cases (not one-loop, or a vanishing numerator).
+            status_match = _REDUCE_STATUS.search(emitted)
+            status = status_match.group(1) if status_match else None
+            message = _REDUCE_REASON_MESSAGES.get(status) if status else None
+            if message is not None:
+                return ReduceResponse(raw="", reason=status, warnings=[message])
             raise FeyngraphHTTPException(
                 status_code=422,
                 detail=(
-                    "gammaloop produced a diagram but no reduced_num — the reducer may not "
-                    "support this topology (only one-loop numerators reduce)."
+                    "gammaloop produced a diagram but no reduced_num — the reducer "
+                    "could not reduce this numerator."
                 ),
                 code="NO_REDUCTION",
             )

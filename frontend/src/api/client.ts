@@ -166,6 +166,7 @@ export class ApiClient {
     raw: string;
     format: string;
     warnings: string[];
+    reason?: string | null;
   }> {
     return this.request("/api/reduce", {
       method: "POST",
