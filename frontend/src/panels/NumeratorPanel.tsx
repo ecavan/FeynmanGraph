@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiClient, ApiError } from "../api/client";
 import { useDiagramStore } from "../state/diagram";
 import { TypstMath } from "./TypstMath";
@@ -34,6 +34,20 @@ export function NumeratorPanel() {
   const [reduceWarning, setReduceWarning] = useState<string | null>(null);
   const [reduceElapsed, setReduceElapsed] = useState(0);
   const reduceControllerRef = useRef<AbortController | null>(null);
+
+  // When the underlying diagram changes (e.g. selecting a different generated
+  // graph), clear stale numerator + reduction so the panel reflects the current
+  // graph and the user re-runs the pipeline rather than seeing the previous
+  // diagram's result.
+  useEffect(() => {
+    setRaw(null);
+    setPropagators([]);
+    setError(null);
+    setShowSource(false);
+    setReduced(null);
+    setReduceError(null);
+    setReduceWarning(null);
+  }, [state.nodes, state.edges, state.externalLegs]);
 
   const empty = state.nodes.length === 0;
 

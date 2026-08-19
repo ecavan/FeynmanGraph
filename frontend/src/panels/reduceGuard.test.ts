@@ -66,4 +66,15 @@ describe("sanitizeReducedTypst", () => {
     const s = '"MTA"² ϵ₀^(α_(¹))';
     expect(sanitizeReducedTypst(s)).toBe(s);
   });
+
+  it("quotes residual bare identifiers (trace, massless mass, spinor indices)", () => {
+    expect(sanitizeReducedTypst("Tr(x)")).toContain('"Tr"');
+    expect(sanitizeReducedTypst("ZERO²")).toBe('"ZERO"²'); // ² word-boundary quirk
+    expect(sanitizeReducedTypst("in out")).toBe('"in" "out"');
+  });
+
+  it("does not quote inside existing quoted strings or the dot operator", () => {
+    expect(sanitizeReducedTypst('"GC_3"')).toBe('"GC_3"');
+    expect(sanitizeReducedTypst("q1 dot q1")).toBe("q_(1) dot q_(1)");
+  });
 });

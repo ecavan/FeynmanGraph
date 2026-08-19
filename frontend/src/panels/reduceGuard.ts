@@ -32,8 +32,21 @@ export function reduceReasonMessage(status: string | null | undefined): string |
  *  `dot(a,b)` → `(a dot b)`, `B0(` → `B_0 (`, `q1` → `q_(1)`. Validated against
  *  the real reducer output with the Typst compiler. */
 export function sanitizeReducedTypst(raw: string): string {
-  return raw
-    .replace(/dot\(([^(),]+),\s*([^(),]+)\)/g, "($1 dot $2)")
-    .replace(/\b([ABCD])0\(/g, "$1_0 (")
-    .replace(/\bq(\d+)/g, "q_($1)");
+  return (
+    raw
+      .replace(/dot\(([^(),]+),\s*([^(),]+)\)/g, "($1 dot $2)")
+      .replace(/\b([ABCD])0\(/g, "$1_0 (")
+      .replace(/\bq(\d+)/g, "q_($1)")
+      // Quote any residual bare multi-letter identifier (Tr, ZERO, in, out, …)
+      // that Typst math would otherwise read as an undefined variable. Skip
+      // already-quoted strings and the `dot` operator. Lookarounds (not \b) so a
+      // trailing unicode superscript like `ZERO²` still matches. Validated across
+      // 43 diagrams (bubble/triangle/box, open + closed fermion lines) with the
+      // Typst compiler.
+      .replace(
+        /"[^"]*"|(?<![A-Za-z])([A-Za-z]{2,})(?![A-Za-z])/g,
+        (m: string, id: string) =>
+          m[0] === '"' ? m : id === "dot" ? m : `"${id}"`,
+      )
+  );
 }
