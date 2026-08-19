@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampForDisplay,
   reduceLoopGuard,
   reduceReasonMessage,
   sanitizeReducedTypst,
@@ -76,5 +77,19 @@ describe("sanitizeReducedTypst", () => {
   it("does not quote inside existing quoted strings or the dot operator", () => {
     expect(sanitizeReducedTypst('"GC_3"')).toBe('"GC_3"');
     expect(sanitizeReducedTypst("q1 dot q1")).toBe("q_(1) dot q_(1)");
+  });
+});
+
+describe("clampForDisplay", () => {
+  it("leaves short strings untouched", () => {
+    expect(clampForDisplay("small", 40000)).toBe("small");
+  });
+
+  it("truncates large strings and reports the full length", () => {
+    const big = "x".repeat(100000);
+    const out = clampForDisplay(big, 40000);
+    expect(out.length).toBeLessThan(big.length);
+    expect(out).toMatch(/truncated/);
+    expect(out).toContain("100,000");
   });
 });

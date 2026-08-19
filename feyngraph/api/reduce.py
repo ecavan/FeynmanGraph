@@ -1,12 +1,17 @@
 import os
 import re
+import subprocess
 import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from feyngraph.api._gammaloop_runner import DEFAULT_TIMEOUT_S, run_gammaloop
+from feyngraph.api._gammaloop_runner import run_gammaloop
+
+# Reduce is fast (sub-second to a few seconds). Cap it well below the generate
+# default so a genuinely stuck reduce fails fast instead of hanging the page.
+REDUCE_TIMEOUT_S = 120
 from feyngraph.api.errors import FeyngraphHTTPException
 from feyngraph.api.generate import _gammaloop_bin
 from feyngraph.domain.dot_writer import (
@@ -92,14 +97,34 @@ async def reduce(spec: GraphSpec) -> ReduceResponse:
             f'  "import graphs {dot_path} -p amp",\n'
             f'  "save dot --output-full-numerator --reduce",\n]\n'
         )
-        proc = await run_gammaloop(
-            [gammaloop, str(toml_path), "run", "g"],
-            cwd=tmpdir, timeout=DEFAULT_TIMEOUT_S,
-        )
-        if proc.returncode != 0:
+        try:
+            proc = await run_gammaloop(
+                [gammaloop, str(toml_path), "run", "g"],
+                cwd=tmpdir, timeout=REDUCE_TIMEOUT_S,
+            )
+        except subprocess.TimeoutExpired:
             raise FeyngraphHTTPException(
                 status_code=422,
-                detail=f"gammaloop failed: {proc.stderr.strip()[-500:]}",
+                detail=(
+                    f"Reduction timed out after {REDUCE_TIMEOUT_S}s — this diagram "
+                    "is too heavy for the reducer."
+                ),
+                code="REDUCE_TIMEOUT",
+            ) from None
+        if proc.returncode != 0:
+            stderr = proc.stderr or ""
+            # A reducer panic (e.g. a tadpole tensor numerator the engine can't
+            # reduce yet) is a known limitation, not a server error — surface it
+            # as a graceful "unsupported" reason instead of a raw 422 panic.
+            if "panicked" in stderr or "reduce.rs" in stderr:
+                return ReduceResponse(
+                    raw="",
+                    reason="unsupported",
+                    warnings=[_REDUCE_REASON_MESSAGES["unsupported"]],
+                )
+            raise FeyngraphHTTPException(
+                status_code=422,
+                detail=f"gammaloop failed: {stderr.strip()[-500:]}",
                 code="REDUCE_FAILED",
             )
 

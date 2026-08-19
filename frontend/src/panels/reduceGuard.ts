@@ -26,6 +26,13 @@ export function reduceReasonMessage(status: string | null | undefined): string |
   }
 }
 
+/** Truncate a very large source string for display in a `<pre>`, so the browser
+ *  doesn't stall laying out megabytes of text (some reductions are multi-MB). */
+export function clampForDisplay(s: string, max = 40000): string {
+  if (s.length <= max) return s;
+  return `${s.slice(0, max)}\n\n… [truncated — ${s.length.toLocaleString()} characters total]`;
+}
+
 /** The reducer prints master integrals and invariants with function-call syntax
  *  (`B0(...)`, `dot(a,b)`) and flat momenta (`q1`) that Typst math misreads as
  *  undefined variables / function calls. Rewrite to valid Typst math:

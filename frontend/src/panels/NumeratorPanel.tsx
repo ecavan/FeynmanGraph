@@ -8,6 +8,7 @@ import {
   propagatorsFromState,
 } from "./integrand";
 import {
+  clampForDisplay,
   reduceLoopGuard,
   reduceReasonMessage,
   sanitizeReducedTypst,
@@ -325,7 +326,7 @@ export function NumeratorPanel() {
                     wordBreak: "break-word",
                   }}
                 >
-                  {displaySource}
+                  {clampForDisplay(displaySource)}
                 </pre>
               )}
             </>
@@ -388,7 +389,7 @@ export function NumeratorPanel() {
                       wordBreak: "break-word",
                     }}
                   >
-                    {reduced}
+                    {clampForDisplay(reduced)}
                   </pre>
                 </>
               )}

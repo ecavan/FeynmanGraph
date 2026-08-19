@@ -96,17 +96,49 @@ async function renderTypst(source: string): Promise<string> {
   return next as Promise<string>;
 }
 
+// The Typst compiler runs as WASM on the main thread, so a very large expression
+// blocks the UI for seconds — or effectively hangs it (a ~7 MB reduced numerator
+// takes the native compiler ~19 s; WASM is far slower). Above this size we skip
+// typesetting by default and let the user opt in.
+const MAX_TYPST_CHARS = 12000;
+
 export function TypstMath({ source }: { source: string }) {
   const [state, setState] = useState<Status>({ kind: "loading" });
+  const [forcedFor, setForcedFor] = useState<string | null>(null);
+  const tooLarge = source.length > MAX_TYPST_CHARS && forcedFor !== source;
 
   useEffect(() => {
+    if (tooLarge) return;
     let cancelled = false;
     setState({ kind: "loading" });
     renderTypst(source)
       .then((svg) => { if (!cancelled) setState({ kind: "ready", svg }); })
       .catch((e: Error) => { if (!cancelled) setState({ kind: "error", message: e.message }); });
     return () => { cancelled = true; };
-  }, [source]);
+  }, [source, tooLarge]);
+
+  if (tooLarge) {
+    return (
+      <div
+        data-testid="typst-toolarge"
+        style={{
+          padding: "8px 10px", background: "#fff3cd", border: "1px solid #d9a400",
+          color: "#7a5d00", borderRadius: 3, fontSize: 12,
+        }}
+      >
+        This expression is large ({source.length.toLocaleString()} characters) —
+        typesetting is skipped to keep the page responsive.{" "}
+        <button
+          type="button"
+          onClick={() => setForcedFor(source)}
+          style={{ padding: "2px 8px", fontSize: 11, cursor: "pointer" }}
+        >
+          Typeset anyway
+        </button>{" "}
+        <span style={{ opacity: 0.7 }}>(may freeze the page for a while)</span>
+      </div>
+    );
+  }
 
   if (state.kind === "loading") {
     return <div style={{ fontSize: 12, opacity: 0.55, padding: "8px 0" }}>Rendering math…</div>;
