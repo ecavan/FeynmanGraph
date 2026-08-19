@@ -25,3 +25,15 @@ export function reduceReasonMessage(status: string | null | undefined): string |
       return null;
   }
 }
+
+/** The reducer prints master integrals and invariants with function-call syntax
+ *  (`B0(...)`, `dot(a,b)`) and flat momenta (`q1`) that Typst math misreads as
+ *  undefined variables / function calls. Rewrite to valid Typst math:
+ *  `dot(a,b)` → `(a dot b)`, `B0(` → `B_0 (`, `q1` → `q_(1)`. Validated against
+ *  the real reducer output with the Typst compiler. */
+export function sanitizeReducedTypst(raw: string): string {
+  return raw
+    .replace(/dot\(([^(),]+),\s*([^(),]+)\)/g, "($1 dot $2)")
+    .replace(/\b([ABCD])0\(/g, "$1_0 (")
+    .replace(/\bq(\d+)/g, "q_($1)");
+}

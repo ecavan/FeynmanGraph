@@ -7,7 +7,11 @@ import {
   lmbRepToTypst,
   propagatorsFromState,
 } from "./integrand";
-import { reduceLoopGuard, reduceReasonMessage } from "./reduceGuard";
+import {
+  reduceLoopGuard,
+  reduceReasonMessage,
+  sanitizeReducedTypst,
+} from "./reduceGuard";
 import { serializeGraphSpec } from "./serialize";
 
 const api = new ApiClient();
@@ -353,7 +357,7 @@ export function NumeratorPanel() {
               )}
               {reduced && (
                 <>
-                  <TypstMath source={reduced} />
+                  <TypstMath source={sanitizeReducedTypst(reduced)} />
                   <pre
                     data-testid="reduce-text"
                     style={{

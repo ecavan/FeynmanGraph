@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { reduceLoopGuard, reduceReasonMessage } from "./reduceGuard";
+import {
+  reduceLoopGuard,
+  reduceReasonMessage,
+  sanitizeReducedTypst,
+} from "./reduceGuard";
 
 describe("reduceLoopGuard", () => {
   it("allows a one-loop diagram (no warning)", () => {
@@ -37,5 +41,29 @@ describe("reduceReasonMessage", () => {
     expect(reduceReasonMessage(undefined)).toBeNull();
     expect(reduceReasonMessage(null)).toBeNull();
     expect(reduceReasonMessage("something-else")).toBeNull();
+  });
+});
+
+describe("sanitizeReducedTypst", () => {
+  it("subscripts master heads so Typst doesn't parse them as functions", () => {
+    const out = sanitizeReducedTypst('B0(x; a, b)');
+    expect(out).not.toMatch(/B0\(/);
+    expect(out).toContain("B_0 (");
+  });
+
+  it("rewrites dot(a,b) to infix and subscripts flat momenta", () => {
+    expect(sanitizeReducedTypst("dot(q1,q1)")).toBe("(q_(1) dot q_(1))");
+  });
+
+  it("handles A0/C0/D0 heads and multi-digit momenta", () => {
+    expect(sanitizeReducedTypst("A0(m)")).toContain("A_0 (");
+    expect(sanitizeReducedTypst("C0(x)")).toContain("C_0 (");
+    expect(sanitizeReducedTypst("D0(x)")).toContain("D_0 (");
+    expect(sanitizeReducedTypst("q12")).toBe("q_(12)");
+  });
+
+  it("leaves already-valid content (unicode subscripts, quoted couplings) untouched", () => {
+    const s = '"MTA"² ϵ₀^(α_(¹))';
+    expect(sanitizeReducedTypst(s)).toBe(s);
   });
 });
