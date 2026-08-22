@@ -9,6 +9,7 @@ import {
   lmbRepToTypst,
   propagatorsFromState,
 } from "./integrand";
+import { slashMomenta } from "./pslash";
 import {
   clampForDisplay,
   reduceLoopGuard,
@@ -150,12 +151,15 @@ export function NumeratorPanel() {
           state.cachedModel,
         );
 
+  // Render slashed momenta (p̸) in the numerator — the momentum·γ contraction of
+  // an internal fermion line. Only touches the numerator, so the integrand
+  // denominator (built from integrandProps) is untouched.
   const displaySource =
     raw == null
       ? null
       : view === "integrand"
-        ? buildIntegrandTypst(raw, integrandProps)
-        : raw;
+        ? buildIntegrandTypst(slashMomenta(raw), integrandProps)
+        : slashMomenta(raw);
 
   return (
     <div data-testid="numerator-panel">
