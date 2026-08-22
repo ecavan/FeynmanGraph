@@ -1,10 +1,29 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NumeratorWindow, loadWindowRect } from "./NumeratorWindow";
+import { NumeratorWindow, clampRect, loadWindowRect } from "./NumeratorWindow";
 
 beforeEach(() => window.localStorage.clear());
 afterEach(() => window.localStorage.clear());
+
+describe("clampRect", () => {
+  // jsdom viewport is 1024×768.
+  it("leaves an on-screen rect unchanged", () => {
+    expect(clampRect({ x: 100, y: 120, w: 500, h: 400 })).toEqual({
+      x: 100,
+      y: 120,
+      w: 500,
+      h: 400,
+    });
+  });
+
+  it("pulls an off-screen rect back so the title bar stays reachable", () => {
+    const r = clampRect({ x: 5000, y: 5000, w: 500, h: 400 });
+    expect(r.x).toBe(1024 - 80);
+    expect(r.y).toBe(768 - 40);
+    expect(r.w).toBe(500);
+  });
+});
 
 describe("NumeratorWindow", () => {
   it("renders its title and its children in the body", () => {

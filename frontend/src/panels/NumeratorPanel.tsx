@@ -41,6 +41,12 @@ export function NumeratorPanel() {
   const [reduceElapsed, setReduceElapsed] = useState(0);
   const [poppedOut, setPoppedOut] = useState(false);
   const reduceControllerRef = useRef<AbortController | null>(null);
+  // Mirror the latest load-state so the debounced auto-load can read the CURRENT
+  // values at fire time (not a stale closure from when the diagram changed).
+  const rawRef = useRef(raw);
+  rawRef.current = raw;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
 
   // When the underlying diagram changes (e.g. selecting a different generated
   // graph), clear stale numerator + reduction so the panel reflects the current
@@ -62,14 +68,26 @@ export function NumeratorPanel() {
   // diagrams (shouldAutoLoadNumerator). A ≥2-loop numerator is too heavy to fetch
   // eagerly, so those wait for a manual "Load numerator". Debounced so it doesn't
   // fire on every keystroke, and skipped if one is already loaded/loading.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retrigger only on diagram topology; load/state/api and the load-state refs are stable
   useEffect(() => {
-    if (empty || raw != null || busy) return;
+    if (empty) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
+      // Read current state at fire time: skip if the numerator is already loaded
+      // (incl. a manual load during the debounce) or loading. Keying only on
+      // topology means a manual Clear does NOT re-trigger this.
+      if (rawRef.current != null || busyRef.current) return;
       try {
         const spec = serializeGraphSpec(state) as unknown;
         const { loop_count } = await api.validateGraph(spec);
-        if (!cancelled && shouldAutoLoadNumerator(loop_count)) load();
+        if (
+          !cancelled &&
+          rawRef.current == null &&
+          !busyRef.current &&
+          shouldAutoLoadNumerator(loop_count)
+        ) {
+          load();
+        }
       } catch {
         // invalid / incomplete diagram — skip auto-load silently
       }
@@ -78,8 +96,7 @@ export function NumeratorPanel() {
       cancelled = true;
       clearTimeout(timer);
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: retrigger only on diagram topology + load-state; load/state/api are stable
-  }, [state.nodes, state.edges, state.externalLegs, empty, raw, busy]);
+  }, [state.nodes, state.edges, state.externalLegs, empty]);
 
   async function load() {
     setBusy(true);

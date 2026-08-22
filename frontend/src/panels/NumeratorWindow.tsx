@@ -18,6 +18,18 @@ export type WindowRect = { x: number; y: number; w: number; h: number };
 const KEY_PREFIX = "fg-window:";
 const DEFAULT_RECT: WindowRect = { x: 96, y: 96, w: 680, h: 500 };
 
+/** Keep the window's title bar on-screen so a persisted off-screen position (from
+ *  dragging it away) can't strand it on the next open. */
+export function clampRect(rect: WindowRect): WindowRect {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 768;
+  return {
+    ...rect,
+    x: Math.min(Math.max(rect.x, 0), Math.max(0, vw - 80)),
+    y: Math.min(Math.max(rect.y, 0), Math.max(0, vh - 40)),
+  };
+}
+
 /** Read a remembered window rect for a storageKey, or `fallback`. Never throws. */
 export function loadWindowRect(
   storageKey: string | undefined,
@@ -77,7 +89,7 @@ export function NumeratorWindow({
   children?: ReactNode;
 }) {
   const [rect, setRect] = useState<WindowRect>(() =>
-    loadWindowRect(storageKey, DEFAULT_RECT),
+    clampRect(loadWindowRect(storageKey, DEFAULT_RECT)),
   );
   const outerRef = useRef<HTMLDivElement | null>(null);
   // Latest rect, so the drag-end handler (attached once) can persist it.
