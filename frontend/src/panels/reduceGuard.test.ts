@@ -4,6 +4,7 @@ import {
   reduceLoopGuard,
   reduceReasonMessage,
   sanitizeReducedTypst,
+  shouldAutoLoadNumerator,
 } from "./reduceGuard";
 
 describe("reduceLoopGuard", () => {
@@ -91,5 +92,22 @@ describe("clampForDisplay", () => {
     expect(out.length).toBeLessThan(big.length);
     expect(out).toMatch(/truncated/);
     expect(out).toContain("100,000");
+  });
+});
+
+describe("shouldAutoLoadNumerator", () => {
+  it("auto-loads tree (0) and one-loop (1) diagrams — they're fast", () => {
+    expect(shouldAutoLoadNumerator(0)).toBe(true);
+    expect(shouldAutoLoadNumerator(1)).toBe(true);
+  });
+
+  it("does NOT auto-load 2+ loop diagrams (too slow to fetch eagerly)", () => {
+    expect(shouldAutoLoadNumerator(2)).toBe(false);
+    expect(shouldAutoLoadNumerator(5)).toBe(false);
+  });
+
+  it("does NOT auto-load on a nonsense loop count", () => {
+    expect(shouldAutoLoadNumerator(Number.NaN)).toBe(false);
+    expect(shouldAutoLoadNumerator(-1)).toBe(false);
   });
 });

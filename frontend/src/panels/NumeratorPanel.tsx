@@ -16,6 +16,7 @@ import {
   reduceLoopGuard,
   reduceReasonMessage,
   sanitizeReducedTypst,
+  shouldAutoLoadNumerator,
 } from "./reduceGuard";
 import { serializeGraphSpec } from "./serialize";
 
@@ -56,6 +57,29 @@ export function NumeratorPanel() {
   }, [state.nodes, state.edges, state.externalLegs]);
 
   const empty = state.nodes.length === 0;
+
+  // Auto-load the numerator once the diagram settles — but only for tree / one-loop
+  // diagrams (shouldAutoLoadNumerator). A ≥2-loop numerator is too heavy to fetch
+  // eagerly, so those wait for a manual "Load numerator". Debounced so it doesn't
+  // fire on every keystroke, and skipped if one is already loaded/loading.
+  useEffect(() => {
+    if (empty || raw != null || busy) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const spec = serializeGraphSpec(state) as unknown;
+        const { loop_count } = await api.validateGraph(spec);
+        if (!cancelled && shouldAutoLoadNumerator(loop_count)) load();
+      } catch {
+        // invalid / incomplete diagram — skip auto-load silently
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // biome-ignore lint/correctness/useExhaustiveDependencies: retrigger only on diagram topology + load-state; load/state/api are stable
+  }, [state.nodes, state.edges, state.externalLegs, empty, raw, busy]);
 
   async function load() {
     setBusy(true);
@@ -289,7 +313,11 @@ export function NumeratorPanel() {
               onClick={() => setView("integrand")}
             />
           </div>
-          <TypstMath source={displaySource} storageKey="fg-numerator-math" />
+          <TypstMath
+            source={displaySource}
+            storageKey="fg-numerator-math"
+            downloadName={view === "integrand" ? "integrand" : "numerator"}
+          />
           <div
             style={{
               marginTop: 6,
@@ -398,6 +426,7 @@ export function NumeratorPanel() {
               <TypstMath
                 source={sanitizeReducedTypst(reduced)}
                 storageKey="fg-reduce-math"
+                downloadName="reduction"
               />
               <div
                 style={{

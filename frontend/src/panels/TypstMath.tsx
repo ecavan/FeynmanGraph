@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ResizableBox } from "./ResizableBox";
+import { downloadPng, downloadSvg } from "./svgExport";
 
 type Status =
   | { kind: "loading" }
@@ -131,9 +132,14 @@ const MAX_TYPST_CHARS = 12000;
 export function TypstMath({
   source,
   storageKey,
+  downloadName,
 }: {
   source: string;
   storageKey?: string;
+  // When set, show "SVG / PNG" buttons that export the rendered formula as an
+  // image (filename base). Used for the numerator and its reduction so the
+  // closed-form result can be dropped straight into a paper or slide.
+  downloadName?: string;
 }) {
   const [state, setState] = useState<Status>({ kind: "loading" });
   const [forcedFor, setForcedFor] = useState<string | null>(null);
@@ -205,13 +211,55 @@ export function TypstMath({
       </div>
     );
   }
+  const svg = state.svg;
   return (
-    <ResizableBox storageKey={storageKey} initialHeight={260}>
-      <div
-        data-testid="typst-svg"
-        style={{ padding: "12px 16px", textAlign: "center" }}
-        dangerouslySetInnerHTML={{ __html: state.svg }}
-      />
-    </ResizableBox>
+    <>
+      <ResizableBox storageKey={storageKey} initialHeight={260}>
+        <div
+          data-testid="typst-svg"
+          style={{ padding: "12px 16px", textAlign: "center" }}
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+      </ResizableBox>
+      {downloadName && (
+        <div
+          style={{
+            marginTop: 4,
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 6,
+          }}
+        >
+          <button
+            type="button"
+            data-testid="typst-download-svg"
+            onClick={() => downloadSvg(downloadName, svg)}
+            title="Download the rendered formula as an SVG"
+            style={imageButtonStyle}
+          >
+            ⬇ SVG
+          </button>
+          <button
+            type="button"
+            data-testid="typst-download-png"
+            onClick={() => downloadPng(downloadName, svg)}
+            title="Download the rendered formula as a PNG image"
+            style={imageButtonStyle}
+          >
+            ⬇ PNG
+          </button>
+        </div>
+      )}
+    </>
   );
 }
+
+const imageButtonStyle = {
+  padding: "2px 8px",
+  fontSize: 11,
+  background: "white",
+  border: "1px solid #ccc",
+  borderRadius: 3,
+  cursor: "pointer",
+  opacity: 0.7,
+} as const;

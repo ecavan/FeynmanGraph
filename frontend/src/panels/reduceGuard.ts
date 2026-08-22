@@ -11,9 +11,18 @@ export function reduceLoopGuard(loopCount: number): string | null {
   return `Reduce to masters only works for one-loop diagrams — this diagram has ${loopCount} loop${plural}.`;
 }
 
+/** Whether to auto-load the numerator on diagram select. Only for tree (0) and
+ *  one-loop (1) diagrams — a ≥2-loop numerator is too heavy to fetch eagerly, so
+ *  those are left to a manual "Load numerator" click. */
+export function shouldAutoLoadNumerator(loopCount: number): boolean {
+  return Number.isFinite(loopCount) && loopCount >= 0 && loopCount < 2;
+}
+
 /** Maps a backend `reduce_status` (surfaced via the API) to a user-facing
  *  warning, or null when there is no known status (fall back to normal error). */
-export function reduceReasonMessage(status: string | null | undefined): string | null {
+export function reduceReasonMessage(
+  status: string | null | undefined,
+): string | null {
   switch (status) {
     case "not_one_loop":
       return "Reduce to masters only works for one-loop diagrams.";
