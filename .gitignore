@@ -234,3 +234,4 @@ frontend/e2e-local/
 hf-space/
 # feyngraph: large BSM UFO test fixture (kept local; BSM loader blocked on symbolica 2.x)
 tests/fixtures/bsm/
+.DS_Store
